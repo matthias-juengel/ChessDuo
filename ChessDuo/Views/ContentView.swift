@@ -14,14 +14,11 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            Text("Bluetooth Chess")
-                .font(.title.bold())
-
             HStack {
-                Button("Host (Weiß)") { vm.host() }
-                Button("Join (Schwarz)") { vm.join() }
+                Button("Host") { vm.host() }
+                Button("Join") { vm.join() }
                 Button("Reset") { vm.resetGame() }.disabled(!vm.peers.isConnected)
-                Button("Trennen") { vm.disconnect() }
+                Button("X") { vm.disconnect() }
             }
             .buttonStyle(.bordered)
 
