@@ -95,7 +95,7 @@ struct CapturedRow: View {
             .font(.system(size: 18))
             .foregroundStyle(p.color == .white ? .white : .black)
             .padding(2)
-            .background(.thinMaterial)
+            .background(.regularMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 4))
         }
       }
