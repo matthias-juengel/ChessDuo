@@ -38,6 +38,11 @@ struct ContentView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
+            // Opponent captured my pieces (show above the board)
+            if !vm.capturedByOpponent.isEmpty {
+                CapturedRow(pieces: vm.capturedByOpponent)
+            }
+
             BoardView(board: vm.engine.board,
                       perspective: vm.myColor ?? .white,
                       myColor: vm.myColor ?? .white,
@@ -55,6 +60,11 @@ struct ContentView: View {
             Text("Du spielst: \(vm.myColor?.rawValue.capitalized ?? "—") • Am Zug: \(vm.engine.sideToMove == .white ? "Weiß" : "Schwarz")")
                 .font(.footnote)
 
+            // My captured opponent pieces (show below the board)
+            if !vm.capturedByMe.isEmpty {
+                CapturedRow(pieces: vm.capturedByMe)
+            }
+
             // Connected devices footer
             if !vm.otherDeviceNames.isEmpty {
                 Text("Andere Geräte: " + vm.otherDeviceNames.joined(separator: ", "))
@@ -70,6 +80,38 @@ struct ContentView: View {
             }
             .padding()
         }
+    }
+}
+
+struct CapturedRow: View {
+    let pieces: [Piece]
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 4) {
+                ForEach(Array(pieces.enumerated()), id: \.offset) { _, p in
+                    Text(symbol(for: p))
+                        .font(.system(size: 18))
+                        .foregroundStyle(p.color == .white ? .white : .black)
+                        .padding(2)
+                        .background(.thinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 2)
+        }
+        .frame(maxHeight: 28)
+    }
+}
+
+private func symbol(for p: Piece) -> String {
+    switch p.type {
+    case .king:   return "♚"
+    case .queen:  return "♛"
+    case .rook:   return "♜"
+    case .bishop: return "♝"
+    case .knight: return "♞"
+    case .pawn:   return "♟︎"
     }
 }
 

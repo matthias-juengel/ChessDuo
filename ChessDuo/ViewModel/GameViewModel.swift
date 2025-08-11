@@ -14,6 +14,8 @@ final class GameViewModel: ObservableObject {
     @Published var myColor: PieceColor? = nil
     @Published var statusText: String = "Nicht verbunden"
     @Published var otherDeviceNames: [String] = []
+    @Published var capturedByMe: [Piece] = []
+    @Published var capturedByOpponent: [Piece] = []
 
     let peers = PeerService()
     private var cancellables: Set<AnyCancellable> = []
@@ -50,6 +52,8 @@ final class GameViewModel: ObservableObject {
     func disconnect() {
         peers.stop()
         statusText = "Nicht verbunden"
+    capturedByMe.removeAll()
+    capturedByOpponent.removeAll()
     }
 
     private func sendHello() {
@@ -58,14 +62,18 @@ final class GameViewModel: ObservableObject {
 
     func resetGame() {
         engine.reset()
+    capturedByMe.removeAll()
+    capturedByOpponent.removeAll()
         peers.send(.init(kind: .reset))
     }
 
     func makeMove(from: Square, to: Square) {
         guard let me = myColor, engine.sideToMove == me else { return }
         let move = Move(from: from, to: to)
+        let capturedBefore = engine.board.piece(at: to)
         if engine.tryMakeMove(move) {
             peers.send(.init(kind: .move, move: move))
+            if let cap = capturedBefore { capturedByMe.append(cap) }
             updateStatusAfterMove()
         } else {
             statusText = "Illegaler Zug (König im Schach?)"
@@ -82,7 +90,10 @@ final class GameViewModel: ObservableObject {
             statusText = "Neu gestartet. Am Zug: Weiß"
         case .move:
             if let m = msg.move {
-                _ = engine.tryMakeMove(m)
+                let capturedBefore = engine.board.piece(at: m.to)
+                if engine.tryMakeMove(m) {
+                    if let cap = capturedBefore, cap.color == myColor { capturedByOpponent.append(cap) }
+                }
                 updateStatusAfterMove()
             }
         }
