@@ -55,6 +55,8 @@ final class GameViewModel: ObservableObject {
         if engine.tryMakeMove(move) {
             peers.send(.init(kind: .move, move: move))
             statusText = "Am Zug: \(engine.sideToMove == .white ? "Weiß" : "Schwarz")"
+        } else {
+            statusText = "Illegaler Zug (König im Schach?)"
         }
     }
 

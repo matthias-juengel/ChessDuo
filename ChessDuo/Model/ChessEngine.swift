@@ -28,17 +28,17 @@ struct ChessEngine: Codable {
 
         // Pfad frei für Sliding Pieces
         if [.rook, .bishop, .queen].contains(piece.type) {
-            if !isPathClear(from: m.from, to: m.to) { return false }
+            if !isPathClear(m.from, m.to, on: board) { return false }
         }
 
-        // Zug ausführen
-        board.set(nil, at: m.from)
-        // Pawn Promotion automatisch zur Dame
-        if piece.type == .pawn && (m.to.rank == 7 && piece.color == .white || m.to.rank == 0 && piece.color == .black) {
-            piece = Piece(type: .queen, color: piece.color)
-        }
-        board.set(piece, at: m.to)
+        // Simulation auf Kopie durchführen
+        var sim = board
+        applyMove(m, promotingFrom: &piece, on: &sim)
+        // Wenn eigener König im Schach bleibt/kommt, ist der Zug illegal
+        if isKingInCheck(piece.color, on: sim) { return false }
 
+        // Zug als gültig ausführen
+        board = sim
         sideToMove = sideToMove.opposite
         return true
     }
@@ -94,5 +94,98 @@ struct ChessEngine: Codable {
             if board.piece(at: .init(file: f, rank: r)) != nil { return false }
         } while true
         return true
+    }
+
+    // MARK: - Check / Attack detection
+    private func isKingInCheck(_ color: PieceColor, on b: Board) -> Bool {
+        guard let kSq = kingSquare(of: color, on: b) else { return false }
+        return isSquareAttacked(kSq, by: color.opposite, on: b)
+    }
+
+    private func kingSquare(of color: PieceColor, on b: Board) -> Square? {
+        for rank in 0..<8 {
+            for file in 0..<8 {
+                let sq = Square(file: file, rank: rank)
+                if let p = b.piece(at: sq), p.type == .king, p.color == color {
+                    return sq
+                }
+            }
+        }
+        return nil
+    }
+
+    private func isSquareAttacked(_ sq: Square, by attacker: PieceColor, on b: Board) -> Bool {
+        // Knights
+        let knightDeltas = [(1,2),(2,1),(-1,2),(-2,1),(1,-2),(2,-1),(-1,-2),(-2,-1)]
+        for (df, dr) in knightDeltas {
+            let t = Square(file: sq.file + df, rank: sq.rank + dr)
+            if Board.inBounds(t), let p = b.piece(at: t), p.color == attacker, p.type == .knight { return true }
+        }
+        // King (adjacent squares)
+        for df in -1...1 {
+            for dr in -1...1 {
+                if df == 0 && dr == 0 { continue }
+                let t = Square(file: sq.file + df, rank: sq.rank + dr)
+                if Board.inBounds(t), let p = b.piece(at: t), p.color == attacker, p.type == .king { return true }
+            }
+        }
+        // Pawns (attack only diagonally forward)
+        let dir = (attacker == .white) ? 1 : -1
+        let pawnTargets = [Square(file: sq.file - 1, rank: sq.rank - dir), Square(file: sq.file + 1, rank: sq.rank - dir)]
+        for t in pawnTargets where Board.inBounds(t) {
+            if let p = b.piece(at: t), p.color == attacker, p.type == .pawn { return true }
+        }
+        // Sliding pieces: bishops/rooks/queens
+        // Diagonals (bishop/queen)
+        let diagSteps = [(1,1),(1,-1),(-1,1),(-1,-1)]
+        for (sf, sr) in diagSteps {
+            var f = sq.file + sf, r = sq.rank + sr
+            while (0...7).contains(f) && (0...7).contains(r) {
+                let t = Square(file: f, rank: r)
+                if let piece = b.piece(at: t) {
+                    if piece.color == attacker && (piece.type == .bishop || piece.type == .queen) { return true }
+                    break
+                }
+                f += sf; r += sr
+            }
+        }
+        // Ranks/files (rook/queen)
+        let orthoSteps = [(1,0),(-1,0),(0,1),(0,-1)]
+        for (sf, sr) in orthoSteps {
+            var f = sq.file + sf, r = sq.rank + sr
+            while (0...7).contains(f) && (0...7).contains(r) {
+                let t = Square(file: f, rank: r)
+                if let piece = b.piece(at: t) {
+                    if piece.color == attacker && (piece.type == .rook || piece.type == .queen) { return true }
+                    break
+                }
+                f += sf; r += sr
+            }
+        }
+        return false
+    }
+
+    // Path-clear check on arbitrary board state
+    private func isPathClear(_ from: Square, _ to: Square, on b: Board) -> Bool {
+        var f = from.file, r = from.rank
+        let stepF = (to.file - f).signum()
+        let stepR = (to.rank - r).signum()
+        repeat {
+            f += stepF; r += stepR
+            if f == to.file && r == to.rank { break }
+            if b.piece(at: .init(file: f, rank: r)) != nil { return false }
+        } while true
+        return true
+    }
+
+    // Apply a move on a given board copy (with simple promotion to queen)
+    private func applyMove(_ m: Move, promotingFrom pieceRef: inout Piece, on b: inout Board) {
+        b.set(nil, at: m.from)
+        var piece = pieceRef
+        if piece.type == .pawn && ((m.to.rank == 7 && piece.color == .white) || (m.to.rank == 0 && piece.color == .black)) {
+            piece = Piece(type: .queen, color: piece.color)
+        }
+        b.set(piece, at: m.to)
+        pieceRef = piece
     }
 }
