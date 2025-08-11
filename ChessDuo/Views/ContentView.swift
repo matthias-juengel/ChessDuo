@@ -13,7 +13,19 @@ struct ContentView: View {
     @State private var selected: Square? = nil
 
     var body: some View {
-        VStack(spacing: 12) {
+        ZStack {
+            // Full-screen background indicating turn status
+            Group {
+                let isMyTurn = (vm.myColor != nil) && (vm.engine.sideToMove == (vm.myColor ?? .white))
+                if isMyTurn {
+                    Color.green.opacity(0.4)
+                } else {
+                    Color(.systemBackground)
+                }
+            }
+            .ignoresSafeArea()
+
+            VStack(spacing: 12) {
             HStack {
                 Button("Host") { vm.host() }
                 Button("Join") { vm.join() }
@@ -55,8 +67,9 @@ struct ContentView: View {
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
+            }
+            .padding()
         }
-        .padding()
     }
 }
 
