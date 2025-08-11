@@ -19,6 +19,8 @@
     <string>$(EXECUTABLE_NAME)</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
+    <key>UILaunchStoryboardName</key>
+    <string>LaunchScreen</string>
 
     <!-- Wichtig für Multipeer/Bluetooth über Bonjour -->
     <key>NSLocalNetworkUsageDescription</key>
