@@ -28,8 +28,16 @@ struct ContentView: View {
 
             BoardView(board: vm.engine.board,
                       perspective: vm.myColor ?? .white,
+                      myColor: vm.myColor ?? .white,
+                      sideToMove: vm.engine.sideToMove,
                       selected: $selected) { from, to in
                 vm.makeMove(from: from, to: to)
+            }
+
+            .onChange(of: vm.engine.sideToMove) { newValue in
+                if let mine = vm.myColor, mine != newValue {
+                    selected = nil
+                }
             }
 
             Text("Du spielst: \(vm.myColor?.rawValue.capitalized ?? "—") • Am Zug: \(vm.engine.sideToMove == .white ? "Weiß" : "Schwarz")")
@@ -42,6 +50,8 @@ struct ContentView: View {
 struct BoardView: View {
     let board: Board
     let perspective: PieceColor
+    let myColor: PieceColor
+    let sideToMove: PieceColor
     @Binding var selected: Square?
     let onMove: (Square, Square) -> Void
 
@@ -74,16 +84,26 @@ struct BoardView: View {
     }
 
     private func tap(_ sq: Square) {
+        // Only interact when it's this player's turn
+        guard myColor == sideToMove else { return }
         if let sel = selected {
             if sel == sq {
+                // Deselect if tapping the same square
                 selected = nil
+                return
+            }
+            // If tapping another own piece, switch selection; otherwise attempt move
+            if let p = board.piece(at: sq), p.color == myColor {
+                selected = sq
             } else {
                 onMove(sel, sq)
                 selected = nil
             }
         } else {
-            // Nur eigene Figuren auswählen (optional – wenn Farbe bekannt)
-            selected = sq
+            // Only allow selecting a square that has a piece of the side to move
+            if let p = board.piece(at: sq), p.color == myColor {
+                selected = sq
+            }
         }
     }
 }
