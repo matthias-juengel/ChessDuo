@@ -7,18 +7,30 @@
 
 
 import Foundation
+import Combine
 
 final class GameViewModel: ObservableObject {
     @Published private(set) var engine = ChessEngine()
     @Published var myColor: PieceColor? = nil
     @Published var statusText: String = "Nicht verbunden"
+    @Published var otherDeviceNames: [String] = []
 
     let peers = PeerService()
+    private var cancellables: Set<AnyCancellable> = []
 
     init() {
         peers.onMessage = { [weak self] msg in
             self?.handle(msg)
         }
+
+        // Mirror connected peer names into a published property for the UI
+        peers.$connectedPeers
+            .map { peers in peers.map { $0.displayName }.sorted() }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] names in
+                self?.otherDeviceNames = names
+            }
+            .store(in: &cancellables)
     }
 
     func host() {

@@ -42,6 +42,19 @@ struct ContentView: View {
 
             Text("Du spielst: \(vm.myColor?.rawValue.capitalized ?? "—") • Am Zug: \(vm.engine.sideToMove == .white ? "Weiß" : "Schwarz")")
                 .font(.footnote)
+
+            // Connected devices footer
+            if !vm.otherDeviceNames.isEmpty {
+                Text("Andere Geräte: " + vm.otherDeviceNames.joined(separator: ", "))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            } else {
+                Text("Keine anderen Geräte verbunden")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
         }
         .padding()
     }
