@@ -17,10 +17,9 @@ struct ContentView: View {
       //      Full-screen background indicating turn status
       Group {
         let isMyTurn = (vm.myColor != nil) && (vm.engine.sideToMove == (vm.myColor ?? .white))
+        Color(red: 0.5, green: 0.5, blue: 0.5)
         if isMyTurn {
           Color.green.opacity(0.4)
-        } else {
-          Color(.systemBackground)
         }
       }
       .ignoresSafeArea()
@@ -28,20 +27,32 @@ struct ContentView: View {
       VStack(spacing: 12) {
         HStack {
           Button("Host") { vm.host() }
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(.black, lineWidth: 1))
+
           Button("Join") { vm.join() }
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(.black, lineWidth: 1))
+
           Button("Reset") { vm.resetGame() }.disabled(!vm.peers.isConnected)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(.black, lineWidth: 1))
+
           Button("X") { vm.disconnect() }
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(.black, lineWidth: 1))
         }
         .buttonStyle(.bordered)
 
-        Text(vm.statusText)
-          .font(.subheadline)
-          .foregroundStyle(.secondary)
+//        Text(vm.statusText)
+//          .font(.subheadline)
+//          .foregroundStyle(.white)
 
-        // Opponent captured my pieces (show above the board)
-        //            if !vm.capturedByOpponent.isEmpty {
         CapturedRow(pieces: vm.capturedByOpponent)
-        //            }
 
         BoardView(board: vm.engine.board,
                   perspective: vm.myColor ?? .white,
@@ -57,13 +68,13 @@ struct ContentView: View {
                     }
                   }
 
-        Text("Du spielst: \(vm.myColor?.rawValue.capitalized ?? "—") • Am Zug: \(vm.engine.sideToMove == .white ? "Weiß" : "Schwarz")")
-          .font(.footnote)
+//        Text("Du spielst: \(vm.myColor?.rawValue.capitalized ?? "—") • Am Zug: \(vm.engine.sideToMove == .white ? "Weiß" : "Schwarz")")
+//          .font(.footnote)
+        Text("Am Zug: \(vm.engine.sideToMove == .white ? "Weiß" : "Schwarz")")
+          .font(.subheadline)
+          .foregroundStyle(vm.engine.sideToMove == .white ? .white : .black)
 
-        // My captured opponent pieces (show below the board)
-        //            if !vm.capturedByMe.isEmpty {
         CapturedRow(pieces: vm.capturedByMe)
-        //            }
 
         // Connected devices footer
         if !vm.otherDeviceNames.isEmpty {
@@ -92,11 +103,8 @@ struct CapturedRow: View {
       HStack(spacing: 4) {
         ForEach(Array(pieces.enumerated()), id: \.offset) { _, p in
           Text(symbol(for: p))
-            .font(.system(size: 18))
+            .font(.system(size: 30))
             .foregroundStyle(p.color == .white ? .white : .black)
-            .padding(2)
-            .background(.regularMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
         }
       }
       .frame(maxWidth: .infinity)
@@ -135,15 +143,16 @@ struct BoardView: View {
             let sq = Square(file: file, rank: rank)
             SquareView(square: sq,
                        piece: board.piece(at: sq),
-                       isSelected: selected == sq)
+                       isSelected: selected == sq).zIndex(selected == sq ? 100 : 1)
             .onTapGesture { tap(sq) }
           }
-        }
+        }.zIndex(selected?.rank == rank ? 100 : 1)
       }
     }
     .aspectRatio(1, contentMode: .fit)
-    .clipShape(RoundedRectangle(cornerRadius: 8))
-    .overlay(RoundedRectangle(cornerRadius: 8).stroke(.secondary, lineWidth: 1))
+//    .clipShape(RoundedRectangle(cornerRadius: 8))
+//    .overlay(RoundedRectangle(cornerRadius: 8).stroke(.black, lineWidth: 1))
+    .overlay(Rectangle().stroke(.black, lineWidth: 1))
   }
 
   private func rows() -> [Int] {
@@ -188,11 +197,11 @@ struct SquareView: View {
       Rectangle()
         .fill(colorForSquare(square))
       if isSelected {
-        Rectangle().stroke(Color.yellow, lineWidth: 3)
+        Rectangle().stroke(Color.white, lineWidth: 1).padding(1)
       }
       if let p = piece {
         Text(symbol(for: p))
-          .font(.system(size: 30))
+          .font(.system(size: 35))
           .foregroundColor(p.color == .white ? .white : .black)
           .opacity(1)
         //                    .bold()
