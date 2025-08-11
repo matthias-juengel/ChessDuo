@@ -66,7 +66,7 @@ final class GameViewModel: ObservableObject {
         let move = Move(from: from, to: to)
         if engine.tryMakeMove(move) {
             peers.send(.init(kind: .move, move: move))
-            statusText = "Am Zug: \(engine.sideToMove == .white ? "Weiß" : "Schwarz")"
+            updateStatusAfterMove()
         } else {
             statusText = "Illegaler Zug (König im Schach?)"
         }
@@ -83,8 +83,19 @@ final class GameViewModel: ObservableObject {
         case .move:
             if let m = msg.move {
                 _ = engine.tryMakeMove(m)
-                statusText = "Am Zug: \(engine.sideToMove == .white ? "Weiß" : "Schwarz")"
+                updateStatusAfterMove()
             }
+        }
+    }
+
+    private func updateStatusAfterMove() {
+        // Prüfe auf Schachmatt für die Seite, die jetzt am Zug wäre
+        let side = engine.sideToMove
+        if engine.isCheckmate(for: side) {
+            let winner = side.opposite
+            statusText = "Schachmatt! \(winner == .white ? "Weiß" : "Schwarz") gewinnt."
+        } else {
+            statusText = "Am Zug: \(engine.sideToMove == .white ? "Weiß" : "Schwarz")"
         }
     }
 }

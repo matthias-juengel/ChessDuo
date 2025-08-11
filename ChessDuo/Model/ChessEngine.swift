@@ -43,6 +43,42 @@ struct ChessEngine: Codable {
         return true
     }
 
+    // MARK: - Game state helpers (Checkmate)
+    func isCheckmate(for color: PieceColor) -> Bool {
+        // Checkmate: side is in check and has no legal move
+        return isKingInCheck(color, on: board) && !hasAnyLegalMove(for: color)
+    }
+
+    func hasAnyLegalMove(for color: PieceColor) -> Bool {
+        // Try every piece and destination; early exit if a legal move exists
+        for rank in 0..<8 {
+            for file in 0..<8 {
+                let from = Square(file: file, rank: rank)
+                guard var piece = board.piece(at: from), piece.color == color else { continue }
+                for tr in 0..<8 {
+                    for tf in 0..<8 {
+                        let to = Square(file: tf, rank: tr)
+                        let m = Move(from: from, to: to)
+                        // Mirror logic from tryMakeMove, but without mutating state
+                        if !Board.inBounds(m.from) || !Board.inBounds(m.to) { continue }
+                        if !isPseudoLegal(piece: piece, from: m.from, to: m.to) { continue }
+                        if let dest = board.piece(at: m.to), dest.color == piece.color { continue }
+                        if [.rook, .bishop, .queen].contains(piece.type) {
+                            if !isPathClear(m.from, m.to, on: board) { continue }
+                        }
+                        var sim = board
+                        var p = piece
+                        applyMove(m, promotingFrom: &p, on: &sim)
+                        if !isKingInCheck(color, on: sim) {
+                            return true
+                        }
+                    }
+                }
+            }
+        }
+        return false
+    }
+
     private func isPseudoLegal(piece: Piece, from: Square, to: Square) -> Bool {
         let df = to.file - from.file
         let dr = to.rank - from.rank
