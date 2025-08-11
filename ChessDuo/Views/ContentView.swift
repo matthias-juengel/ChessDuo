@@ -125,7 +125,7 @@ struct SquareView: View {
                     .font(.system(size: 30))
                     .foregroundColor(p.color == .white ? .white : .black)
                     .opacity(1)
-                    .bold()
+//                    .bold()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
