@@ -202,8 +202,13 @@ struct SquareView: View {
   }
 
   private func colorForSquare(_ s: Square) -> Color {
-    ((s.file + s.rank) % 2 == 0) ? Color(red: 0.93, green: 0.86, blue: 0.75)
-    : Color(red: 0.52, green: 0.37, blue: 0.26)
+    let grayBlack = Color(red: 0.4, green: 0.4, blue: 0.4)
+    let grayWhite = Color(red: 0.6, green: 0.6, blue: 0.6)
+
+    return ((s.file + s.rank) % 2 == 0) ? grayBlack : grayWhite
+
+//    return ((s.file + s.rank) % 2 == 0) ? Color(red: 0.93, green: 0.86, blue: 0.75)
+//    : Color(red: 0.52, green: 0.37, blue: 0.26)
   }
 
   private func symbol(for p: Piece) -> String {
