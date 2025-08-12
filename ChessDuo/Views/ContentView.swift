@@ -290,12 +290,15 @@ struct BoardView: View {
   let onMove: (Square, Square, Bool) -> Void
 
   var body: some View {
-    //    let files = 0..<8
-    //    let ranks = 0..<8
-    VStack(spacing: 0) {
-      ForEach(rows(), id: \.self) { rank in
-        HStack(spacing: 0) {
-          ForEach(cols(), id: \ .self) { file in
+    GeometryReader { geo in
+      let boardSide = min(geo.size.width, geo.size.height)
+      let rowArray = rows()
+      let colArray = cols()
+      let squareSize = boardSide / 8.0
+      ZStack(alignment: .topLeading) {
+        // Squares + pieces
+        ForEach(Array(rowArray.enumerated()), id: \.offset) { rowIdx, rank in
+          ForEach(Array(colArray.enumerated()), id: \.offset) { colIdx, file in
             let sq = Square(file: file, rank: rank)
             let piece = board.piece(at: sq)
             let kingInCheckHighlight = inCheckCurrentSide && piece?.type == .king && piece?.color == sideToMove
@@ -304,15 +307,25 @@ struct BoardView: View {
                        isSelected: selected == sq,
                        isKingInCheck: kingInCheckHighlight,
                        isKingCheckmated: isCheckmatePosition && kingInCheckHighlight,
-                       rotateForOpponent: singleDevice && (piece?.color == .black)
-            ).zIndex(selected == sq ? 100 : 1)
+                       rotateForOpponent: singleDevice && (piece?.color == .black))
+              .frame(width: squareSize, height: squareSize)
+              .position(x: CGFloat(colIdx) * squareSize + squareSize / 2,
+                        y: CGFloat(rowIdx) * squareSize + squareSize / 2)
+              .contentShape(Rectangle())
               .onTapGesture { tap(sq) }
+              .zIndex(selected == sq ? 100 : 1)
           }
-        }.zIndex(selected?.rank == rank ? 100 : 1)
+        }
+        // Border overlay
+        Rectangle()
+          .stroke(Color.black, lineWidth: 1)
+          .frame(width: boardSide, height: boardSide)
       }
+      .frame(width: boardSide, height: boardSide, alignment: .topLeading)
+      .clipped()
+      .aspectRatio(1, contentMode: .fit)
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    .aspectRatio(1, contentMode: .fit)
-    .overlay(Rectangle().stroke(.black, lineWidth: 1))
   }
 
   private func rows() -> [Int] {
@@ -375,7 +388,7 @@ struct SquareView: View {
       }
       if let p = piece {
         Text(symbol(for: p))
-          .font(.system(size: 35))
+          .font(.system(size: 45))
           .foregroundColor(p.color == .white ? .white : .black)
           .opacity(1)
           .rotationEffect(rotateForOpponent ? .degrees(180) : .degrees(0))
