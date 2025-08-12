@@ -297,6 +297,9 @@ struct ChessEngine: Codable {
     }
 
     // MARK: - Check / Attack detection
+    // Public wrapper to query if a color is currently in check on the live board
+    func isInCheck(_ color: PieceColor) -> Bool { isKingInCheck(color, on: board) }
+
     private func isKingInCheck(_ color: PieceColor, on b: Board) -> Bool {
         guard let kSq = kingSquare(of: color, on: b) else { return false }
         return isSquareAttacked(kSq, by: color.opposite, on: b)

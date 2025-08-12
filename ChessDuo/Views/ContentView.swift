@@ -58,11 +58,15 @@ struct ContentView: View {
 
         CapturedRow(pieces: vm.capturedByOpponent)
 
-        BoardView(board: vm.engine.board,
-                  perspective: vm.myColor ?? .white,
-                  myColor: vm.myColor ?? .white,
-                  sideToMove: vm.engine.sideToMove,
-                  selected: $selected) { from, to in
+  let inCheck = vm.engine.isInCheck(vm.engine.sideToMove)
+  let isMate = inCheck && vm.engine.isCheckmate(for: vm.engine.sideToMove)
+  BoardView(board: vm.engine.board,
+      perspective: vm.myColor ?? .white,
+      myColor: vm.myColor ?? .white,
+      sideToMove: vm.engine.sideToMove,
+      inCheckCurrentSide: inCheck,
+      isCheckmatePosition: isMate,
+      selected: $selected) { from, to in
           vm.makeMove(from: from, to: to)
         }.onChange(of: vm.engine.sideToMove) { newValue in
           if let mine = vm.myColor, mine != newValue {
@@ -75,11 +79,18 @@ struct ContentView: View {
         ZStack {
           Color.clear.frame(height: 40)
           if vm.peers.isConnected {
-            let colorText = vm.engine.sideToMove == .white ? "Weiß" : "Schwarz"
-            let turnText = vm.myColor == vm.engine.sideToMove ? "\(colorText) (Du)" : colorText
-            Text("Am Zug: \(turnText)")
-              .font(.subheadline)
-              .foregroundStyle(vm.engine.sideToMove == .white ? .white : .black)
+            if vm.outcome == .ongoing {
+              let colorText = vm.engine.sideToMove == .white ? "Weiß" : "Schwarz"
+              let turnText = vm.myColor == vm.engine.sideToMove ? "\(colorText) (Du)" : colorText
+              Text("Am Zug: \(turnText)")
+                .font(.headline)
+                .foregroundStyle(vm.engine.sideToMove == .white ? .white : .black)
+            } else {
+              Text(vm.outcome == .win ? "Du hast gewonnen" : "Du bist Matt")
+                .font(.headline)
+                .foregroundStyle(vm.engine.sideToMove == .white ? .white : .black)
+//                .foregroundStyle(vm.outcome == .win ? Color.green : Color.red)
+            }
           }
         }
 
@@ -184,6 +195,8 @@ struct BoardView: View {
   let perspective: PieceColor
   let myColor: PieceColor
   let sideToMove: PieceColor
+  let inCheckCurrentSide: Bool
+  let isCheckmatePosition: Bool
   @Binding var selected: Square?
   let onMove: (Square, Square) -> Void
 
@@ -195,9 +208,13 @@ struct BoardView: View {
         HStack(spacing: 0) {
           ForEach(cols(), id: \.self) { file in
             let sq = Square(file: file, rank: rank)
+            let piece = board.piece(at: sq)
+            let kingInCheckHighlight = inCheckCurrentSide && piece?.type == .king && piece?.color == sideToMove
             SquareView(square: sq,
-                       piece: board.piece(at: sq),
-                       isSelected: selected == sq).zIndex(selected == sq ? 100 : 1)
+                       piece: piece,
+                       isSelected: selected == sq,
+                       isKingInCheck: kingInCheckHighlight,
+                       isKingCheckmated: isCheckmatePosition && kingInCheckHighlight).zIndex(selected == sq ? 100 : 1)
             .onTapGesture { tap(sq) }
           }
         }.zIndex(selected?.rank == rank ? 100 : 1)
@@ -245,6 +262,8 @@ struct SquareView: View {
   let square: Square
   let piece: Piece?
   let isSelected: Bool
+  let isKingInCheck: Bool
+  let isKingCheckmated: Bool
 
   var body: some View {
     ZStack {
@@ -253,12 +272,16 @@ struct SquareView: View {
       if isSelected {
         Rectangle().stroke(Color.white, lineWidth: 1).padding(1)
       }
+      if isKingInCheck {
+        RoundedRectangle(cornerRadius: 6, style: .continuous)
+          .fill(isKingCheckmated ? Color.red.opacity(0.9) : Color.red.opacity(0.7))
+          .padding(4)
+      }
       if let p = piece {
         Text(symbol(for: p))
           .font(.system(size: 35))
           .foregroundColor(p.color == .white ? .white : .black)
           .opacity(1)
-        //                    .bold()
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)

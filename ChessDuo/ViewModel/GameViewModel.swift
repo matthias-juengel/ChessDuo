@@ -20,10 +20,12 @@ final class GameViewModel: ObservableObject {
     @Published var movesMade: Int = 0
     @Published var awaitingResetConfirmation: Bool = false
     @Published var incomingResetRequest: Bool = false
+    @Published var outcome: GameOutcome = .ongoing
 
     let peers = PeerService()
     private var cancellables: Set<AnyCancellable> = []
     private var hasSentHello = false
+    enum GameOutcome: Equatable { case ongoing, win, loss }
 
     init() {
         peers.onMessage = { [weak self] msg in
@@ -127,6 +129,7 @@ final class GameViewModel: ObservableObject {
     }
 
     func makeMove(from: Square, to: Square) {
+        guard outcome == .ongoing else { return }
         guard let me = myColor, engine.sideToMove == me else { return }
         let move = Move(from: from, to: to)
         let capturedBefore = engine.board.piece(at: to)
@@ -158,7 +161,7 @@ final class GameViewModel: ObservableObject {
         case .move:
             if let m = msg.move {
                 let capturedBefore = engine.board.piece(at: m.to)
-                if engine.tryMakeMove(m) {
+                if outcome == .ongoing, engine.tryMakeMove(m) {
                     if let cap = capturedBefore, cap.color == myColor { capturedByOpponent.append(cap) }
                 }
                 movesMade += 1
@@ -232,6 +235,7 @@ final class GameViewModel: ObservableObject {
         awaitingResetConfirmation = false
         incomingResetRequest = false
         statusText = "Neu gestartet. Am Zug: Weiß"
+        outcome = .ongoing
         if send { peers.send(.init(kind: .reset)) }
     }
 
@@ -273,12 +277,17 @@ final class GameViewModel: ObservableObject {
     }
 
     private func updateStatusAfterMove() {
-        // Prüfe auf Schachmatt für die Seite, die jetzt am Zug wäre
         let side = engine.sideToMove
         if engine.isCheckmate(for: side) {
             let winner = side.opposite
-            statusText = "Schachmatt! \(winner == .white ? "Weiß" : "Schwarz") gewinnt."
+            if let me = myColor {
+                outcome = (winner == me) ? .win : .loss
+                statusText = outcome == .win ? "Du hast gewonnen" : "Du bist Matt"
+            } else {
+                statusText = "Schachmatt"
+            }
         } else {
+            outcome = .ongoing
             statusText = "Am Zug: \(engine.sideToMove == .white ? "Weiß" : "Schwarz")"
         }
     }
