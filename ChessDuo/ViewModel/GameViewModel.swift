@@ -289,6 +289,9 @@ final class GameViewModel: ObservableObject {
         } else if engine.isStalemate(for: side) {
             outcome = .draw
             statusText = "Remis"
+        } else if engine.isThreefoldRepetition() {
+            outcome = .draw
+            statusText = "Remis (dreifache Stellungswiederholung)"
         } else {
             outcome = .ongoing
             statusText = "Am Zug: \(engine.sideToMove == .white ? "Weiß" : "Schwarz")"

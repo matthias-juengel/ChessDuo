@@ -17,6 +17,13 @@ struct ChessEngine: Codable {
     private var whiteCanCastleQueenside = true
     private var blackCanCastleKingside = true
     private var blackCanCastleQueenside = true
+    // Position repetition tracking (key -> count)
+    private var positionCounts: [String:Int] = [:]
+
+    init() {
+        // Ensure initial position recorded
+        recordInitialPosition()
+    }
 
     mutating func reset() {
         board = .initial()
@@ -25,6 +32,8 @@ struct ChessEngine: Codable {
         whiteCanCastleQueenside = true
         blackCanCastleKingside = true
         blackCanCastleQueenside = true
+    positionCounts = [:]
+    recordInitialPosition()
     }
 
     // Apply snapshot received from network (castling rights are conservatively reset)
@@ -37,6 +46,8 @@ struct ChessEngine: Codable {
         whiteCanCastleQueenside = canStillCastle(color: .white, kingside: false)
         blackCanCastleKingside = canStillCastle(color: .black, kingside: true)
         blackCanCastleQueenside = canStillCastle(color: .black, kingside: false)
+    positionCounts = [:]
+    recordPosition()
     }
 
     static func fromSnapshot(board: Board, sideToMove: PieceColor) -> ChessEngine {
@@ -91,6 +102,7 @@ struct ChessEngine: Codable {
         board = sim
         updateCastlingRights(move: m, piece: piece)
         sideToMove = sideToMove.opposite
+    recordPosition()
         return true
     }
     
@@ -154,6 +166,12 @@ struct ChessEngine: Codable {
     /// Stalemate (Patt): side is NOT in check and has no legal move.
     func isStalemate(for color: PieceColor) -> Bool {
         return !isKingInCheck(color, on: board) && !hasAnyLegalMove(for: color)
+    }
+
+    /// Threefold repetition draw condition (current position occurred at least 3 times)
+    func isThreefoldRepetition() -> Bool {
+        let key = positionKey()
+        return (positionCounts[key] ?? 0) >= 3
     }
 
     func hasAnyLegalMove(for color: PieceColor) -> Bool {
@@ -424,5 +442,45 @@ struct ChessEngine: Codable {
             // Regular move
             applyMove(m, promotingFrom: &pieceRef, on: &b)
         }
+    }
+
+    // MARK: - Repetition helpers
+    private mutating func recordInitialPosition() {
+        positionCounts = [:]
+        recordPosition()
+    }
+    private mutating func recordPosition() {
+        let key = positionKey()
+        positionCounts[key, default: 0] += 1
+    }
+    private func positionKey() -> String {
+        // Encodes board layout, side to move, and castling rights (en-passant not implemented in engine)
+        var s = String()
+        for rank in 0..<8 {
+            for file in 0..<8 {
+                let sq = Square(file: file, rank: rank)
+                if let p = board.piece(at: sq) {
+                    let c = p.color == .white ? "w" : "b"
+                    let t: String
+                    switch p.type {
+                    case .king: t = "k"
+                    case .queen: t = "q"
+                    case .rook: t = "r"
+                    case .bishop: t = "b"
+                    case .knight: t = "n"
+                    case .pawn: t = "p"
+                    }
+                    s.append(c + t)
+                } else {
+                    s.append("__")
+                }
+            }
+        }
+        s.append("|")
+        s.append(sideToMove == .white ? "w" : "b")
+        s.append("|")
+        let cr = [whiteCanCastleKingside, whiteCanCastleQueenside, blackCanCastleKingside, blackCanCastleQueenside]
+        for flag in cr { s.append(flag ? "1" : "0") }
+        return s
     }
 }
