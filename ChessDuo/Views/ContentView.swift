@@ -14,6 +14,50 @@ struct ContentView: View {
   @State private var showPeerChooser = false
   @State private var selectedPeerToJoin: String? = nil
 
+  private var turnStatus: (text: String, color: Color)? {
+    guard vm.peers.isConnected else { return nil }
+    switch vm.outcome {
+    case .ongoing:
+      let colorText = vm.engine.sideToMove == .white ? "Weiß" : "Schwarz"
+      let turnText = vm.myColor == vm.engine.sideToMove ? "\(colorText) (Du)" : colorText
+      let fg = vm.engine.sideToMove == .white ? Color.white : Color.black
+      return ("Am Zug: \(turnText)", fg)
+    case .win: return ("Du hast gewonnen", .green)
+    case .loss: return ("Du bist Matt", .red)
+    case .draw: return ("Remis", .yellow)
+    }
+  }
+  
+  private var resetButtonArea: some View {
+    HStack {
+      Spacer()
+      Group {
+        if vm.movesMade > 0 {
+          Button(action: { vm.resetGame() }) {
+            Text(vm.awaitingResetConfirmation ? "Neues Spiel?" : "Neues Spiel")
+              .font(.caption2)
+              .fontWeight(.semibold)
+              .padding(.horizontal, 10)
+              .padding(.vertical, 5)
+              .background(Color.white.opacity(vm.awaitingResetConfirmation ? 0.7 : 0.9))
+              .foregroundColor(.black)
+              .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+              .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.black.opacity(0.8), lineWidth: 1))
+          }
+          .disabled(!vm.peers.isConnected)
+          .transition(.opacity)
+        } else {
+          Text("Neues Spiel")
+            .font(.caption2)
+            .fontWeight(.semibold)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .opacity(0)
+        }
+      }
+    }
+  }
+  
   var body: some View {
     ZStack {
       //      Full-screen background indicating turn status
@@ -27,50 +71,25 @@ struct ContentView: View {
       .ignoresSafeArea()
 
       VStack(spacing: 12) {
-        // Reset button area (outside board) with placeholder to keep layout stable
-        HStack {
-          Spacer()
-          Group {
-            if vm.movesMade > 0 {
-              Button(action: { vm.resetGame() }) {
-                Text(vm.awaitingResetConfirmation ? "Neues Spiel?" : "Neues Spiel")
-                  .font(.caption2)
-                  .fontWeight(.semibold)
-                  .padding(.horizontal, 10)
-                  .padding(.vertical, 5)
-                  .background(Color.white.opacity(vm.awaitingResetConfirmation ? 0.7 : 0.9))
-                  .foregroundColor(.black)
-                  .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                  .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.black.opacity(0.8), lineWidth: 1))
-              }
-              .disabled(!vm.peers.isConnected)
-              .transition(.opacity)
-            } else {
-              Text("Neues Spiel")
-                .font(.caption2)
-                .fontWeight(.semibold)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .opacity(0)
-            }
-          }
-        }
+  // Reset button area (outside board) with placeholder to keep layout stable
+  resetButtonArea
 
         CapturedRow(pieces: vm.capturedByOpponent)
 
-  let inCheck = vm.engine.isInCheck(vm.engine.sideToMove)
-  let isMate = inCheck && vm.engine.isCheckmate(for: vm.engine.sideToMove)
-  BoardView(board: vm.engine.board,
-      perspective: vm.myColor ?? .white,
-      myColor: vm.myColor ?? .white,
-      sideToMove: vm.engine.sideToMove,
-      inCheckCurrentSide: inCheck,
-      isCheckmatePosition: isMate,
-      selected: $selected) { from, to in
-          vm.makeMove(from: from, to: to)
-        }.onChange(of: vm.engine.sideToMove) { newValue in
-          if let mine = vm.myColor, mine != newValue {
-            selected = nil
+        Group {
+          let inCheck = vm.engine.isInCheck(vm.engine.sideToMove)
+          let isMate = inCheck && vm.engine.isCheckmate(for: vm.engine.sideToMove)
+          BoardView(board: vm.engine.board,
+                    perspective: vm.myColor ?? .white,
+                    myColor: vm.myColor ?? .white,
+                    sideToMove: vm.engine.sideToMove,
+                    inCheckCurrentSide: inCheck,
+                    isCheckmatePosition: isMate,
+                    selected: $selected) { from, to in
+            vm.makeMove(from: from, to: to)
+          }
+          .onChange(of: vm.engine.sideToMove) { newValue in
+            if let mine = vm.myColor, mine != newValue { selected = nil }
           }
         }
 
@@ -78,25 +97,10 @@ struct ContentView: View {
 
         ZStack {
           Color.clear.frame(height: 40)
-          if vm.peers.isConnected {
-            if vm.outcome == .ongoing {
-              let colorText = vm.engine.sideToMove == .white ? "Weiß" : "Schwarz"
-              let turnText = vm.myColor == vm.engine.sideToMove ? "\(colorText) (Du)" : colorText
-              Text("Am Zug: \(turnText)")
-                .font(.headline)
-                .foregroundStyle(vm.engine.sideToMove == .white ? .white : .black)
-            } else {
-              let outcomeText: String
-              switch vm.outcome {
-              case .win: outcomeText = "Du hast gewonnen"
-              case .loss: outcomeText = "Du bist Matt"
-              case .draw: outcomeText = "Remis"
-              case .ongoing: outcomeText = "" // unreachable
-              }
-              Text(outcomeText)
-                .font(.headline)
-                .foregroundStyle(vm.outcome == .win ? Color.green : (vm.outcome == .loss ? Color.red : Color.yellow))
-            }
+          if let status = turnStatus {
+            Text(status.text)
+              .font(.headline)
+              .foregroundStyle(status.color)
           }
         }
 
