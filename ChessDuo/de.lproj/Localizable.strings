@@ -1,0 +1,23 @@
+/* German Localization */
+"new_game" = "Neues Spiel";
+"new_game_confirm" = "Neues Spiel?";
+"turn_white" = "Weiß";
+"turn_black" = "Schwarz";
+"you_mark" = "(Du)";
+"turn_prefix" = "Am Zug: %@";
+"win_text" = "Du hast gewonnen";
+"loss_text" = "Du bist Matt";
+"draw_text" = "Remis";
+"play_black" = "Schwarz spielen";
+"reset_accept_title" = "Reset annehmen?";
+"yes" = "Ja";
+"no" = "Nein";
+"opponent_requests_reset" = "Der Gegner möchte die Partie zurücksetzen.";
+"awaiting_confirmation_title" = "Warte auf Bestätigung";
+"reset_request_sent" = "Reset-Anfrage gesendet.";
+"cancel" = "Abbrechen";
+"found_devices_section" = "Gefundene Geräte";
+"join_title" = "Beitreten?";
+"no_devices_found" = "Keine Geräte gefunden";
+"other_devices_prefix" = "Andere Geräte: ";
+"no_other_devices" = "Keine anderen Geräte verbunden";

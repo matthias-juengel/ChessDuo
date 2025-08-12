@@ -18,13 +18,16 @@ struct ContentView: View {
     guard vm.peers.isConnected else { return nil }
     switch vm.outcome {
     case .ongoing:
-      let colorText = vm.engine.sideToMove == .white ? "Weiß" : "Schwarz"
-      let turnText = vm.myColor == vm.engine.sideToMove ? "\(colorText) (Du)" : colorText
+      let baseColor = vm.engine.sideToMove == .white ? String.loc("turn_white") : String.loc("turn_black")
+      let colorText: String = {
+        if vm.myColor == vm.engine.sideToMove { return baseColor + " " + String.loc("you_mark") }
+        return baseColor
+      }()
       let fg = vm.engine.sideToMove == .white ? Color.white : Color.black
-      return ("Am Zug: \(turnText)", fg)
-    case .win: return ("Du hast gewonnen", .green)
-    case .loss: return ("Du bist Matt", .red)
-    case .draw: return ("Remis", .yellow)
+      return (String.loc("turn_prefix", colorText), fg)
+    case .win: return (String.loc("win_text"), .green)
+    case .loss: return (String.loc("loss_text"), .red)
+    case .draw: return (String.loc("draw_text"), .yellow)
     }
   }
   
@@ -34,7 +37,7 @@ struct ContentView: View {
       Group {
         if vm.movesMade > 0 {
           Button(action: { vm.resetGame() }) {
-            Text(vm.awaitingResetConfirmation ? "Neues Spiel?" : "Neues Spiel")
+            Text(vm.awaitingResetConfirmation ? String.loc("new_game_confirm") : String.loc("new_game"))
               .font(.caption2)
               .fontWeight(.semibold)
               .padding(.horizontal, 10)
@@ -47,7 +50,7 @@ struct ContentView: View {
           .disabled(!vm.peers.isConnected)
           .transition(.opacity)
         } else {
-          Text("Neues Spiel")
+          Text(String.loc("new_game"))
             .font(.caption2)
             .fontWeight(.semibold)
             .padding(.horizontal, 10)
@@ -107,7 +110,7 @@ struct ContentView: View {
         ZStack {
           Color.clear.frame(height: 40)
           if vm.movesMade == 0, vm.myColor == .some(.white) {
-            Button("Schwarz spielen") { vm.swapColorsIfAllowed() }
+            Button(String.loc("play_black")) { vm.swapColorsIfAllowed() }
               .font(.caption2)
               .padding(.horizontal, 10)
               .padding(.vertical, 5)
@@ -140,18 +143,18 @@ struct ContentView: View {
       }
     }
     // Incoming reset request alert
-    .alert("Reset annehmen?", isPresented: $vm.incomingResetRequest, actions: {
-      Button("Ja") { vm.respondToResetRequest(accept: true) }
-      Button("Nein", role: .cancel) { vm.respondToResetRequest(accept: false) }
-    }, message: { Text("Der Gegner möchte die Partie zurücksetzen.") })
+    .alert(String.loc("reset_accept_title"), isPresented: $vm.incomingResetRequest, actions: {
+      Button(String.loc("yes")) { vm.respondToResetRequest(accept: true) }
+      Button(String.loc("no"), role: .cancel) { vm.respondToResetRequest(accept: false) }
+    }, message: { Text(String.loc("opponent_requests_reset")) })
     // Awaiting confirmation info (outgoing)
-    .alert("Warte auf Bestätigung", isPresented: $vm.awaitingResetConfirmation, actions: {
-      Button("Abbrechen", role: .destructive) { vm.respondToResetRequest(accept: false) }
-    }, message: { Text("Reset-Anfrage gesendet.") })
+    .alert(String.loc("awaiting_confirmation_title"), isPresented: $vm.awaitingResetConfirmation, actions: {
+      Button(String.loc("cancel"), role: .destructive) { vm.respondToResetRequest(accept: false) }
+    }, message: { Text(String.loc("reset_request_sent")) })
     .sheet(isPresented: $showPeerChooser) {
       NavigationView {
         List {
-          Section("Gefundene Geräte") {
+          Section(String.loc("found_devices_section")) {
             ForEach(vm.discoveredPeerNames, id: \.self) { name in
               Button(action: { selectedPeerToJoin = name; vm.confirmJoin(peerName: name); showPeerChooser = false }) {
                 HStack { Text(name); Spacer(); if selectedPeerToJoin == name { Image(systemName: "checkmark") } }
@@ -159,11 +162,11 @@ struct ContentView: View {
             }
           }
           if vm.discoveredPeerNames.isEmpty {
-            Text("Keine Geräte gefunden")
+            Text(String.loc("no_devices_found"))
           }
         }
-        .navigationTitle("Beitreten?")
-        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { showPeerChooser = false } } }
+        .navigationTitle(String.loc("join_title"))
+        .toolbar { ToolbarItem(placement: .cancellationAction) { Button(String.loc("cancel")) { showPeerChooser = false } } }
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -1,0 +1,23 @@
+/* English (Base) Localization */
+"new_game" = "New Game";
+"new_game_confirm" = "New Game?";
+"turn_white" = "White";
+"turn_black" = "Black";
+"you_mark" = "(You)";
+"turn_prefix" = "Turn: %@";
+"win_text" = "You won";
+"loss_text" = "You are checkmated";
+"draw_text" = "Draw";
+"play_black" = "Play Black";
+"reset_accept_title" = "Accept reset?";
+"yes" = "Yes";
+"no" = "No";
+"opponent_requests_reset" = "Opponent wants to reset the game.";
+"awaiting_confirmation_title" = "Waiting for confirmation";
+"reset_request_sent" = "Reset request sent.";
+"cancel" = "Cancel";
+"found_devices_section" = "Found Devices";
+"join_title" = "Join?";
+"no_devices_found" = "No devices found";
+"other_devices_prefix" = "Other devices: ";
+"no_other_devices" = "No other devices connected";
