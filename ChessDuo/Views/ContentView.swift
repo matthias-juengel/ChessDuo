@@ -64,38 +64,31 @@ struct ContentView: View {
   var viewBackground: some View {
     // Full-screen background indicating turn status
     ZStack {
-    VStack(spacing: 0) {
-      Color.red
-      Color.blue
+      Color(red: 0.5, green: 0.5, blue: 0.5)
+      if vm.peers.isConnected {
+        if let my = vm.myColor, vm.engine.sideToMove == my {
+          Color.green.opacity(0.4)
+        }
+      } else {
+        // Single-device: highlight only the half belonging to the side to move
+        VStack(spacing: 0) {
+          if vm.engine.sideToMove == .black {
+            Color.green.opacity(0.38)
+            Color.clear
+          } else {
+            Color.clear
+            Color.green.opacity(0.38)
+          }
+        }
+        .allowsHitTesting(false)
+        .transition(.opacity)
       }
     }
-//    ZStack {
-//      Color(red: 0.5, green: 0.5, blue: 0.5)
-//      if vm.peers.isConnected {
-//        if let my = vm.myColor, vm.engine.sideToMove == my {
-//          Color.green.opacity(0.4)
-//        }
-//      } else {
-//        // Single-device: highlight only the half belonging to the side to move
-//        VStack(spacing: 0) {
-//          if vm.engine.sideToMove == .black {
-//            Color.green.opacity(0.38)
-//            Color.clear
-//          } else {
-//            Color.clear
-//            Color.green.opacity(0.38)
-//          }
-//        }
-//        .allowsHitTesting(false)
-//        .transition(.opacity)
-//      }
-//    }
   }
 
   var boardWithCapturedPieces: some View {
-//    VStack {
-//      Color.green.frame(height: 20)
-//      CapturedRow(pieces: vm.capturedByOpponent, rotatePieces: !vm.peers.isConnected)
+    VStack(spacing: 0) {
+      CapturedRow(pieces: vm.capturedByOpponent, rotatePieces: !vm.peers.isConnected)
       Group {
         let inCheck = vm.engine.isInCheck(vm.engine.sideToMove)
         let isMate = inCheck && vm.engine.isCheckmate(for: vm.engine.sideToMove)
@@ -112,30 +105,9 @@ struct ContentView: View {
           if let mine = vm.myColor, mine != newValue { selected = nil }
         }
       }
-//      CapturedRow(pieces: vm.capturedByMe, rotatePieces: false)
-//      Color.orange.frame(height: 20)
-//    }
-//    VStack(spacing: 0) {
-//      CapturedRow(pieces: vm.capturedByOpponent, rotatePieces: !vm.peers.isConnected)
-//      Group {
-//        let inCheck = vm.engine.isInCheck(vm.engine.sideToMove)
-//        let isMate = inCheck && vm.engine.isCheckmate(for: vm.engine.sideToMove)
-//        BoardView(board: vm.engine.board,
-//                  perspective: vm.myColor ?? .white,
-//                  myColor: vm.myColor ?? .white,
-//                  sideToMove: vm.engine.sideToMove,
-//                  inCheckCurrentSide: inCheck,
-//                  isCheckmatePosition: isMate,
-//                  singleDevice: !vm.peers.isConnected,
-//                  selected: $selected) { from, to, single in
-//          if single { vm.makeLocalMove(from: from, to: to) } else { vm.makeMove(from: from, to: to) }
-//        }.onChange(of: vm.engine.sideToMove) { newValue in
-//          if let mine = vm.myColor, mine != newValue { selected = nil }
-//        }
-//      }
-//
-//      CapturedRow(pieces: vm.capturedByMe, rotatePieces: false)
-//    }
+
+      CapturedRow(pieces: vm.capturedByMe, rotatePieces: false)
+    }
   }
 
   //        // Connected devices footer
@@ -154,7 +126,7 @@ struct ContentView: View {
   var body: some View {
     ZStack {
       viewBackground.ignoresSafeArea()
-      boardWithCapturedPieces.ignoresSafeArea().opacity(0.5)//.padding([.leading, .trailing], 5)
+      boardWithCapturedPieces.ignoresSafeArea()//.padding([.leading, .trailing], 5)
 
       VStack {
         Color.clear
@@ -312,14 +284,34 @@ struct BoardView: View {
               .position(x: CGFloat(colIdx) * squareSize + squareSize / 2,
                         y: CGFloat(rowIdx) * squareSize + squareSize / 2)
               .contentShape(Rectangle())
-              .onTapGesture { tap(sq) }
               .zIndex(selected == sq ? 100 : 1)
           }
         }
-        // Border overlay
-        Rectangle()
-          .stroke(Color.black, lineWidth: 1)
+        // Unified tap/drag gesture layer
+  // Use an almost transparent fill (not fully clear) to ensure reliable hit-testing for gestures
+          Color.white.opacity(0.1)
           .frame(width: boardSide, height: boardSide)
+          .contentShape(Rectangle())
+          .gesture(DragGesture(minimumDistance: 0)
+            .onEnded { value in
+              let start = value.startLocation
+              let end = value.location
+              guard let startSq = square(at: start, boardSide: boardSide, rowArray: rowArray, colArray: colArray, squareSize: squareSize) else { return }
+              let endSq = square(at: end, boardSide: boardSide, rowArray: rowArray, colArray: colArray, squareSize: squareSize) ?? startSq
+              // If it's effectively a tap
+              if startSq == endSq {
+                tap(startSq)
+              } else {
+                // Drag move: select start if needed then attempt move
+                if selected != startSq { selected = startSq }
+                if selected == startSq { tap(endSq) }
+              }
+            }
+          )
+        // Border overlay
+//        Rectangle()
+//          .stroke(Color.black, lineWidth: 1)
+//          .frame(width: boardSide, height: boardSide)
       }
       .frame(width: boardSide, height: boardSide, alignment: .topLeading)
       .clipped()
@@ -364,6 +356,16 @@ struct BoardView: View {
   }
 
   // Rotation logic now handled inline per piece (rotate black pieces only in single-device mode)
+
+  private func square(at point: CGPoint, boardSide: CGFloat, rowArray: [Int], colArray: [Int], squareSize: CGFloat) -> Square? {
+    guard point.x >= 0, point.y >= 0, point.x < boardSide, point.y < boardSide else { return nil }
+    let colIdx = Int(point.x / squareSize)
+    let rowIdx = Int(point.y / squareSize)
+    guard rowIdx >= 0 && rowIdx < rowArray.count && colIdx >= 0 && colIdx < colArray.count else { return nil }
+    let rank = rowArray[rowIdx]
+    let file = colArray[colIdx]
+    return Square(file: file, rank: rank)
+  }
 }
 
 struct SquareView: View {
@@ -388,7 +390,7 @@ struct SquareView: View {
       }
       if let p = piece {
         Text(symbol(for: p))
-          .font(.system(size: 45))
+          .font(.system(size: 60))
           .foregroundColor(p.color == .white ? .white : .black)
           .opacity(1)
           .rotationEffect(rotateForOpponent ? .degrees(180) : .degrees(0))
