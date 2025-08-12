@@ -11,7 +11,20 @@ import MultipeerConnectivity
 
 final class PeerService: NSObject, ObservableObject {
     private let serviceType = "btchess"
-    private let myPeer = MCPeerID(displayName: UIDevice.current.name)
+    private static let suffixKey = "PeerService.UniqueSuffix"
+    private static func uniqueSuffix() -> String {
+        let defaults = UserDefaults.standard
+        if let existing = defaults.string(forKey: suffixKey) { return existing }
+        let new = String(UUID().uuidString.prefix(8))
+        defaults.set(new, forKey: suffixKey)
+        return new
+    }
+    private let friendlyName = UIDevice.current.name
+    private lazy var myPeer: MCPeerID = {
+        // Composite name ensures uniqueness even if multiple devices share system name.
+        let composite = "\(friendlyName)#\(Self.uniqueSuffix())"
+        return MCPeerID(displayName: composite)
+    }()
     private var session: MCSession!
     private var advertiser: MCNearbyServiceAdvertiser?
     private var browser: MCNearbyServiceBrowser?
@@ -26,6 +39,7 @@ final class PeerService: NSObject, ObservableObject {
     @Published var discoveredPeers: [MCPeerID] = []
 
     var localDisplayName: String { myPeer.displayName }
+    var localFriendlyName: String { friendlyName }
 
     override init() {
         super.init()
