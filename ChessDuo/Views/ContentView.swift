@@ -17,7 +17,7 @@ struct ContentView: View {
   private var turnStatus: (text: String, color: Color)? {
     switch vm.outcome {
     case .ongoing:
-      guard !vm.peers.isConnected else { return nil }
+//      guard !vm.peers.isConnected else { return nil }
       let baseColor = vm.engine.sideToMove == .white ? String.loc("turn_white") : String.loc("turn_black")
       let colorText: String = {
         if vm.myColor == vm.engine.sideToMove { return baseColor + " " + String.loc("you_mark") }
@@ -32,30 +32,27 @@ struct ContentView: View {
   }
 
   private var resetButtonArea: some View {
-    HStack {
-      Spacer()
-      Group {
-        if vm.movesMade > 0 {
-          Button(action: { vm.resetGame() }) {
-            Text(vm.peers.isConnected && vm.awaitingResetConfirmation ? String.loc("new_game_confirm") : String.loc("new_game"))
-              .font(.caption2)
-              .fontWeight(.semibold)
-              .padding(.horizontal, 10)
-              .padding(.vertical, 5)
-              .background(Color.white.opacity(vm.peers.isConnected && vm.awaitingResetConfirmation ? 0.7 : 0.9))
-              .foregroundColor(.black)
-              .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-              .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.black.opacity(0.8), lineWidth: 1))
-          }
-          .transition(.opacity)
-        } else {
-          Text(String.loc("new_game"))
-            .font(.caption2)
+    Group {
+      if vm.movesMade > 0 {
+        Button(action: { vm.resetGame() }) {
+          Text(vm.peers.isConnected && vm.awaitingResetConfirmation ? String.loc("new_game_confirm") : String.loc("new_game"))
+            .font(.title3)
             .fontWeight(.semibold)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .opacity(0)
+            .background(Color.white.opacity(vm.peers.isConnected && vm.awaitingResetConfirmation ? 0.7 : 0.9))
+            .foregroundColor(.black)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.black.opacity(0.8), lineWidth: 1))
         }
+        .transition(.opacity)
+      } else {
+        Text(String.loc("new_game"))
+          .font(.title3)
+          .fontWeight(.semibold)
+          .padding(.horizontal, 10)
+          .padding(.vertical, 5)
+          .opacity(0)
       }
     }
   }
@@ -86,7 +83,7 @@ struct ContentView: View {
   }
 
   var boardWithCapturedPieces: some View {
-    VStack(spacing: 0) {
+    VStack(spacing: 12) {
       Spacer() // neded to align center with background
       CapturedRow(pieces: vm.capturedByOpponent, rotatePieces: !vm.peers.isConnected).frame(height: 30)
       ZStack {
@@ -199,7 +196,7 @@ private extension ContentView {
       Color.clear.frame(height: 30)
       if let status = turnStatus {
         Text(status.text)
-          .font(.headline)
+          .font(.title)
           .foregroundStyle(status.color)
       }
     }.allowsHitTesting(false)
@@ -217,7 +214,7 @@ private extension ContentView {
 
   var swapColorButton: some View {
     Button(String.loc("play_black")) { vm.swapColorsIfAllowed() }
-      .font(.caption2)
+      .font(.title)
       .padding(.horizontal, 10)
       .padding(.vertical, 5)
       .background(Color.white.opacity(0.9))
@@ -318,7 +315,7 @@ struct BoardView: View {
         }
         // Border overlay
         Rectangle()
-          .stroke(Color.black, lineWidth: 1)
+          .stroke(Color.black, lineWidth: 2)
           .frame(width: boardSide, height: boardSide)
       }
       .frame(width: boardSide, height: boardSide, alignment: .topLeading)
@@ -352,8 +349,6 @@ struct BoardView: View {
             }
           }
       )
-      .clipped()
-      .aspectRatio(1, contentMode: .fit)
     }
   }
 
@@ -426,11 +421,14 @@ struct SquareView: View {
           .padding(4)
       }
       if let p = piece {
-        Text(symbol(for: p))
-          .font(.system(size: 35))
-          .foregroundColor(p.color == .white ? .white : .black)
-          .opacity(1)
-          .rotationEffect(rotateForOpponent ? .degrees(180) : .degrees(0))
+        GeometryReader { geo in
+          Text(symbol(for: p))
+            .font(.system(size: min(geo.size.width, geo.size.height) * 0.75))
+            .foregroundColor(p.color == .white ? .white : .black)
+            .opacity(1)
+            .rotationEffect(rotateForOpponent ? .degrees(180) : .degrees(0))
+            .frame(width: geo.size.width, height: geo.size.height)
+        }
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
