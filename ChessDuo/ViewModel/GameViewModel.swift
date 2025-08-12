@@ -85,6 +85,10 @@ final class GameViewModel: ObservableObject {
 
     private func handle(_ msg: NetMessage) {
         switch msg.kind {
+        case .statusUpdate, .joinRequest, .joinResponse, .pairingCode, .gameSetup, .gameStart, .rematchRequest, .rematchResponse:
+            // These message types are handled by the peer service layer
+            break
+
         case .hello:
             // nichts weiter nötig; Anzeige aktualisieren
             statusText = peers.isConnected ? "Verbunden" : statusText

@@ -29,12 +29,12 @@ enum PeerStatus: String, Codable {
 }
 
 // Host election data for deterministic selection
-struct HostCandidate: Codable, Hashable {
+struct HostCandidate: Codable, Hashable, Comparable {
     let deviceId: String
     let displayName: String
     let rssi: Int?  // Signal strength (when available)
     let timestamp: Date
-    
+
     // Deterministic comparison for host election
     static func < (lhs: HostCandidate, rhs: HostCandidate) -> Bool {
         // Primary: lexicographic device ID (deterministic)
@@ -56,14 +56,14 @@ struct PairingCode {
         let code = Int.random(in: 1000...9999)
         return String(format: "%04d", code)
     }
-    
+
     static func generateEmoji() -> String {
         let emojis = ["🐴", "⭐", "🎯", "🚀", "🎸", "🎨", "🎲", "🎭", "🎪", "🎺"]
         let first = emojis.randomElement()!
         let second = emojis.randomElement()!
         return "\(first)\(second)"
     }
-    
+
     static func emojiForCode(_ code: String) -> String {
         let emojis = ["🐴", "⭐", "🎯", "🚀", "🎸", "🎨", "🎲", "🎭", "🎪", "🎺"]
         guard let codeInt = Int(code) else { return "🎲🎯" }
@@ -80,14 +80,14 @@ struct GameSetup: Codable {
         case iWantWhite = "Ich bin Weiß"
         case opponentWhite = "Gegner ist Weiß"
     }
-    
+
     enum TimeControl: String, Codable, CaseIterable {
         case three = "3 min"
-        case five = "5 min" 
+        case five = "5 min"
         case ten = "10 min"
         case fifteen = "15 min"
         case unlimited = "Unbegrenzt"
-        
+
         var minutes: Int? {
             switch self {
             case .three: return 3
@@ -98,10 +98,10 @@ struct GameSetup: Codable {
             }
         }
     }
-    
+
     var colorChoice: ColorChoice = .random
     var timeControl: TimeControl = .ten
-    
+
     // Resolve the actual colors based on the choice
     func resolveColors(hostRequested: Bool) -> (hostColor: PieceColor, joinerColor: PieceColor) {
         switch colorChoice {
