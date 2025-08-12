@@ -151,6 +151,11 @@ struct ChessEngine: Codable {
         return isKingInCheck(color, on: board) && !hasAnyLegalMove(for: color)
     }
 
+    /// Stalemate (Patt): side is NOT in check and has no legal move.
+    func isStalemate(for color: PieceColor) -> Bool {
+        return !isKingInCheck(color, on: board) && !hasAnyLegalMove(for: color)
+    }
+
     func hasAnyLegalMove(for color: PieceColor) -> Bool {
         // Try every piece and destination; early exit if a legal move exists
         for rank in 0..<8 {

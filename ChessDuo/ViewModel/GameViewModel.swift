@@ -25,7 +25,7 @@ final class GameViewModel: ObservableObject {
     let peers = PeerService()
     private var cancellables: Set<AnyCancellable> = []
     private var hasSentHello = false
-    enum GameOutcome: Equatable { case ongoing, win, loss }
+    enum GameOutcome: Equatable { case ongoing, win, loss, draw }
 
     init() {
         peers.onMessage = { [weak self] msg in
@@ -286,6 +286,9 @@ final class GameViewModel: ObservableObject {
             } else {
                 statusText = "Schachmatt"
             }
+        } else if engine.isStalemate(for: side) {
+            outcome = .draw
+            statusText = "Remis"
         } else {
             outcome = .ongoing
             statusText = "Am Zug: \(engine.sideToMove == .white ? "Weiß" : "Schwarz")"

@@ -86,10 +86,16 @@ struct ContentView: View {
                 .font(.headline)
                 .foregroundStyle(vm.engine.sideToMove == .white ? .white : .black)
             } else {
-              Text(vm.outcome == .win ? "Du hast gewonnen" : "Du bist Matt")
+              let outcomeText: String
+              switch vm.outcome {
+              case .win: outcomeText = "Du hast gewonnen"
+              case .loss: outcomeText = "Du bist Matt"
+              case .draw: outcomeText = "Remis"
+              case .ongoing: outcomeText = "" // unreachable
+              }
+              Text(outcomeText)
                 .font(.headline)
-                .foregroundStyle(vm.engine.sideToMove == .white ? .white : .black)
-//                .foregroundStyle(vm.outcome == .win ? Color.green : Color.red)
+                .foregroundStyle(vm.outcome == .win ? Color.green : (vm.outcome == .loss ? Color.red : Color.yellow))
             }
           }
         }
