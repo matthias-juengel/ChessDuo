@@ -26,6 +26,9 @@ struct NetMessage: Codable {
         case move, reset, hello
         case proposeRole // sent by lexicographically smaller peer, proposes it will be white
         case acceptRole  // acknowledgement by other peer
+    case requestReset // ask opponent to confirm reset
+    case acceptReset  // opponent accepted reset
+    case declineReset // opponent declined reset
     }
     let kind: Kind
     var move: Move? = nil

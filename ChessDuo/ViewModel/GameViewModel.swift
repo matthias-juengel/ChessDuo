@@ -17,6 +17,9 @@ final class GameViewModel: ObservableObject {
     @Published var discoveredPeerNames: [String] = [] // for UI prompt
     @Published var capturedByMe: [Piece] = []
     @Published var capturedByOpponent: [Piece] = []
+    @Published var movesMade: Int = 0
+    @Published var awaitingResetConfirmation: Bool = false
+    @Published var incomingResetRequest: Bool = false
 
     let peers = PeerService()
     private var cancellables: Set<AnyCancellable> = []
@@ -102,10 +105,13 @@ final class GameViewModel: ObservableObject {
     }
 
     func resetGame() {
-        engine.reset()
-    capturedByMe.removeAll()
-    capturedByOpponent.removeAll()
-        peers.send(.init(kind: .reset))
+        // Initiate reset handshake if moves happened; otherwise silent reset
+        if movesMade == 0 {
+            performLocalReset(send: true)
+        } else {
+            awaitingResetConfirmation = true
+            peers.send(.init(kind: .requestReset))
+        }
     }
 
     func makeMove(from: Square, to: Square) {
@@ -115,6 +121,7 @@ final class GameViewModel: ObservableObject {
         if engine.tryMakeMove(move) {
             peers.send(.init(kind: .move, move: move))
             if let cap = capturedBefore { capturedByMe.append(cap) }
+            movesMade += 1
             updateStatusAfterMove()
         } else {
             statusText = "Illegaler Zug (König im Schach?)"
@@ -132,12 +139,16 @@ final class GameViewModel: ObservableObject {
             capturedByMe.removeAll()
             capturedByOpponent.removeAll()
             statusText = "Neu gestartet. Am Zug: Weiß"
+            movesMade = 0
+            awaitingResetConfirmation = false
+            incomingResetRequest = false
         case .move:
             if let m = msg.move {
                 let capturedBefore = engine.board.piece(at: m.to)
                 if engine.tryMakeMove(m) {
                     if let cap = capturedBefore, cap.color == myColor { capturedByOpponent.append(cap) }
                 }
+                movesMade += 1
                 updateStatusAfterMove()
             }
         case .proposeRole:
@@ -151,6 +162,14 @@ final class GameViewModel: ObservableObject {
             // Other peer accepted our proposal, we should already have set our color.
             if myColor == nil { myColor = .white }
             statusText = "Verbunden – Du bist Weiß"
+        case .requestReset:
+            incomingResetRequest = true
+        case .acceptReset:
+            performLocalReset(send: true)
+        case .declineReset:
+            awaitingResetConfirmation = false
+            incomingResetRequest = false
+            statusText = "Gegner hat Reset abgelehnt"
         }
     }
 
@@ -165,6 +184,27 @@ final class GameViewModel: ObservableObject {
             peers.send(.init(kind: .proposeRole))
         } else {
             // Wait to receive proposeRole; if none arrives (race), we can still fallback later.
+        }
+    }
+
+    private func performLocalReset(send: Bool) {
+        engine.reset()
+        capturedByMe.removeAll()
+        capturedByOpponent.removeAll()
+        movesMade = 0
+        awaitingResetConfirmation = false
+        incomingResetRequest = false
+        statusText = "Neu gestartet. Am Zug: Weiß"
+        if send { peers.send(.init(kind: .reset)) }
+    }
+
+    func respondToResetRequest(accept: Bool) {
+        if accept {
+            peers.send(.init(kind: .acceptReset))
+            performLocalReset(send: true)
+        } else {
+            peers.send(.init(kind: .declineReset))
+            incomingResetRequest = false
         }
     }
 

@@ -27,34 +27,43 @@ struct ContentView: View {
       .ignoresSafeArea()
 
       VStack(spacing: 12) {
-        HStack {
-          // Manual host/join kept for debugging but auto negotiation starts automatically.
-          Button("Host") { vm.host() }
-            .background(Color.white.opacity(0.6))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(.black, lineWidth: 1))
-          Button("Join") { vm.join() }
-            .background(Color.white.opacity(0.6))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(.black, lineWidth: 1))
-
-          Button("Reset") { vm.resetGame() }.disabled(!vm.peers.isConnected)
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(.black, lineWidth: 1))
-
-          Button("X") { vm.disconnect() }
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(.black, lineWidth: 1))
-        }
-        .buttonStyle(.bordered)
+  // (Removed top spacing controls to prevent board shifting when reset appears)
 
 //        Text(vm.statusText)
 //          .font(.subheadline)
 //          .foregroundStyle(.white)
 
         CapturedRow(pieces: vm.capturedByOpponent)
+
+        // Reset button area (outside board) with placeholder to keep layout stable
+        HStack {
+          Spacer()
+          Group {
+            if vm.movesMade > 0 {
+              Button(action: { vm.resetGame() }) {
+                Text(vm.awaitingResetConfirmation ? "Reset?" : "Reset")
+                  .font(.caption2)
+                  .fontWeight(.semibold)
+                  .padding(.horizontal, 10)
+                  .padding(.vertical, 5)
+                  .background(Color.white.opacity(vm.awaitingResetConfirmation ? 0.7 : 0.9))
+                  .foregroundColor(.black)
+                  .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                  .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.black.opacity(0.8), lineWidth: 1))
+              }
+              .disabled(!vm.peers.isConnected)
+              .transition(.opacity)
+            } else {
+              // Placeholder keeps vertical space so board doesn't shift when button appears later
+              Text("Reset")
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .opacity(0)
+            }
+          }
+        }
 
         BoardView(board: vm.engine.board,
                   perspective: vm.myColor ?? .white,
@@ -99,6 +108,15 @@ struct ContentView: View {
         showPeerChooser = true
       }
     }
+    // Incoming reset request alert
+    .alert("Reset annehmen?", isPresented: $vm.incomingResetRequest, actions: {
+      Button("Ja") { vm.respondToResetRequest(accept: true) }
+      Button("Nein", role: .cancel) { vm.respondToResetRequest(accept: false) }
+    }, message: { Text("Der Gegner möchte die Partie zurücksetzen.") })
+    // Awaiting confirmation info (outgoing)
+    .alert("Warte auf Bestätigung", isPresented: $vm.awaitingResetConfirmation, actions: {
+      Button("Abbrechen", role: .destructive) { vm.respondToResetRequest(accept: false) }
+    }, message: { Text("Reset-Anfrage gesendet.") })
     .sheet(isPresented: $showPeerChooser) {
       NavigationView {
         List {
