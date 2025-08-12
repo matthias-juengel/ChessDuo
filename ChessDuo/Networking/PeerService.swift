@@ -17,6 +17,10 @@ final class PeerService: NSObject, ObservableObject {
     private var browser: MCNearbyServiceBrowser?
 
     @Published var connectedPeers: [MCPeerID] = []
+    // Cache of peerID display names -> friendly names (from hello message)
+    @Published var peerFriendlyNames: [String:String] = [:]
+
+    var localDisplayName: String { myPeer.displayName }
 
     override init() {
         super.init()
@@ -68,7 +72,10 @@ extension PeerService: MCSessionDelegate {
     }
     func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
         if let msg = try? JSONDecoder().decode(NetMessage.self, from: data) {
-            DispatchQueue.main.async { self.onMessage?(msg) }
+            DispatchQueue.main.async {
+                if let name = msg.deviceName { self.peerFriendlyNames[peerID.displayName] = name }
+                self.onMessage?(msg)
+            }
         }
     }
     // Unused

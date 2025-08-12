@@ -26,4 +26,5 @@ struct NetMessage: Codable {
     let kind: Kind
     var move: Move? = nil
     var color: PieceColor? = nil
+    var deviceName: String? = nil // optional friendly device name
 }

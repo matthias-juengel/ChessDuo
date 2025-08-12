@@ -27,7 +27,10 @@ final class GameViewModel: ObservableObject {
 
         // Mirror connected peer names into a published property for the UI
         peers.$connectedPeers
-            .map { peers in peers.map { $0.displayName }.sorted() }
+            .combineLatest(peers.$peerFriendlyNames)
+            .map { peerIDs, friendlyMap in
+                peerIDs.map { friendlyMap[$0.displayName] ?? $0.displayName }.sorted()
+            }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] names in
                 self?.otherDeviceNames = names
@@ -57,7 +60,7 @@ final class GameViewModel: ObservableObject {
     }
 
     private func sendHello() {
-        peers.send(.init(kind: .hello, move: nil, color: myColor))
+    peers.send(.init(kind: .hello, move: nil, color: myColor, deviceName: peers.localDisplayName))
     }
 
     func resetGame() {
