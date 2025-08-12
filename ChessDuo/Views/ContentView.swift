@@ -126,7 +126,7 @@ struct ContentView: View {
   var body: some View {
     ZStack {
       viewBackground.ignoresSafeArea()
-      boardWithCapturedPieces.ignoresSafeArea()//.padding([.leading, .trailing], 5)
+      boardWithCapturedPieces.ignoresSafeArea().padding([.leading, .trailing], 10)
 
       VStack {
         Spacer().allowsHitTesting(false)
@@ -296,19 +296,6 @@ struct BoardView: View {
       .contentShape(Rectangle())
       .gesture(
         DragGesture(minimumDistance: 0)
-          .onChanged { value in
-            // Live feedback: show selection of origin square if none selected yet
-            if selected == nil,
-               let origin = square(
-                 at: value.startLocation,
-                 boardSide: boardSide,
-                 rowArray: rowArray,
-                 colArray: colArray,
-                 squareSize: squareSize
-               ) {
-              selected = origin
-            }
-          }
           .onEnded { value in
             let start = value.startLocation
             let end = value.location
@@ -327,8 +314,10 @@ struct BoardView: View {
               squareSize: squareSize
             ) ?? startSq
             if startSq == endSq {
+              // Simple tap: delegate to tap() so it can select or move depending on current selection
               tap(startSq)
             } else {
+              // Drag to a different square: ensure origin is selected, then let the next tap logic move
               if selected != startSq { selected = startSq }
               if selected == startSq { tap(endSq) }
             }
