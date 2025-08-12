@@ -13,7 +13,7 @@ struct ContentView: View {
   @State private var selected: Square? = nil
   @State private var showPeerChooser = false
   @State private var selectedPeerToJoin: String? = nil
-
+  
   private var turnStatus: (text: String, color: Color)? {
     guard vm.peers.isConnected else { return nil }
     switch vm.outcome {
@@ -30,7 +30,7 @@ struct ContentView: View {
     case .draw: return (String.loc("draw_text"), .yellow)
     }
   }
-
+  
   private var resetButtonArea: some View {
     HStack {
       Spacer()
@@ -60,7 +60,7 @@ struct ContentView: View {
       }
     }
   }
-
+  
   var viewBackground: some View {
     ZStack {
       Color(red: 0.5, green: 0.5, blue: 0.5)
@@ -84,44 +84,64 @@ struct ContentView: View {
       }
     }
   }
-
+  
+  var board: some View {
+    VStack(spacing: 12) {
+      CapturedRow(pieces: vm.capturedByOpponent, rotatePieces: !vm.peers.isConnected)
+      Group {
+        let inCheck = vm.engine.isInCheck(vm.engine.sideToMove)
+        let isMate = inCheck && vm.engine.isCheckmate(for: vm.engine.sideToMove)
+        BoardView(board: vm.engine.board,
+                  perspective: vm.myColor ?? .white,
+                  myColor: vm.myColor ?? .white,
+                  sideToMove: vm.engine.sideToMove,
+                  inCheckCurrentSide: inCheck,
+                  isCheckmatePosition: isMate,
+                  singleDevice: !vm.peers.isConnected,
+                  selected: $selected) { from, to, single in
+          if single { vm.makeLocalMove(from: from, to: to) } else { vm.makeMove(from: from, to: to) }
+        }.onChange(of: vm.engine.sideToMove) { newValue in
+          if let mine = vm.myColor, mine != newValue { selected = nil }
+        }
+      }.padding()
+      
+      CapturedRow(pieces: vm.capturedByMe, rotatePieces: false)
+    }
+  }
+  
+  //        // Connected devices footer
+  //        if !vm.otherDeviceNames.isEmpty {
+  //          Text("Andere Geräte: " + vm.otherDeviceNames.joined(separator: ", "))
+  //            .font(.caption2)
+  //            .foregroundStyle(.secondary)
+  //            .frame(maxWidth: .infinity, alignment: .center)
+  //        } else {
+  //          Text("Keine anderen Geräte verbunden")
+  //            .font(.caption2)
+  //            .foregroundStyle(.tertiary)
+  //            .frame(maxWidth: .infinity, alignment: .center)
+  //        }
+  
   var body: some View {
     ZStack {
       //      Full-screen background indicating turn status
       viewBackground.ignoresSafeArea()
-
-      VStack(spacing: 12) {
-        CapturedRow(pieces: vm.capturedByOpponent, rotatePieces: !vm.peers.isConnected)
-        Group {
-          let inCheck = vm.engine.isInCheck(vm.engine.sideToMove)
-          let isMate = inCheck && vm.engine.isCheckmate(for: vm.engine.sideToMove)
-          BoardView(board: vm.engine.board,
-                    perspective: vm.myColor ?? .white,
-                    myColor: vm.myColor ?? .white,
-                    sideToMove: vm.engine.sideToMove,
-                    inCheckCurrentSide: inCheck,
-                    isCheckmatePosition: isMate,
-                    singleDevice: !vm.peers.isConnected,
-                    selected: $selected) { from, to, single in
-            if single { vm.makeLocalMove(from: from, to: to) } else { vm.makeMove(from: from, to: to) }
-          }.onChange(of: vm.engine.sideToMove) { newValue in
-            if let mine = vm.myColor, mine != newValue { selected = nil }
+      board
+      
+      VStack {
+        Color.clear
+        resetButtonArea
+        
+        ZStack {
+          Color.clear.frame(height: 40)
+          if let status = turnStatus {
+            Text(status.text)
+              .font(.headline)
+              .foregroundStyle(status.color)
           }
-        }.padding()
-
-        CapturedRow(pieces: vm.capturedByMe, rotatePieces: false)
-      }
-      resetButtonArea
-
-      ZStack {
-        Color.clear.frame(height: 40)
-        if let status = turnStatus {
-          Text(status.text)
-            .font(.headline)
-            .foregroundStyle(status.color)
         }
       }
-
+      
       ZStack {
         Color.clear.frame(height: 40)
         if vm.movesMade == 0, vm.myColor == .some(.white) {
@@ -134,19 +154,7 @@ struct ContentView: View {
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.black.opacity(0.8), lineWidth: 1))
         }
-
-        //        // Connected devices footer
-        //        if !vm.otherDeviceNames.isEmpty {
-        //          Text("Andere Geräte: " + vm.otherDeviceNames.joined(separator: ", "))
-        //            .font(.caption2)
-        //            .foregroundStyle(.secondary)
-        //            .frame(maxWidth: .infinity, alignment: .center)
-        //        } else {
-        //          Text("Keine anderen Geräte verbunden")
-        //            .font(.caption2)
-        //            .foregroundStyle(.tertiary)
-        //            .frame(maxWidth: .infinity, alignment: .center)
-        //        }
+        
       }
     }
     .onChange(of: vm.discoveredPeerNames) { new in
@@ -218,11 +226,11 @@ struct CapturedRow: View {
     }
     .frame(maxHeight: 28)
   }
-
+  
   private func sortedPieces() -> [Piece] {
     pieces.sorted { pieceValue($0) > pieceValue($1) }
   }
-
+  
   private func pieceValue(_ p: Piece) -> Int {
     switch p.type {
     case .queen: return 9
@@ -255,7 +263,7 @@ struct BoardView: View {
   let singleDevice: Bool
   @Binding var selected: Square?
   let onMove: (Square, Square, Bool) -> Void
-
+  
   var body: some View {
     //    let files = 0..<8
     //    let ranks = 0..<8
@@ -283,14 +291,14 @@ struct BoardView: View {
     //    .overlay(RoundedRectangle(cornerRadius: 8).stroke(.black, lineWidth: 1))
     .overlay(Rectangle().stroke(.black, lineWidth: 1))
   }
-
+  
   private func rows() -> [Int] {
     perspective == .white ? Array((0..<8).reversed()) : Array(0..<8)
   }
   private func cols() -> [Int] {
     perspective == .white ? Array(0..<8) : Array((0..<8).reversed())
   }
-
+  
   private func tap(_ sq: Square) {
     // In single-device mode allow either side to move; otherwise restrict to this player's color & turn
     if !singleDevice {
@@ -318,7 +326,7 @@ struct BoardView: View {
       }
     }
   }
-
+  
   // Rotation logic now handled inline per piece (rotate black pieces only in single-device mode)
 }
 
@@ -329,7 +337,7 @@ struct SquareView: View {
   let isKingInCheck: Bool
   let isKingCheckmated: Bool
   let rotateForOpponent: Bool
-
+  
   var body: some View {
     ZStack {
       Rectangle()
@@ -352,17 +360,17 @@ struct SquareView: View {
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
-
+  
   private func colorForSquare(_ s: Square) -> Color {
     let grayBlack = Color(red: 0.4, green: 0.4, blue: 0.4)
     let grayWhite = Color(red: 0.6, green: 0.6, blue: 0.6)
-
+    
     return ((s.file + s.rank) % 2 == 0) ? grayBlack : grayWhite
-
+    
     //    return ((s.file + s.rank) % 2 == 0) ? Color(red: 0.93, green: 0.86, blue: 0.75)
     //    : Color(red: 0.52, green: 0.37, blue: 0.26)
   }
-
+  
   private func symbol(for p: Piece) -> String {
     switch p.type {
     case .king:   return "♚"
