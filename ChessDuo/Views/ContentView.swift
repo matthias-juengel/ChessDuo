@@ -181,7 +181,8 @@ struct CapturedRow: View {
   var body: some View {
     ScrollView(.horizontal, showsIndicators: false) {
       HStack(spacing: 4) {
-        ForEach(Array(pieces.enumerated()), id: \.offset) { _, p in
+        ForEach(sortedPieces().indices, id: \.self) { idx in
+          let p = sortedPieces()[idx]
           Text(symbol(for: p))
             .font(.system(size: 30))
             .foregroundStyle(p.color == .white ? .white : .black)
@@ -191,6 +192,20 @@ struct CapturedRow: View {
       .padding(.vertical, 2)
     }
     .frame(maxHeight: 28)
+  }
+
+  private func sortedPieces() -> [Piece] {
+    pieces.sorted { pieceValue($0) > pieceValue($1) }
+  }
+
+  private func pieceValue(_ p: Piece) -> Int {
+    switch p.type {
+    case .queen: return 9
+    case .rook: return 5
+    case .bishop, .knight: return 3
+    case .pawn: return 1
+    case .king: return 100 // should not normally appear, but ensure it sorts first if present
+    }
   }
 }
 
