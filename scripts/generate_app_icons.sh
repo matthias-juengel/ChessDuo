@@ -4,10 +4,11 @@ set -euo pipefail
 # Generate App Icons from icon.png for both legacy (iOS 15+) and single-size setups
 # - Default input: ../icon.png (override with first arg)
 # - Generates full legacy set (iPhone/iPad + ios-marketing 1024) required on real devices
-# - Also generates single-size 1024 variants (light/dark/tinted) for newer Xcode templates
+# - Generates mandatory sizes only (no extra dark/tinted marketing variants) for minimal maintenance.
+#   Optional flags retained: --dark / --tinted (ignored unless --include-extra specified).
 #
 # Usage:
-#   scripts/generate_app_icons.sh [path/to/icon.png] [--dark path/to/dark.png] [--tinted path/to/tinted.png]
+#   scripts/generate_app_icons.sh [path/to/icon.png] [--include-extra --dark path/to/dark.png --tinted path/to/tinted.png]
 #
 # Requirements: macOS 'sips'
 
@@ -16,11 +17,14 @@ REPO_ROOT="${SCRIPT_DIR%/scripts}"
 INPUT_ICON="${1:-$REPO_ROOT/icon.png}"
 shift || true
 
+INCLUDE_EXTRA=0
 DARK_ICON=""
 TINTED_ICON=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --include-extra)
+      INCLUDE_EXTRA=1; shift ;;
     --dark)
       DARK_ICON="$2"; shift 2 ;;
     --tinted)
@@ -129,16 +133,20 @@ done
 resize_1024 "$INPUT_ICON" "$LIGHT_OUT"
 add_entry ios-marketing "1024x1024" "1x" "$(basename "$LIGHT_OUT")"
 
-# Optional single-size dark/tinted for newer templates
-if [[ -n "$DARK_ICON" && -f "$DARK_ICON" ]]; then
-  resize_1024 "$DARK_ICON" "$DRK_OUT"
-else
-  cp -f "$LIGHT_OUT" "$DRK_OUT"
-fi
-if [[ -n "$TINTED_ICON" && -f "$TINTED_ICON" ]]; then
-  resize_1024 "$TINTED_ICON" "$TNT_OUT"
-else
-  cp -f "$LIGHT_OUT" "$TNT_OUT"
+if [[ $INCLUDE_EXTRA -eq 1 ]]; then
+  echo "Including optional dark/tinted marketing variants"
+  if [[ -n "$DARK_ICON" && -f "$DARK_ICON" ]]; then
+    resize_1024 "$DARK_ICON" "$DRK_OUT"
+    json_entries+=(
+"    {\n      \"size\" : \"1024x1024\",\n      \"idiom\" : \"ios-marketing\",\n      \"filename\" : \"$(basename \"$DRK_OUT\")\",\n      \"scale\" : \"1x\",\n      \"appearances\" : [ { \"appearance\" : \"luminosity\", \"value\" : \"dark\" } ]\n    }"
+    )
+  fi
+  if [[ -n "$TINTED_ICON" && -f "$TINTED_ICON" ]]; then
+    resize_1024 "$TINTED_ICON" "$TNT_OUT"
+    json_entries+=(
+"    {\n      \"size\" : \"1024x1024\",\n      \"idiom\" : \"ios-marketing\",\n      \"filename\" : \"$(basename \"$TNT_OUT\")\",\n      \"scale\" : \"1x\"\n    }"
+    )
+  fi
 fi
 
 # Build Contents.json

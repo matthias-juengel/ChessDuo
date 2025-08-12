@@ -190,7 +190,7 @@ struct ChessEngine: Codable {
         for rank in 0..<8 {
             for file in 0..<8 {
                 let from = Square(file: file, rank: rank)
-                guard var piece = board.piece(at: from), piece.color == color else { continue }
+                guard let piece = board.piece(at: from), piece.color == color else { continue }
                 for tr in 0..<8 {
                     for tf in 0..<8 {
                         let to = Square(file: tf, rank: tr)

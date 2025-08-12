@@ -241,8 +241,8 @@ struct BoardView: View {
   let onMove: (Square, Square) -> Void
 
   var body: some View {
-    let files = 0..<8
-    let ranks = 0..<8
+//    let files = 0..<8
+//    let ranks = 0..<8
     VStack(spacing: 0) {
       ForEach(rows(), id: \.self) { rank in
         HStack(spacing: 0) {
