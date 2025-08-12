@@ -15,10 +15,15 @@ final class PeerService: NSObject, ObservableObject {
     private var session: MCSession!
     private var advertiser: MCNearbyServiceAdvertiser?
     private var browser: MCNearbyServiceBrowser?
+    private var discoveryTimer: Timer?
+    private var autoModeActive = false
+    private let desiredOpponentCount = 1
 
     @Published var connectedPeers: [MCPeerID] = []
     // Cache of peerID display names -> friendly names (from hello message)
     @Published var peerFriendlyNames: [String:String] = [:]
+    // Discovered (nearby) peers not yet connected
+    @Published var discoveredPeers: [MCPeerID] = []
 
     var localDisplayName: String { myPeer.displayName }
 
@@ -42,10 +47,32 @@ final class PeerService: NSObject, ObservableObject {
         browser?.startBrowsingForPeers()
     }
 
+    /// Symmetric auto mode: advertise and browse simultaneously so that
+    /// two devices can discover each other without manual host/join buttons.
+    func startAuto() {
+        startHosting()
+        join()
+    autoModeActive = true
+        scheduleDiscoveryRefresh()
+    }
+
+    private func scheduleDiscoveryRefresh() {
+        discoveryTimer?.invalidate()
+        // Refresh browsing every 4 seconds to pick up late arrivals.
+        discoveryTimer = Timer.scheduledTimer(withTimeInterval: 4, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            // Restart browsing (Multipeer sometimes benefits from refresh).
+            self.join()
+        }
+    }
+
     func stop() {
         advertiser?.stopAdvertisingPeer()
         browser?.stopBrowsingForPeers()
         session.disconnect()
+    discoveryTimer?.invalidate()
+    discoveryTimer = nil
+    autoModeActive = false
     }
 
     func send(_ message: NetMessage) {
@@ -58,16 +85,29 @@ final class PeerService: NSObject, ObservableObject {
         }
     }
 
+    /// Invite a discovered peer (after user confirmation)
+    func invite(_ peer: MCPeerID) {
+        guard let browser else { return }
+        browser.invitePeer(peer, to: session, withContext: nil, timeout: 10)
+    }
+
     var isConnected: Bool { !session.connectedPeers.isEmpty }
 
     // Incoming handler
     var onMessage: ((NetMessage) -> Void)?
+    // Notifies when peer list changes
+    var onPeerChange: (() -> Void)?
 }
 
 extension PeerService: MCSessionDelegate {
     func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
         DispatchQueue.main.async {
             self.connectedPeers = session.connectedPeers
+            // Remove any discovered entries that correspond to now-connected peers (by display name)
+            let connectedNames = Set(self.connectedPeers.map { $0.displayName })
+            self.discoveredPeers.removeAll { connectedNames.contains($0.displayName) }
+            self.onPeerChange?()
+            self.adjustDiscoveryTimerForConnectionState()
         }
     }
     func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
@@ -87,13 +127,50 @@ extension PeerService: MCSessionDelegate {
 extension PeerService: MCNearbyServiceAdvertiserDelegate {
     func advertiser(_ advertiser: MCNearbyServiceAdvertiser, didReceiveInvitationFromPeer peerID: MCPeerID,
                     withContext context: Data?, invitationHandler: @escaping (Bool, MCSession?) -> Void) {
-        invitationHandler(true, session)
+    // Accept all invitations; in our deterministic scheme the larger-name peer
+    // should be receiving the invite from the smaller-name peer.
+    invitationHandler(true, session)
     }
 }
 
 extension PeerService: MCNearbyServiceBrowserDelegate {
     func browser(_ browser: MCNearbyServiceBrowser, foundPeer peerID: MCPeerID, withDiscoveryInfo info: [String : String]?) {
-        browser.invitePeer(peerID, to: session, withContext: nil, timeout: 10)
+        // Deterministic chooser: only the lexicographically smaller display name
+        // will present a prompt to invite the other. The bigger-name peer stays passive
+        // and will auto-accept the invitation.
+        if myPeer.displayName < peerID.displayName {
+            DispatchQueue.main.async {
+                // Remove stale entries with same displayName (device restarted -> new peerID)
+                self.discoveredPeers.removeAll { $0.displayName == peerID.displayName }
+                if !self.connectedPeers.contains(where: { $0.displayName == peerID.displayName }) {
+                    self.discoveredPeers.append(peerID)
+                }
+            }
+        }
     }
-    func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {}
+    func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {
+        DispatchQueue.main.async {
+            // Remove by peer identity or display name (in case restarted peer shows up anew)
+            self.discoveredPeers.removeAll { $0 == peerID || $0.displayName == peerID.displayName }
+        }
+    }
+}
+
+// MARK: - Discovery Timer Management
+private extension PeerService {
+    func adjustDiscoveryTimerForConnectionState() {
+        guard autoModeActive else { return }
+        let opponentCount = connectedPeers.count
+        if opponentCount >= desiredOpponentCount {
+            // Pause periodic browsing to save power
+            discoveryTimer?.invalidate()
+            discoveryTimer = nil
+            // Optionally stop active browsing (keeps advertising so opponent can reconnect quickly)
+            browser?.stopBrowsingForPeers()
+        } else {
+            // Need an opponent: ensure browsing + timer running
+            if browser == nil { join() } else { browser?.startBrowsingForPeers() }
+            if discoveryTimer == nil { scheduleDiscoveryRefresh() }
+        }
+    }
 }

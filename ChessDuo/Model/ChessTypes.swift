@@ -22,7 +22,11 @@ struct Move: Codable {
 }
 
 struct NetMessage: Codable {
-    enum Kind: String, Codable { case move, reset, hello }
+    enum Kind: String, Codable {
+        case move, reset, hello
+        case proposeRole // sent by lexicographically smaller peer, proposes it will be white
+        case acceptRole  // acknowledgement by other peer
+    }
     let kind: Kind
     var move: Move? = nil
     var color: PieceColor? = nil

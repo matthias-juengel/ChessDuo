@@ -14,15 +14,20 @@ final class GameViewModel: ObservableObject {
     @Published var myColor: PieceColor? = nil
     @Published var statusText: String = "Nicht verbunden"
     @Published var otherDeviceNames: [String] = []
+    @Published var discoveredPeerNames: [String] = [] // for UI prompt
     @Published var capturedByMe: [Piece] = []
     @Published var capturedByOpponent: [Piece] = []
 
     let peers = PeerService()
     private var cancellables: Set<AnyCancellable> = []
+    private var hasSentHello = false
 
     init() {
         peers.onMessage = { [weak self] msg in
             self?.handle(msg)
+        }
+        peers.onPeerChange = { [weak self] in
+            DispatchQueue.main.async { self?.attemptRoleProposalIfNeeded() }
         }
 
         // Mirror connected peer names into a published property for the UI
@@ -36,6 +41,39 @@ final class GameViewModel: ObservableObject {
                 self?.otherDeviceNames = names
             }
             .store(in: &cancellables)
+
+        // Observe connection changes to trigger automatic negotiation.
+        peers.$connectedPeers
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] peers in
+                guard let self = self else { return }
+                if !peers.isEmpty {
+                    if !self.hasSentHello { self.sendHello(); self.hasSentHello = true }
+                    self.attemptRoleProposalIfNeeded()
+                } else {
+                    // Reset when all peers gone so a new connection can renegotiate.
+                    self.myColor = nil
+                    self.hasSentHello = false
+                }
+            }
+            .store(in: &cancellables)
+
+        // Mirror discovered peers to names for confirmation UI
+        peers.$discoveredPeers
+            .map { $0.map { $0.displayName }.sorted() }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] names in self?.discoveredPeerNames = names }
+            .store(in: &cancellables)
+
+    // Automatically start symmetric discovery
+    peers.startAuto()
+    }
+
+    // User accepted to connect with a given peer name
+    func confirmJoin(peerName: String) {
+        if let target = peers.discoveredPeers.first(where: { $0.displayName == peerName }) {
+            peers.invite(target)
+        }
     }
 
     func host() {
@@ -88,6 +126,7 @@ final class GameViewModel: ObservableObject {
         case .hello:
             // nichts weiter nötig; Anzeige aktualisieren
             statusText = peers.isConnected ? "Verbunden" : statusText
+            attemptRoleProposalIfNeeded()
         case .reset:
             engine.reset()
             capturedByMe.removeAll()
@@ -101,6 +140,31 @@ final class GameViewModel: ObservableObject {
                 }
                 updateStatusAfterMove()
             }
+        case .proposeRole:
+            // Other peer proposes it is white; accept if we don't have a color yet.
+            if myColor == nil {
+                myColor = .black
+                statusText = "Verbunden – Du bist Schwarz"
+                peers.send(.init(kind: .acceptRole))
+            }
+        case .acceptRole:
+            // Other peer accepted our proposal, we should already have set our color.
+            if myColor == nil { myColor = .white }
+            statusText = "Verbunden – Du bist Weiß"
+        }
+    }
+
+    /// If colors not assigned yet and exactly one peer connected, decide deterministically.
+    private func attemptRoleProposalIfNeeded() {
+        guard myColor == nil, let first = peers.connectedPeers.first else { return }
+        // Use lexicographical comparison of display names to pick white to ensure symmetry
+        let iAmWhite = peers.localDisplayName < first.displayName
+        if iAmWhite {
+            myColor = .white
+            statusText = "Verbunden – Du bist Weiß"
+            peers.send(.init(kind: .proposeRole))
+        } else {
+            // Wait to receive proposeRole; if none arrives (race), we can still fallback later.
         }
     }
 

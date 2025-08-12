@@ -11,6 +11,8 @@ import SwiftUI
 struct ContentView: View {
   @StateObject private var vm = GameViewModel()
   @State private var selected: Square? = nil
+  @State private var showPeerChooser = false
+  @State private var selectedPeerToJoin: String? = nil
 
   var body: some View {
     ZStack {
@@ -26,13 +28,13 @@ struct ContentView: View {
 
       VStack(spacing: 12) {
         HStack {
+          // Manual host/join kept for debugging but auto negotiation starts automatically.
           Button("Host") { vm.host() }
-            .background(Color.white)
+            .background(Color.white.opacity(0.6))
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(.black, lineWidth: 1))
-
           Button("Join") { vm.join() }
-            .background(Color.white)
+            .background(Color.white.opacity(0.6))
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(.black, lineWidth: 1))
 
@@ -90,6 +92,30 @@ struct ContentView: View {
         }
       }
       .padding()
+    }
+    .onChange(of: vm.discoveredPeerNames) { new in
+      // Show chooser when a new peer appears and we're not connected
+      if !new.isEmpty && vm.otherDeviceNames.isEmpty {
+        showPeerChooser = true
+      }
+    }
+    .sheet(isPresented: $showPeerChooser) {
+      NavigationView {
+        List {
+          Section("Gefundene Geräte") {
+            ForEach(vm.discoveredPeerNames, id: \.self) { name in
+              Button(action: { selectedPeerToJoin = name; vm.confirmJoin(peerName: name); showPeerChooser = false }) {
+                HStack { Text(name); Spacer(); if selectedPeerToJoin == name { Image(systemName: "checkmark") } }
+              }
+            }
+          }
+          if vm.discoveredPeerNames.isEmpty {
+            Text("Keine Geräte gefunden")
+          }
+        }
+        .navigationTitle("Beitreten?")
+        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { showPeerChooser = false } } }
+      }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .ignoresSafeArea()
