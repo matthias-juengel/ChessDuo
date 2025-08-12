@@ -17,6 +17,8 @@ struct ChessEngine: Codable {
     private var whiteCanCastleQueenside = true
     private var blackCanCastleKingside = true
     private var blackCanCastleQueenside = true
+    // En-passant target square (square that can be captured onto this ply)
+    private var enPassantTarget: Square? = nil
     // Position repetition tracking (key -> count)
     private var positionCounts: [String:Int] = [:]
 
@@ -32,6 +34,7 @@ struct ChessEngine: Codable {
         whiteCanCastleQueenside = true
         blackCanCastleKingside = true
         blackCanCastleQueenside = true
+    enPassantTarget = nil
     positionCounts = [:]
     recordInitialPosition()
     }
@@ -46,6 +49,7 @@ struct ChessEngine: Codable {
         whiteCanCastleQueenside = canStillCastle(color: .white, kingside: false)
         blackCanCastleKingside = canStillCastle(color: .black, kingside: true)
         blackCanCastleQueenside = canStillCastle(color: .black, kingside: false)
+    enPassantTarget = nil
     positionCounts = [:]
     recordPosition()
     }
@@ -101,6 +105,13 @@ struct ChessEngine: Codable {
         // Zug als gültig ausführen
         board = sim
         updateCastlingRights(move: m, piece: piece)
+        // En-passant target setzen (nur direkt nach Doppelzug eines Bauern)
+        if piece.type == .pawn && abs(m.to.rank - m.from.rank) == 2 {
+            let passedRank = (m.to.rank + m.from.rank) / 2
+            enPassantTarget = Square(file: m.from.file, rank: passedRank)
+        } else {
+            enPassantTarget = nil
+        }
         sideToMove = sideToMove.opposite
     recordPosition()
         return true
@@ -252,8 +263,13 @@ struct ChessEngine: Codable {
                 }
                 return false
             } else if adf == 1, dr == dir {
-                // Diagonal schlagen
+                // Diagonal schlagen (inkl. en passant)
                 if let target = board.piece(at: to), target.color != piece.color { return true }
+                // En passant: Zielfeld leer, aber entspricht enPassantTarget und hinter dem Ziel steht gegnerischer Bauer
+                if board.piece(at: to) == nil, let ep = enPassantTarget, ep.file == to.file && ep.rank == to.rank {
+                    let capturedPawnSquare = Square(file: to.file, rank: to.rank - dir)
+                    if let captured = board.piece(at: capturedPawnSquare), captured.color != piece.color, captured.type == .pawn { return true }
+                }
                 return false
             } else {
                 return false
@@ -408,6 +424,14 @@ struct ChessEngine: Codable {
     private func applyMove(_ m: Move, promotingFrom pieceRef: inout Piece, on b: inout Board) {
         b.set(nil, at: m.from)
         var piece = pieceRef
+        // En passant capture removal: pawn moves diagonally to empty square that equals enPassantTarget
+        if piece.type == .pawn && abs(m.to.file - m.from.file) == 1 && b.piece(at: m.to) == nil {
+            let dir = (piece.color == .white) ? 1 : -1
+            let capturedPawnSquare = Square(file: m.to.file, rank: m.to.rank - dir)
+            if let cap = b.piece(at: capturedPawnSquare), cap.type == .pawn && cap.color != piece.color {
+                b.set(nil, at: capturedPawnSquare)
+            }
+        }
         if piece.type == .pawn && ((m.to.rank == 7 && piece.color == .white) || (m.to.rank == 0 && piece.color == .black)) {
             piece = Piece(type: .queen, color: piece.color)
         }
@@ -480,7 +504,9 @@ struct ChessEngine: Codable {
         s.append(sideToMove == .white ? "w" : "b")
         s.append("|")
         let cr = [whiteCanCastleKingside, whiteCanCastleQueenside, blackCanCastleKingside, blackCanCastleQueenside]
-        for flag in cr { s.append(flag ? "1" : "0") }
+    for flag in cr { s.append(flag ? "1" : "0") }
+    s.append("|")
+    if let ep = enPassantTarget { s.append("ep\(ep.file)\(ep.rank)") } else { s.append("-") }
         return s
     }
 }
