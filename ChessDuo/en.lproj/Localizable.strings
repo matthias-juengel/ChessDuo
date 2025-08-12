@@ -26,3 +26,7 @@
 "reset_accept_yes" = "Abort Game"; // accept reset -> abort current game
 "reset_accept_no" = "Keep Playing"; // decline reset -> keep playing
 "reset_cancel_request" = "Keep Playing"; // requester cancels reset
+"offline_new_game_title" = "Really start a new game?";
+"offline_new_game_message" = "The current game will be ended.";
+"offline_new_game_keep" = "Keep playing";
+"offline_new_game_confirm" = "New game";

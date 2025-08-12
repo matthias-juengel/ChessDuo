@@ -37,17 +37,16 @@ struct ContentView: View {
       Group {
         if vm.movesMade > 0 {
           Button(action: { vm.resetGame() }) {
-            Text(vm.awaitingResetConfirmation ? String.loc("new_game_confirm") : String.loc("new_game"))
+            Text(vm.peers.isConnected && vm.awaitingResetConfirmation ? String.loc("new_game_confirm") : String.loc("new_game"))
               .font(.caption2)
               .fontWeight(.semibold)
               .padding(.horizontal, 10)
               .padding(.vertical, 5)
-              .background(Color.white.opacity(vm.awaitingResetConfirmation ? 0.7 : 0.9))
+              .background(Color.white.opacity(vm.peers.isConnected && vm.awaitingResetConfirmation ? 0.7 : 0.9))
               .foregroundColor(.black)
               .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
               .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.black.opacity(0.8), lineWidth: 1))
           }
-          .disabled(!vm.peers.isConnected)
           .transition(.opacity)
         } else {
           Text(String.loc("new_game"))
@@ -130,33 +129,7 @@ struct ContentView: View {
     ZStack {
       viewBackground.ignoresSafeArea()
       boardWithCapturedPieces.ignoresSafeArea().padding([.leading, .trailing], 10)
-
-      VStack {
-        Spacer().allowsHitTesting(false)
-        ZStack {
-          Color.clear.frame(height: 30)
-          if let status = turnStatus {
-            Text(status.text)
-              .font(.headline)
-              .foregroundStyle(status.color)
-          }
-        }.allowsHitTesting(false)
-        ZStack {
-          Color.clear.frame(height: 30)
-          if vm.movesMade == 0, vm.myColor == .some(.white) {
-            Button(String.loc("play_black")) { vm.swapColorsIfAllowed() }
-              .font(.caption2)
-              .padding(.horizontal, 10)
-              .padding(.vertical, 5)
-              .background(Color.white.opacity(0.9))
-              .foregroundColor(.black)
-              .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-              .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.black.opacity(0.8), lineWidth: 1))
-          }
-          resetButtonArea
-        }
-      }
-
+      overlayControls
     }
     .onChange(of: vm.discoveredPeerNames) { new in
       // Show chooser when a new peer appears and we're not connected; hide automatically if list empties while visible
@@ -179,6 +152,11 @@ struct ContentView: View {
         vm.respondToResetRequest(accept: false)
       })
     }
+    // Offline new game confirmation
+    .alert(String.loc("offline_new_game_title"), isPresented: $vm.offlineResetPrompt, actions: {
+      Button(String.loc("offline_new_game_keep"), role: .cancel) { vm.offlineResetPrompt = false }
+      Button(String.loc("offline_new_game_confirm"), role: .destructive) { vm.performLocalReset(send: false) }
+    }, message: { Text(String.loc("offline_new_game_message")) })
     .sheet(isPresented: $showPeerChooser) {
       NavigationView {
         List {
@@ -204,6 +182,48 @@ struct ContentView: View {
       Text(String.loc("incoming_join_message", vm.incomingJoinRequestPeer ?? ""))
     }
   .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+}
+
+private extension ContentView {
+  var overlayControls: some View {
+    VStack {
+      Spacer().allowsHitTesting(false)
+      statusBar
+      controlBar
+    }
+  }
+
+  var statusBar: some View {
+    ZStack {
+      Color.clear.frame(height: 30)
+      if let status = turnStatus {
+        Text(status.text)
+          .font(.headline)
+          .foregroundStyle(status.color)
+      }
+    }.allowsHitTesting(false)
+  }
+
+  var controlBar: some View {
+    ZStack {
+      Color.clear.frame(height: 30)
+      if vm.movesMade == 0, vm.myColor == .some(.white) {
+        swapColorButton
+      }
+      resetButtonArea
+    }
+  }
+
+  var swapColorButton: some View {
+    Button(String.loc("play_black")) { vm.swapColorsIfAllowed() }
+      .font(.caption2)
+      .padding(.horizontal, 10)
+      .padding(.vertical, 5)
+      .background(Color.white.opacity(0.9))
+      .foregroundColor(.black)
+      .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+      .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.black.opacity(0.8), lineWidth: 1))
   }
 }
 

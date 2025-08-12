@@ -26,3 +26,7 @@
 "reset_accept_yes" = "Terminar partida"; // accept reset
 "reset_accept_no" = "Seguir jugando"; // decline reset
 "reset_cancel_request" = "Seguir jugando"; // requester cancels reset
+"offline_new_game_title" = "¿Empezar nueva partida?";
+"offline_new_game_message" = "La partida actual se terminará.";
+"offline_new_game_keep" = "Seguir jugando";
+"offline_new_game_confirm" = "Nueva partida";

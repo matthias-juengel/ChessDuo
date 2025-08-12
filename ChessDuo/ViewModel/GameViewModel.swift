@@ -22,6 +22,7 @@ final class GameViewModel: ObservableObject {
     @Published var incomingResetRequest: Bool = false
     @Published var outcome: GameOutcome = .ongoing
     @Published var incomingJoinRequestPeer: String? = nil
+    @Published var offlineResetPrompt: Bool = false
 
     let peers = PeerService()
     private var cancellables: Set<AnyCancellable> = []
@@ -127,13 +128,22 @@ final class GameViewModel: ObservableObject {
     }
 
     func resetGame() {
-        // Initiate reset handshake if moves happened; otherwise silent reset
-        if movesMade == 0 {
-            performLocalReset(send: true)
+        if peers.isConnected {
+            // Connected mode: handshake reset
+            if movesMade == 0 {
+                performLocalReset(send: true)
+            } else {
+                awaitingResetConfirmation = true
+                incomingResetRequest = false // ensure only one alert
+                peers.send(.init(kind: .requestReset))
+            }
         } else {
-            awaitingResetConfirmation = true
-            incomingResetRequest = false // ensure only one alert
-            peers.send(.init(kind: .requestReset))
+            // Single-device mode: show alert confirmation (no network messages)
+            if movesMade == 0 {
+                performLocalReset(send: false)
+            } else {
+                offlineResetPrompt = true
+            }
         }
     }
 
@@ -252,13 +262,14 @@ final class GameViewModel: ObservableObject {
         }
     }
 
-    private func performLocalReset(send: Bool) {
+    func performLocalReset(send: Bool) {
         engine.reset()
         capturedByMe.removeAll()
         capturedByOpponent.removeAll()
         movesMade = 0
         awaitingResetConfirmation = false
         incomingResetRequest = false
+    offlineResetPrompt = false
         statusText = "Neu gestartet. Am Zug: Weiß"
         outcome = .ongoing
         if send { peers.send(.init(kind: .reset)) }
