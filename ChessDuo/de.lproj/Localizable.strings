@@ -23,3 +23,6 @@
 "no_other_devices" = "Keine anderen Geräte verbunden";
 "incoming_join_title" = "Verbindungsanfrage";
 "incoming_join_message" = "%@ möchte sich verbinden. Annehmen?";
+"reset_accept_yes" = "Spiel abbrechen"; // accept reset -> abort current game
+"reset_accept_no" = "Weiterspielen"; // decline reset -> keep playing
+"reset_cancel_request" = "Doch weiterspielen"; // requester cancels reset

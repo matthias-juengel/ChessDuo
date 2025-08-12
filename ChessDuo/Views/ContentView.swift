@@ -146,13 +146,17 @@ struct ContentView: View {
     }
     // Incoming reset request alert
     .alert(String.loc("reset_accept_title"), isPresented: $vm.incomingResetRequest, actions: {
-      Button(String.loc("yes")) { vm.respondToResetRequest(accept: true) }
-      Button(String.loc("no"), role: .cancel) { vm.respondToResetRequest(accept: false) }
+      Button(String.loc("reset_accept_yes")) { vm.respondToResetRequest(accept: true) }
+      Button(String.loc("reset_accept_no"), role: .cancel) { vm.respondToResetRequest(accept: false) }
     }, message: { Text(String.loc("opponent_requests_reset")) })
-    // Awaiting confirmation info (outgoing)
-    .alert(String.loc("awaiting_confirmation_title"), isPresented: $vm.awaitingResetConfirmation, actions: {
-      Button(String.loc("cancel"), role: .destructive) { vm.respondToResetRequest(accept: false) }
-    }, message: { Text(String.loc("reset_request_sent")) })
+    // Awaiting confirmation info (outgoing) - single neutral button to cancel request
+    .alert(isPresented: $vm.awaitingResetConfirmation) {
+      Alert(title: Text(String.loc("awaiting_confirmation_title")),
+            message: Text(String.loc("reset_request_sent")),
+            dismissButton: .cancel(Text(String.loc("reset_cancel_request"))) {
+              vm.respondToResetRequest(accept: false)
+            })
+    }
     .sheet(isPresented: $showPeerChooser) {
       NavigationView {
         List {
