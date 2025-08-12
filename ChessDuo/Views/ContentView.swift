@@ -30,6 +30,16 @@ struct ContentView: View {
         // Reset button area (outside board) with placeholder to keep layout stable
         HStack {
           Spacer()
+          if vm.movesMade == 0, vm.myColor == .some(.white) {
+            Button("Seiten tauschen") { vm.swapColorsIfAllowed() }
+              .font(.caption2)
+              .padding(.horizontal, 10)
+              .padding(.vertical, 5)
+              .background(Color.white.opacity(0.9))
+              .foregroundColor(.black)
+              .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+              .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.black.opacity(0.8), lineWidth: 1))
+          }
           Group {
             if vm.movesMade > 0 {
               Button(action: { vm.resetGame() }) {
@@ -46,7 +56,6 @@ struct ContentView: View {
               .disabled(!vm.peers.isConnected)
               .transition(.opacity)
             } else {
-              // Placeholder keeps vertical space so board doesn't shift when button appears later
               Text("Neues Spiel")
                 .font(.caption2)
                 .fontWeight(.semibold)

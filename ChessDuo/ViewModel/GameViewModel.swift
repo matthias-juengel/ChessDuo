@@ -198,6 +198,9 @@ final class GameViewModel: ObservableObject {
                 // We're ahead; send our snapshot back (echo) so peer can adopt.
                 sendSnapshot()
             }
+        case .colorSwap:
+            // Swap colors locally if no moves made yet
+            if movesMade == 0, let current = myColor { myColor = current.opposite }
         }
     }
 
@@ -234,6 +237,16 @@ final class GameViewModel: ObservableObject {
             peers.send(.init(kind: .declineReset))
             incomingResetRequest = false
         }
+    }
+
+    // Host (white) can swap colors before any move has been made.
+    func swapColorsIfAllowed() {
+        guard movesMade == 0, let me = myColor else { return }
+        // Only allow the current white to initiate swap (to avoid race)
+        guard me == .white else { return }
+        myColor = .black
+        peers.send(.init(kind: .colorSwap))
+        statusText = "Farben getauscht – Du bist Schwarz"
     }
 
     private func requestSync() {

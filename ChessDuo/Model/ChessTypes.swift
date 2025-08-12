@@ -31,6 +31,7 @@ struct NetMessage: Codable {
     case declineReset // opponent declined reset
         case syncRequest  // ask peer to send its current game snapshot
         case syncState    // contains full game snapshot
+    case colorSwap    // pre-game swap of colors initiated by current white
     }
     let kind: Kind
     var move: Move? = nil
