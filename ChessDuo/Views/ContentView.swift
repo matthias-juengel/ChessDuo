@@ -129,7 +129,7 @@ struct ContentView: View {
       boardWithCapturedPieces.ignoresSafeArea()//.padding([.leading, .trailing], 5)
 
       VStack {
-        Color.clear
+        Spacer().allowsHitTesting(false)
         ZStack {
           Color.clear.frame(height: 30)
           if let status = turnStatus {
@@ -137,7 +137,7 @@ struct ContentView: View {
               .font(.headline)
               .foregroundStyle(status.color)
           }
-        }
+        }.allowsHitTesting(false)
         ZStack {
           Color.clear.frame(height: 30)
           if vm.movesMade == 0, vm.myColor == .some(.white) {
@@ -287,33 +287,53 @@ struct BoardView: View {
               .zIndex(selected == sq ? 100 : 1)
           }
         }
-        // Unified tap/drag gesture layer
-  // Use an almost transparent fill (not fully clear) to ensure reliable hit-testing for gestures
-          Color.white.opacity(0.1)
-          .frame(width: boardSide, height: boardSide)
-          .contentShape(Rectangle())
-          .gesture(DragGesture(minimumDistance: 0)
-            .onEnded { value in
-              let start = value.startLocation
-              let end = value.location
-              guard let startSq = square(at: start, boardSide: boardSide, rowArray: rowArray, colArray: colArray, squareSize: squareSize) else { return }
-              let endSq = square(at: end, boardSide: boardSide, rowArray: rowArray, colArray: colArray, squareSize: squareSize) ?? startSq
-              // If it's effectively a tap
-              if startSq == endSq {
-                tap(startSq)
-              } else {
-                // Drag move: select start if needed then attempt move
-                if selected != startSq { selected = startSq }
-                if selected == startSq { tap(endSq) }
-              }
-            }
-          )
         // Border overlay
 //        Rectangle()
 //          .stroke(Color.black, lineWidth: 1)
 //          .frame(width: boardSide, height: boardSide)
       }
       .frame(width: boardSide, height: boardSide, alignment: .topLeading)
+      .contentShape(Rectangle())
+      .gesture(
+        DragGesture(minimumDistance: 0)
+          .onChanged { value in
+            // Live feedback: show selection of origin square if none selected yet
+            if selected == nil,
+               let origin = square(
+                 at: value.startLocation,
+                 boardSide: boardSide,
+                 rowArray: rowArray,
+                 colArray: colArray,
+                 squareSize: squareSize
+               ) {
+              selected = origin
+            }
+          }
+          .onEnded { value in
+            let start = value.startLocation
+            let end = value.location
+            guard let startSq = square(
+              at: start,
+              boardSide: boardSide,
+              rowArray: rowArray,
+              colArray: colArray,
+              squareSize: squareSize
+            ) else { return }
+            let endSq = square(
+              at: end,
+              boardSide: boardSide,
+              rowArray: rowArray,
+              colArray: colArray,
+              squareSize: squareSize
+            ) ?? startSq
+            if startSq == endSq {
+              tap(startSq)
+            } else {
+              if selected != startSq { selected = startSq }
+              if selected == startSq { tap(endSq) }
+            }
+          }
+      )
       .clipped()
       .aspectRatio(1, contentMode: .fit)
       .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -390,7 +410,7 @@ struct SquareView: View {
       }
       if let p = piece {
         Text(symbol(for: p))
-          .font(.system(size: 60))
+          .font(.system(size: 35))
           .foregroundColor(p.color == .white ? .white : .black)
           .opacity(1)
           .rotationEffect(rotateForOpponent ? .degrees(180) : .degrees(0))
