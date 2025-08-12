@@ -4,7 +4,7 @@ import SwiftUI
 struct ChessBluetoothApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            EnhancedContentView()
         }
     }
 }

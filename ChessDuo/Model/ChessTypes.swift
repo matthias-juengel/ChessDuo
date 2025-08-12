@@ -22,9 +22,37 @@ struct Move: Codable {
 }
 
 struct NetMessage: Codable {
-    enum Kind: String, Codable { case move, reset, hello }
+    enum Kind: String, Codable { 
+        case move, reset, hello
+        case statusUpdate      // Peer status changes
+        case joinRequest       // Request to join a host
+        case joinResponse      // Host response with pairing code
+        case pairingCode       // Code verification
+        case gameSetup         // Game configuration
+        case gameStart         // Finalized game start
+        case rematchRequest    // Request for rematch
+        case rematchResponse   // Response to rematch
+    }
+    
     let kind: Kind
     var move: Move? = nil
     var color: PieceColor? = nil
-    var deviceName: String? = nil // optional friendly device name
+    var deviceName: String? = nil
+    
+    // New fields for enhanced networking
+    var deviceId: String? = nil
+    var peerStatus: PeerStatus? = nil
+    var pairingCode: String? = nil
+    var gameSetup: GameSetup? = nil
+    var timestamp: Date? = nil
+    var accepted: Bool? = nil
+    var hostCandidate: HostCandidate? = nil
+    
+    init(kind: Kind, move: Move? = nil, color: PieceColor? = nil, deviceName: String? = nil) {
+        self.kind = kind
+        self.move = move
+        self.color = color
+        self.deviceName = deviceName
+        self.timestamp = Date()
+    }
 }
