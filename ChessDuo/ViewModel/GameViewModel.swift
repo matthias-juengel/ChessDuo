@@ -14,7 +14,7 @@ final class GameViewModel: ObservableObject {
     @Published var myColor: PieceColor? = nil
     @Published var statusText: String = "Nicht verbunden"
     @Published var otherDeviceNames: [String] = []
-    @Published var discoveredPeerNames: [String] = [] // for UI prompt
+    @Published var discoveredPeerNames: [String] = [] // for UI prompt (friendly names without unique suffix)
     @Published var capturedByMe: [Piece] = []
     @Published var capturedByOpponent: [Piece] = []
     @Published var movesMade: Int = 0
@@ -33,11 +33,14 @@ final class GameViewModel: ObservableObject {
             DispatchQueue.main.async { self?.attemptRoleProposalIfNeeded() }
         }
 
-        // Mirror connected peer names into a published property for the UI
+        // Mirror connected peer names into a published property for the UI (strip suffix unless friendly map has real name)
         peers.$connectedPeers
             .combineLatest(peers.$peerFriendlyNames)
             .map { peerIDs, friendlyMap in
-                peerIDs.map { friendlyMap[$0.displayName] ?? $0.displayName }.sorted()
+                peerIDs.map { peer in
+                    if let friendly = friendlyMap[peer.displayName] { return friendly }
+                    return Self.baseName(from: peer.displayName)
+                }.sorted()
             }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] names in
@@ -63,9 +66,9 @@ final class GameViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
-        // Mirror discovered peers to names for confirmation UI
+        // Mirror discovered peers to names for confirmation UI (strip suffix)
         peers.$discoveredPeers
-            .map { $0.map { $0.displayName }.sorted() }
+            .map { $0.map { Self.baseName(from: $0.displayName) }.sorted() }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] names in self?.discoveredPeerNames = names }
             .store(in: &cancellables)
@@ -76,7 +79,9 @@ final class GameViewModel: ObservableObject {
 
     // User accepted to connect with a given peer name
     func confirmJoin(peerName: String) {
-        if let target = peers.discoveredPeers.first(where: { $0.displayName == peerName }) {
+        // Match by friendly base name (since UI lists stripped names); if multiple (same friendly name on different devices) pick lexicographically smallest full display name for determinism.
+        let candidates = peers.discoveredPeers.filter { Self.baseName(from: $0.displayName) == peerName }
+        if let target = candidates.sorted(by: { $0.displayName < $1.displayName }).first {
             peers.invite(target)
         }
     }
@@ -106,7 +111,8 @@ final class GameViewModel: ObservableObject {
     }
 
     private func sendHello() {
-    peers.send(.init(kind: .hello, move: nil, color: myColor, deviceName: peers.localDisplayName))
+        // Send the friendly (unsuffixed) device name
+        peers.send(.init(kind: .hello, move: nil, color: myColor, deviceName: peers.localFriendlyName))
     }
 
     func resetGame() {
@@ -254,10 +260,10 @@ final class GameViewModel: ObservableObject {
     }
 
     private func sendSnapshot() {
-        let msg = NetMessage(kind: .syncState,
-                              move: nil,
-                              color: nil,
-                              deviceName: peers.localDisplayName,
+    let msg = NetMessage(kind: .syncState,
+                  move: nil,
+                  color: nil,
+                  deviceName: peers.localFriendlyName,
                               board: engine.board,
                               sideToMove: engine.sideToMove,
                               movesMade: movesMade,
@@ -275,5 +281,15 @@ final class GameViewModel: ObservableObject {
         } else {
             statusText = "Am Zug: \(engine.sideToMove == .white ? "Weiß" : "Schwarz")"
         }
+    }
+}
+
+private extension GameViewModel {
+    static func baseName(from composite: String) -> String {
+        // Split at first '#' only; if absent return full string
+        if let idx = composite.firstIndex(of: "#") {
+            return String(composite[..<idx])
+        }
+        return composite
     }
 }

@@ -43,6 +43,7 @@ final class PeerService: NSObject, ObservableObject {
 
     override init() {
         super.init()
+        print("Friendly name:", friendlyName)
         session = MCSession(peer: myPeer, securityIdentity: nil, encryptionPreference: .required)
         session.delegate = self
     }
