@@ -33,7 +33,7 @@ struct ContentView: View {
           Group {
             if vm.movesMade > 0 {
               Button(action: { vm.resetGame() }) {
-                Text(vm.awaitingResetConfirmation ? "Reset?" : "Reset")
+                Text(vm.awaitingResetConfirmation ? "Neues Spiel?" : "Neues Spiel")
                   .font(.caption2)
                   .fontWeight(.semibold)
                   .padding(.horizontal, 10)
@@ -47,7 +47,7 @@ struct ContentView: View {
               .transition(.opacity)
             } else {
               // Placeholder keeps vertical space so board doesn't shift when button appears later
-              Text("Reset")
+              Text("Neues Spiel")
                 .font(.caption2)
                 .fontWeight(.semibold)
                 .padding(.horizontal, 10)
