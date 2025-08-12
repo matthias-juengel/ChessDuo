@@ -171,6 +171,12 @@ struct ContentView: View {
         .toolbar { ToolbarItem(placement: .cancellationAction) { Button(String.loc("cancel")) { showPeerChooser = false } } }
       }
     }
+    .alert(String.loc("incoming_join_title"), isPresented: Binding<Bool>(get: { vm.incomingJoinRequestPeer != nil }, set: { if !$0 { vm.incomingJoinRequestPeer = nil } })) {
+      Button(String.loc("yes")) { vm.respondToIncomingInvitation(true) }
+      Button(String.loc("no"), role: .cancel) { vm.respondToIncomingInvitation(false) }
+    } message: {
+      Text(String.loc("incoming_join_message", vm.incomingJoinRequestPeer ?? ""))
+    }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .ignoresSafeArea()
   }

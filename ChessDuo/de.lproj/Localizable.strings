@@ -21,3 +21,5 @@
 "no_devices_found" = "Keine Geräte gefunden";
 "other_devices_prefix" = "Andere Geräte: ";
 "no_other_devices" = "Keine anderen Geräte verbunden";
+"incoming_join_title" = "Verbindungsanfrage";
+"incoming_join_message" = "%@ möchte sich verbinden. Annehmen?";

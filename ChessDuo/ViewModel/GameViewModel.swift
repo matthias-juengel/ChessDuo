@@ -21,10 +21,12 @@ final class GameViewModel: ObservableObject {
     @Published var awaitingResetConfirmation: Bool = false
     @Published var incomingResetRequest: Bool = false
     @Published var outcome: GameOutcome = .ongoing
+    @Published var incomingJoinRequestPeer: String? = nil
 
     let peers = PeerService()
     private var cancellables: Set<AnyCancellable> = []
     private var hasSentHello = false
+    private var pendingInvitationDecision: ((Bool)->Void)? = nil
     enum GameOutcome: Equatable { case ongoing, win, loss, draw }
 
     init() {
@@ -33,6 +35,13 @@ final class GameViewModel: ObservableObject {
         }
         peers.onPeerChange = { [weak self] in
             DispatchQueue.main.async { self?.attemptRoleProposalIfNeeded() }
+        }
+        peers.onInvitation = { [weak self] peerName, decision in
+            guard let self = self else { return }
+            DispatchQueue.main.async {
+                self.incomingJoinRequestPeer = peerName
+                self.pendingInvitationDecision = decision
+            }
         }
 
         // Mirror connected peer names into a published property for the UI (strip suffix unless friendly map has real name)
@@ -247,6 +256,12 @@ final class GameViewModel: ObservableObject {
             peers.send(.init(kind: .declineReset))
             incomingResetRequest = false
         }
+    }
+
+    func respondToIncomingInvitation(_ accept: Bool) {
+        pendingInvitationDecision?(accept)
+        pendingInvitationDecision = nil
+        incomingJoinRequestPeer = nil
     }
 
     // Host (white) can swap colors before any move has been made.

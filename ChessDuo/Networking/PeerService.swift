@@ -101,6 +101,8 @@ final class PeerService: NSObject, ObservableObject {
     var onMessage: ((NetMessage) -> Void)?
     // Notifies when peer list changes
     var onPeerChange: (() -> Void)?
+    // Invitation callback (peer base name, decision closure)
+    var onInvitation: ((String, @escaping (Bool)->Void) -> Void)?
 }
 
 extension PeerService: MCSessionDelegate {
@@ -131,9 +133,15 @@ extension PeerService: MCSessionDelegate {
 extension PeerService: MCNearbyServiceAdvertiserDelegate {
     func advertiser(_ advertiser: MCNearbyServiceAdvertiser, didReceiveInvitationFromPeer peerID: MCPeerID,
                     withContext context: Data?, invitationHandler: @escaping (Bool, MCSession?) -> Void) {
-    // Accept all invitations; in our deterministic scheme the larger-name peer
-    // should be receiving the invite from the smaller-name peer.
-    invitationHandler(true, session)
+    // Require confirmation when more than two devices (self + >=2 others) are present.
+    if shouldRequireInvitationConfirmation() {
+        let base = baseName(from: peerID.displayName)
+        onInvitation?(base) { accept in
+            invitationHandler(accept, accept ? self.session : nil)
+        }
+    } else {
+        invitationHandler(true, session)
+    }
     }
 }
 
@@ -174,5 +182,18 @@ private extension PeerService {
             }
             browser?.startBrowsingForPeers()
         }
+    }
+
+    func shouldRequireInvitationConfirmation() -> Bool {
+    // If we're already connected to someone, any additional incoming invitation (i.e. a third device) must be confirmed.
+    if connectedPeers.count >= 1 { return true }
+    // Otherwise (no current connection), allow automatic pairing between first two devices unless we already see 2+ others.
+    let discoveredNames = Set(discoveredPeers.map { $0.displayName })
+    return discoveredNames.count >= 2
+    }
+
+    func baseName(from composite: String) -> String {
+        if let idx = composite.firstIndex(of: "#") { return String(composite[..<idx]) }
+        return composite
     }
 }
