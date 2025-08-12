@@ -27,6 +27,35 @@ struct ChessEngine: Codable {
         blackCanCastleQueenside = true
     }
 
+    // Apply snapshot received from network (castling rights are conservatively reset)
+    mutating func applySnapshot(board: Board, sideToMove: PieceColor) {
+        self.board = board
+        self.sideToMove = sideToMove
+        // We don't transmit castling rights yet; recalculate basic rights heuristically.
+        // Simple approach: if kings/rooks still on starting squares, keep rights else remove.
+        whiteCanCastleKingside = canStillCastle(color: .white, kingside: true)
+        whiteCanCastleQueenside = canStillCastle(color: .white, kingside: false)
+        blackCanCastleKingside = canStillCastle(color: .black, kingside: true)
+        blackCanCastleQueenside = canStillCastle(color: .black, kingside: false)
+    }
+
+    static func fromSnapshot(board: Board, sideToMove: PieceColor) -> ChessEngine {
+        var e = ChessEngine()
+        e.applySnapshot(board: board, sideToMove: sideToMove)
+        return e
+    }
+
+    private func canStillCastle(color: PieceColor, kingside: Bool) -> Bool {
+        let rank = (color == .white) ? 0 : 7
+        // King must be on starting square
+        guard board.piece(at: Square(file: 4, rank: rank))?.type == .king,
+              board.piece(at: Square(file: 4, rank: rank))?.color == color else { return false }
+        let rookFile = kingside ? 7 : 0
+        guard board.piece(at: Square(file: rookFile, rank: rank))?.type == .rook,
+              board.piece(at: Square(file: rookFile, rank: rank))?.color == color else { return false }
+        return true
+    }
+
     // Sehr einfache Legalitätsprüfung (keine Schachprüfung, keine Rochade/en passant)
     mutating func tryMakeMove(_ m: Move) -> Bool {
         guard Board.inBounds(m.from), Board.inBounds(m.to) else { return false }

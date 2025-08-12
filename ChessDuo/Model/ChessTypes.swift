@@ -29,9 +29,17 @@ struct NetMessage: Codable {
     case requestReset // ask opponent to confirm reset
     case acceptReset  // opponent accepted reset
     case declineReset // opponent declined reset
+        case syncRequest  // ask peer to send its current game snapshot
+        case syncState    // contains full game snapshot
     }
     let kind: Kind
     var move: Move? = nil
     var color: PieceColor? = nil
     var deviceName: String? = nil // optional friendly device name
+    // Snapshot fields (used for syncState)
+    var board: Board? = nil
+    var sideToMove: PieceColor? = nil // reuse field for clarity
+    var movesMade: Int? = nil
+    var capturedByMe: [Piece]? = nil // pieces captured by sender
+    var capturedByOpponent: [Piece]? = nil // pieces captured by sender's opponent
 }

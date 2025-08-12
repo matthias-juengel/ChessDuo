@@ -15,7 +15,7 @@ final class PeerService: NSObject, ObservableObject {
     private var session: MCSession!
     private var advertiser: MCNearbyServiceAdvertiser?
     private var browser: MCNearbyServiceBrowser?
-    private var discoveryTimer: Timer?
+    private var discoveryTimer: Timer? // legacy (no longer used); kept for safety invalidation only
     private var autoModeActive = false
     private let desiredOpponentCount = 1
 
@@ -50,26 +50,15 @@ final class PeerService: NSObject, ObservableObject {
     /// Symmetric auto mode: advertise and browse simultaneously so that
     /// two devices can discover each other without manual host/join buttons.
     func startAuto() {
-        startHosting()
-        join()
+    startHosting()
+    join()
     autoModeActive = true
-        scheduleDiscoveryRefresh()
-    }
-
-    private func scheduleDiscoveryRefresh() {
-        discoveryTimer?.invalidate()
-        // Refresh browsing every 4 seconds to pick up late arrivals.
-        discoveryTimer = Timer.scheduledTimer(withTimeInterval: 4, repeats: true) { [weak self] _ in
-            guard let self else { return }
-            // Restart browsing (Multipeer sometimes benefits from refresh).
-            self.join()
-        }
     }
 
     func stop() {
         advertiser?.stopAdvertisingPeer()
         browser?.stopBrowsingForPeers()
-        session.disconnect()
+    session.disconnect()
     discoveryTimer?.invalidate()
     discoveryTimer = nil
     autoModeActive = false
@@ -162,15 +151,13 @@ private extension PeerService {
         guard autoModeActive else { return }
         let opponentCount = connectedPeers.count
         if opponentCount >= desiredOpponentCount {
-            // Pause periodic browsing to save power
-            discoveryTimer?.invalidate()
-            discoveryTimer = nil
-            // Optionally stop active browsing (keeps advertising so opponent can reconnect quickly)
             browser?.stopBrowsingForPeers()
         } else {
-            // Need an opponent: ensure browsing + timer running
-            if browser == nil { join() } else { browser?.startBrowsingForPeers() }
-            if discoveryTimer == nil { scheduleDiscoveryRefresh() }
+            if browser == nil {
+                browser = MCNearbyServiceBrowser(peer: myPeer, serviceType: serviceType)
+                browser?.delegate = self
+            }
+            browser?.startBrowsingForPeers()
         }
     }
 }

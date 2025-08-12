@@ -53,6 +53,8 @@ final class GameViewModel: ObservableObject {
                 if !peers.isEmpty {
                     if !self.hasSentHello { self.sendHello(); self.hasSentHello = true }
                     self.attemptRoleProposalIfNeeded()
+                    // Initiate state sync (both sides may request; reconciliation chooses higher move count)
+                    self.requestSync()
                 } else {
                     // Reset when all peers gone so a new connection can renegotiate.
                     self.myColor = nil
@@ -98,6 +100,9 @@ final class GameViewModel: ObservableObject {
         statusText = "Nicht verbunden"
     capturedByMe.removeAll()
     capturedByOpponent.removeAll()
+    awaitingResetConfirmation = false
+    incomingResetRequest = false
+    movesMade = 0
     }
 
     private func sendHello() {
@@ -110,6 +115,7 @@ final class GameViewModel: ObservableObject {
             performLocalReset(send: true)
         } else {
             awaitingResetConfirmation = true
+            incomingResetRequest = false // ensure only one alert
             peers.send(.init(kind: .requestReset))
         }
     }
@@ -134,6 +140,7 @@ final class GameViewModel: ObservableObject {
             // nichts weiter nötig; Anzeige aktualisieren
             statusText = peers.isConnected ? "Verbunden" : statusText
             attemptRoleProposalIfNeeded()
+            requestSync()
         case .reset:
             engine.reset()
             capturedByMe.removeAll()
@@ -163,13 +170,34 @@ final class GameViewModel: ObservableObject {
             if myColor == nil { myColor = .white }
             statusText = "Verbunden – Du bist Weiß"
         case .requestReset:
+            // Show incoming request; cancel any outgoing waiting state
             incomingResetRequest = true
+            awaitingResetConfirmation = false
         case .acceptReset:
             performLocalReset(send: true)
         case .declineReset:
             awaitingResetConfirmation = false
             incomingResetRequest = false
             statusText = "Gegner hat Reset abgelehnt"
+        case .syncRequest:
+            sendSnapshot()
+        case .syncState:
+            // Compare movesMade and adopt if remote is ahead
+            if let remoteMoves = msg.movesMade, remoteMoves > movesMade,
+               let b = msg.board,
+               let stm = msg.sideToMove,
+               let remoteCapturedBySender = msg.capturedByMe,
+               let remoteCapturedByOpponent = msg.capturedByOpponent {
+                // Sender's capturedByMe -> our capturedByOpponent
+                engine = ChessEngine.fromSnapshot(board: b, sideToMove: stm)
+                capturedByOpponent = remoteCapturedBySender
+                capturedByMe = remoteCapturedByOpponent
+                movesMade = remoteMoves
+                statusText = "Synchronisiert (Übernahme)"
+            } else if let remoteMoves = msg.movesMade, remoteMoves < movesMade {
+                // We're ahead; send our snapshot back (echo) so peer can adopt.
+                sendSnapshot()
+            }
         }
     }
 
@@ -206,6 +234,23 @@ final class GameViewModel: ObservableObject {
             peers.send(.init(kind: .declineReset))
             incomingResetRequest = false
         }
+    }
+
+    private func requestSync() {
+        peers.send(.init(kind: .syncRequest))
+    }
+
+    private func sendSnapshot() {
+        let msg = NetMessage(kind: .syncState,
+                              move: nil,
+                              color: nil,
+                              deviceName: peers.localDisplayName,
+                              board: engine.board,
+                              sideToMove: engine.sideToMove,
+                              movesMade: movesMade,
+                              capturedByMe: capturedByMe,
+                              capturedByOpponent: capturedByOpponent)
+        peers.send(msg)
     }
 
     private func updateStatusAfterMove() {
