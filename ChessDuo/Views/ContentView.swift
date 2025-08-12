@@ -88,25 +88,28 @@ struct ContentView: View {
 
   var boardWithCapturedPieces: some View {
     VStack(spacing: 0) {
-      CapturedRow(pieces: vm.capturedByOpponent, rotatePieces: !vm.peers.isConnected)
-      Group {
-        let inCheck = vm.engine.isInCheck(vm.engine.sideToMove)
-        let isMate = inCheck && vm.engine.isCheckmate(for: vm.engine.sideToMove)
-        BoardView(board: vm.engine.board,
-                  perspective: vm.myColor ?? .white,
-                  myColor: vm.myColor ?? .white,
-                  sideToMove: vm.engine.sideToMove,
-                  inCheckCurrentSide: inCheck,
-                  isCheckmatePosition: isMate,
-                  singleDevice: !vm.peers.isConnected,
-                  selected: $selected) { from, to, single in
-          if single { vm.makeLocalMove(from: from, to: to) } else { vm.makeMove(from: from, to: to) }
-        }.onChange(of: vm.engine.sideToMove) { newValue in
-          if let mine = vm.myColor, mine != newValue { selected = nil }
+      Spacer() // neded to align center with background
+      CapturedRow(pieces: vm.capturedByOpponent, rotatePieces: !vm.peers.isConnected).frame(height: 30)
+      ZStack {
+        Group {
+          let inCheck = vm.engine.isInCheck(vm.engine.sideToMove)
+          let isMate = inCheck && vm.engine.isCheckmate(for: vm.engine.sideToMove)
+          BoardView(board: vm.engine.board,
+                    perspective: vm.myColor ?? .white,
+                    myColor: vm.myColor ?? .white,
+                    sideToMove: vm.engine.sideToMove,
+                    inCheckCurrentSide: inCheck,
+                    isCheckmatePosition: isMate,
+                    singleDevice: !vm.peers.isConnected,
+                    selected: $selected) { from, to, single in
+            if single { vm.makeLocalMove(from: from, to: to) } else { vm.makeMove(from: from, to: to) }
+          }.onChange(of: vm.engine.sideToMove) { newValue in
+            if let mine = vm.myColor, mine != newValue { selected = nil }
+          }
         }
-      }
-
-      CapturedRow(pieces: vm.capturedByMe, rotatePieces: false)
+      }.aspectRatio(1, contentMode: .fit)
+      CapturedRow(pieces: vm.capturedByMe, rotatePieces: false).frame(height: 30)
+      Spacer() // neded to align center with background
     }
   }
 
@@ -213,15 +216,14 @@ struct CapturedRow: View {
         ForEach(sortedPieces().indices, id: \.self) { idx in
           let p = sortedPieces()[idx]
           Text(symbol(for: p))
-            .font(.system(size: 30))
+            .font(.system(size: 32))
             .foregroundStyle(p.color == .white ? .white : .black)
             .rotationEffect(rotatePieces ? .degrees(180) : .degrees(0))
         }
       }
-      .frame(maxWidth: .infinity)
       .padding(.vertical, 2)
     }
-    .frame(maxHeight: 28)
+    .frame(height: 44)
   }
 
   private func sortedPieces() -> [Piece] {
@@ -261,6 +263,13 @@ struct BoardView: View {
   @Binding var selected: Square?
   let onMove: (Square, Square, Bool) -> Void
 
+  var bodyx: some View {
+    VStack {
+      Color.red
+      Color.blue
+    }
+  }
+
   var body: some View {
     GeometryReader { geo in
       let boardSide = min(geo.size.width, geo.size.height)
@@ -288,9 +297,9 @@ struct BoardView: View {
           }
         }
         // Border overlay
-//        Rectangle()
-//          .stroke(Color.black, lineWidth: 1)
-//          .frame(width: boardSide, height: boardSide)
+        Rectangle()
+          .stroke(Color.black, lineWidth: 1)
+          .frame(width: boardSide, height: boardSide)
       }
       .frame(width: boardSide, height: boardSide, alignment: .topLeading)
       .contentShape(Rectangle())
@@ -325,7 +334,6 @@ struct BoardView: View {
       )
       .clipped()
       .aspectRatio(1, contentMode: .fit)
-      .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
   }
 
