@@ -15,9 +15,9 @@ struct ContentView: View {
   @State private var selectedPeerToJoin: String? = nil
 
   private var turnStatus: (text: String, color: Color)? {
-    guard vm.peers.isConnected else { return nil }
     switch vm.outcome {
     case .ongoing:
+      guard !vm.peers.isConnected else { return nil }
       let baseColor = vm.engine.sideToMove == .white ? String.loc("turn_white") : String.loc("turn_black")
       let colorText: String = {
         if vm.myColor == vm.engine.sideToMove { return baseColor + " " + String.loc("you_mark") }
