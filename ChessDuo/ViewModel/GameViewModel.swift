@@ -152,6 +152,22 @@ final class GameViewModel: ObservableObject {
         }
     }
 
+    /// Local move for single-device mode (no network); both colors playable
+    func makeLocalMove(from: Square, to: Square) {
+        guard outcome == .ongoing else { return }
+        let move = Move(from: from, to: to)
+        let moverColor = engine.sideToMove
+        let capturedBefore = engine.board.piece(at: to)
+        if engine.tryMakeMove(move) {
+            if let cap = capturedBefore {
+                // Attribute capture list based on mover color (white = my side list if we treat white bottom)
+                if moverColor == .white { capturedByMe.append(cap) } else { capturedByOpponent.append(cap) }
+            }
+            movesMade += 1
+            updateStatusAfterMove()
+        }
+    }
+
     private func handle(_ msg: NetMessage) {
         switch msg.kind {
         case .hello:
@@ -315,6 +331,7 @@ final class GameViewModel: ObservableObject {
 }
 
 private extension GameViewModel {
+    var isSingleDeviceMode: Bool { !peers.isConnected }
     static func baseName(from composite: String) -> String {
         // Split at first '#' only; if absent return full string
         if let idx = composite.firstIndex(of: "#") {

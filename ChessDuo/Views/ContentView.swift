@@ -64,11 +64,27 @@ struct ContentView: View {
   var body: some View {
     ZStack {
       //      Full-screen background indicating turn status
-      Group {
-        let isMyTurn = (vm.myColor != nil) && (vm.engine.sideToMove == (vm.myColor ?? .white))
+      ZStack {
         Color(red: 0.5, green: 0.5, blue: 0.5)
-        if isMyTurn {
-          Color.green.opacity(0.4)
+        if vm.peers.isConnected {
+          if let my = vm.myColor, vm.engine.sideToMove == my {
+            Color.green.opacity(0.4)
+          }
+        } else {
+          // Single-device: highlight only the half belonging to the side to move
+          GeometryReader { geo in
+            VStack(spacing: 0) {
+              if vm.engine.sideToMove == .black {
+                Color.green.opacity(0.38)
+                Color.clear
+              } else {
+                Color.clear
+                Color.green.opacity(0.38)
+              }
+            }
+          }
+          .allowsHitTesting(false)
+          .transition(.opacity)
         }
       }
       .ignoresSafeArea()
@@ -77,7 +93,7 @@ struct ContentView: View {
   // Reset button area (outside board) with placeholder to keep layout stable
   resetButtonArea
 
-        CapturedRow(pieces: vm.capturedByOpponent)
+  CapturedRow(pieces: vm.capturedByOpponent, rotatePieces: !vm.peers.isConnected)
 
         Group {
           let inCheck = vm.engine.isInCheck(vm.engine.sideToMove)
@@ -88,15 +104,16 @@ struct ContentView: View {
                     sideToMove: vm.engine.sideToMove,
                     inCheckCurrentSide: inCheck,
                     isCheckmatePosition: isMate,
-                    selected: $selected) { from, to in
-            vm.makeMove(from: from, to: to)
+                    singleDevice: !vm.peers.isConnected,
+                    selected: $selected) { from, to, single in
+            if single { vm.makeLocalMove(from: from, to: to) } else { vm.makeMove(from: from, to: to) }
           }
           .onChange(of: vm.engine.sideToMove) { newValue in
             if let mine = vm.myColor, mine != newValue { selected = nil }
           }
         }
 
-        CapturedRow(pieces: vm.capturedByMe)
+  CapturedRow(pieces: vm.capturedByMe, rotatePieces: false)
 
         ZStack {
           Color.clear.frame(height: 40)
@@ -188,6 +205,7 @@ struct ContentView: View {
 
 struct CapturedRow: View {
   let pieces: [Piece]
+  var rotatePieces: Bool = false
   var body: some View {
     ScrollView(.horizontal, showsIndicators: false) {
       HStack(spacing: 4) {
@@ -196,6 +214,7 @@ struct CapturedRow: View {
           Text(symbol(for: p))
             .font(.system(size: 30))
             .foregroundStyle(p.color == .white ? .white : .black)
+            .rotationEffect(rotatePieces ? .degrees(180) : .degrees(0))
         }
       }
       .frame(maxWidth: .infinity)
@@ -237,8 +256,9 @@ struct BoardView: View {
   let sideToMove: PieceColor
   let inCheckCurrentSide: Bool
   let isCheckmatePosition: Bool
+  let singleDevice: Bool
   @Binding var selected: Square?
-  let onMove: (Square, Square) -> Void
+  let onMove: (Square, Square, Bool) -> Void
 
   var body: some View {
 //    let files = 0..<8
@@ -246,7 +266,7 @@ struct BoardView: View {
     VStack(spacing: 0) {
       ForEach(rows(), id: \.self) { rank in
         HStack(spacing: 0) {
-          ForEach(cols(), id: \.self) { file in
+          ForEach(cols(), id: \ .self) { file in
             let sq = Square(file: file, rank: rank)
             let piece = board.piece(at: sq)
             let kingInCheckHighlight = inCheckCurrentSide && piece?.type == .king && piece?.color == sideToMove
@@ -254,7 +274,9 @@ struct BoardView: View {
                        piece: piece,
                        isSelected: selected == sq,
                        isKingInCheck: kingInCheckHighlight,
-                       isKingCheckmated: isCheckmatePosition && kingInCheckHighlight).zIndex(selected == sq ? 100 : 1)
+                       isKingCheckmated: isCheckmatePosition && kingInCheckHighlight,
+                       rotateForOpponent: singleDevice && (piece?.color == .black)
+            ).zIndex(selected == sq ? 100 : 1)
             .onTapGesture { tap(sq) }
           }
         }.zIndex(selected?.rank == rank ? 100 : 1)
@@ -274,8 +296,10 @@ struct BoardView: View {
   }
 
   private func tap(_ sq: Square) {
-    // Only interact when it's this player's turn
-    guard myColor == sideToMove else { return }
+    // In single-device mode allow either side to move; otherwise restrict to this player's color & turn
+    if !singleDevice {
+      guard myColor == sideToMove else { return }
+    }
     if let sel = selected {
       if sel == sq {
         // Deselect if tapping the same square
@@ -283,19 +307,23 @@ struct BoardView: View {
         return
       }
       // If tapping another own piece, switch selection; otherwise attempt move
-      if let p = board.piece(at: sq), p.color == myColor {
+      let ownershipColor = singleDevice ? sideToMove : myColor
+      if let p = board.piece(at: sq), p.color == ownershipColor {
         selected = sq
       } else {
-        onMove(sel, sq)
+        onMove(sel, sq, singleDevice)
         selected = nil
       }
     } else {
       // Only allow selecting a square that has a piece of the side to move
-      if let p = board.piece(at: sq), p.color == myColor {
+      let ownershipColor = singleDevice ? sideToMove : myColor
+      if let p = board.piece(at: sq), p.color == ownershipColor {
         selected = sq
       }
     }
   }
+
+  // Rotation logic now handled inline per piece (rotate black pieces only in single-device mode)
 }
 
 struct SquareView: View {
@@ -304,6 +332,7 @@ struct SquareView: View {
   let isSelected: Bool
   let isKingInCheck: Bool
   let isKingCheckmated: Bool
+  let rotateForOpponent: Bool
 
   var body: some View {
     ZStack {
@@ -322,6 +351,7 @@ struct SquareView: View {
           .font(.system(size: 35))
           .foregroundColor(p.color == .white ? .white : .black)
           .opacity(1)
+          .rotationEffect(rotateForOpponent ? .degrees(180) : .degrees(0))
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
