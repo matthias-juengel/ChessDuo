@@ -137,8 +137,10 @@ struct ContentView: View {
       .padding()
     }
     .onChange(of: vm.discoveredPeerNames) { new in
-      // Show chooser when a new peer appears and we're not connected
-      if !new.isEmpty && vm.otherDeviceNames.isEmpty {
+      // Show chooser when a new peer appears and we're not connected; hide automatically if list empties while visible
+      if new.isEmpty {
+        if showPeerChooser { showPeerChooser = false }
+      } else if vm.otherDeviceNames.isEmpty {
         showPeerChooser = true
       }
     }
