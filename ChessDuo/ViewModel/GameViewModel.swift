@@ -87,6 +87,8 @@ final class GameViewModel: ObservableObject {
             statusText = peers.isConnected ? "Verbunden" : statusText
         case .reset:
             engine.reset()
+            capturedByMe.removeAll()
+            capturedByOpponent.removeAll()
             statusText = "Neu gestartet. Am Zug: Weiß"
         case .move:
             if let m = msg.move {
