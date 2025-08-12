@@ -63,6 +63,14 @@ struct PairingCode {
         let second = emojis.randomElement()!
         return "\(first)\(second)"
     }
+    
+    static func emojiForCode(_ code: String) -> String {
+        let emojis = ["🐴", "⭐", "🎯", "🚀", "🎸", "🎨", "🎲", "🎭", "🎪", "🎺"]
+        guard let codeInt = Int(code) else { return "🎲🎯" }
+        let first = emojis[codeInt / 1000 % emojis.count]
+        let second = emojis[(codeInt / 100) % emojis.count]
+        return "\(first)\(second)"
+    }
 }
 
 // Game setup options

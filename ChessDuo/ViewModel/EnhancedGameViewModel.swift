@@ -150,8 +150,6 @@ final class EnhancedGameViewModel: ObservableObject {
         if engine.isCheckmate(for: currentSide) {
             let winner = currentSide.opposite
             return "Schachmatt! \(winner == .white ? "Weiß" : "Schwarz") gewinnt."
-        } else if engine.isInCheck(for: currentSide) {
-            return "Schach! \(currentSide == .white ? "Weiß" : "Schwarz") am Zug."
         } else {
             return "Am Zug: \(currentSide == .white ? "Weiß" : "Schwarz")"
         }

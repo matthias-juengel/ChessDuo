@@ -48,8 +48,8 @@ struct HostLobbyView: View {
                             .background(Color.blue)
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                         
-                        // Also show emoji version
-                        Text(PairingCode.generateEmoji())
+                        // Also show emoji version based on code
+                        Text(emojiForCode(code))
                             .font(.title)
                             .padding()
                             .background(Color.blue.opacity(0.3))
@@ -93,6 +93,14 @@ struct HostLobbyView: View {
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black)
+    }
+    
+    private func emojiForCode(_ code: String) -> String {
+        let emojis = ["🐴", "⭐", "🎯", "🚀", "🎸", "🎨", "🎲", "🎭", "🎪", "🎺"]
+        guard let codeInt = Int(code) else { return "🎲🎯" }
+        let first = emojis[codeInt / 1000 % emojis.count]
+        let second = emojis[(codeInt / 100) % emojis.count]
+        return "\(first)\(second)"
     }
 }
 

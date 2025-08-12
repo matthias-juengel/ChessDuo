@@ -58,7 +58,7 @@ struct PairingView: View {
                                 .background(Color.blue)
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
                             
-                            Text(PairingCode.generateEmoji())
+                            Text(PairingCode.emojiForCode(code))
                                 .font(.largeTitle)
                                 .padding()
                                 .background(Color.blue.opacity(0.3))

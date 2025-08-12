@@ -8,6 +8,7 @@
 import Foundation
 import MultipeerConnectivity
 import Combine
+import UIKit
 
 final class EnhancedPeerService: NSObject, ObservableObject {
     private let serviceType = "btchess"
