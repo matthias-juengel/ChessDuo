@@ -27,14 +27,6 @@ struct ContentView: View {
       .ignoresSafeArea()
 
       VStack(spacing: 12) {
-  // (Removed top spacing controls to prevent board shifting when reset appears)
-
-//        Text(vm.statusText)
-//          .font(.subheadline)
-//          .foregroundStyle(.white)
-
-        CapturedRow(pieces: vm.capturedByOpponent)
-
         // Reset button area (outside board) with placeholder to keep layout stable
         HStack {
           Spacer()
@@ -65,27 +57,26 @@ struct ContentView: View {
           }
         }
 
+        CapturedRow(pieces: vm.capturedByOpponent)
+
         BoardView(board: vm.engine.board,
                   perspective: vm.myColor ?? .white,
                   myColor: vm.myColor ?? .white,
                   sideToMove: vm.engine.sideToMove,
                   selected: $selected) { from, to in
           vm.makeMove(from: from, to: to)
+        }.onChange(of: vm.engine.sideToMove) { newValue in
+          if let mine = vm.myColor, mine != newValue {
+            selected = nil
+          }
         }
 
-                  .onChange(of: vm.engine.sideToMove) { newValue in
-                    if let mine = vm.myColor, mine != newValue {
-                      selected = nil
-                    }
-                  }
+        CapturedRow(pieces: vm.capturedByMe)
 
-//        Text("Du spielst: \(vm.myColor?.rawValue.capitalized ?? "—") • Am Zug: \(vm.engine.sideToMove == .white ? "Weiß" : "Schwarz")")
-//          .font(.footnote)
         Text("Am Zug: \(vm.engine.sideToMove == .white ? "Weiß" : "Schwarz")")
           .font(.subheadline)
           .foregroundStyle(vm.engine.sideToMove == .white ? .white : .black)
 
-        CapturedRow(pieces: vm.capturedByMe)
 
         // Connected devices footer
         if !vm.otherDeviceNames.isEmpty {
