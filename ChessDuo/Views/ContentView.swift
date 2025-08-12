@@ -64,31 +64,38 @@ struct ContentView: View {
   var viewBackground: some View {
     // Full-screen background indicating turn status
     ZStack {
-      Color(red: 0.5, green: 0.5, blue: 0.5)
-      if vm.peers.isConnected {
-        if let my = vm.myColor, vm.engine.sideToMove == my {
-          Color.green.opacity(0.4)
-        }
-      } else {
-        // Single-device: highlight only the half belonging to the side to move
-        VStack(spacing: 0) {
-          if vm.engine.sideToMove == .black {
-            Color.green.opacity(0.38)
-            Color.clear
-          } else {
-            Color.clear
-            Color.green.opacity(0.38)
-          }
-        }
-        .allowsHitTesting(false)
-        .transition(.opacity)
+    VStack(spacing: 0) {
+      Color.red
+      Color.blue
       }
     }
+//    ZStack {
+//      Color(red: 0.5, green: 0.5, blue: 0.5)
+//      if vm.peers.isConnected {
+//        if let my = vm.myColor, vm.engine.sideToMove == my {
+//          Color.green.opacity(0.4)
+//        }
+//      } else {
+//        // Single-device: highlight only the half belonging to the side to move
+//        VStack(spacing: 0) {
+//          if vm.engine.sideToMove == .black {
+//            Color.green.opacity(0.38)
+//            Color.clear
+//          } else {
+//            Color.clear
+//            Color.green.opacity(0.38)
+//          }
+//        }
+//        .allowsHitTesting(false)
+//        .transition(.opacity)
+//      }
+//    }
   }
 
   var boardWithCapturedPieces: some View {
-    VStack(spacing: 12) {
-      CapturedRow(pieces: vm.capturedByOpponent, rotatePieces: !vm.peers.isConnected)
+//    VStack {
+//      Color.green.frame(height: 20)
+//      CapturedRow(pieces: vm.capturedByOpponent, rotatePieces: !vm.peers.isConnected)
       Group {
         let inCheck = vm.engine.isInCheck(vm.engine.sideToMove)
         let isMate = inCheck && vm.engine.isCheckmate(for: vm.engine.sideToMove)
@@ -105,9 +112,30 @@ struct ContentView: View {
           if let mine = vm.myColor, mine != newValue { selected = nil }
         }
       }
-
-      CapturedRow(pieces: vm.capturedByMe, rotatePieces: false)
-    }
+//      CapturedRow(pieces: vm.capturedByMe, rotatePieces: false)
+//      Color.orange.frame(height: 20)
+//    }
+//    VStack(spacing: 0) {
+//      CapturedRow(pieces: vm.capturedByOpponent, rotatePieces: !vm.peers.isConnected)
+//      Group {
+//        let inCheck = vm.engine.isInCheck(vm.engine.sideToMove)
+//        let isMate = inCheck && vm.engine.isCheckmate(for: vm.engine.sideToMove)
+//        BoardView(board: vm.engine.board,
+//                  perspective: vm.myColor ?? .white,
+//                  myColor: vm.myColor ?? .white,
+//                  sideToMove: vm.engine.sideToMove,
+//                  inCheckCurrentSide: inCheck,
+//                  isCheckmatePosition: isMate,
+//                  singleDevice: !vm.peers.isConnected,
+//                  selected: $selected) { from, to, single in
+//          if single { vm.makeLocalMove(from: from, to: to) } else { vm.makeMove(from: from, to: to) }
+//        }.onChange(of: vm.engine.sideToMove) { newValue in
+//          if let mine = vm.myColor, mine != newValue { selected = nil }
+//        }
+//      }
+//
+//      CapturedRow(pieces: vm.capturedByMe, rotatePieces: false)
+//    }
   }
 
   //        // Connected devices footer
@@ -126,14 +154,12 @@ struct ContentView: View {
   var body: some View {
     ZStack {
       viewBackground.ignoresSafeArea()
-      boardWithCapturedPieces.padding()
+      boardWithCapturedPieces.ignoresSafeArea().opacity(0.5)//.padding([.leading, .trailing], 5)
 
       VStack {
         Color.clear
-        resetButtonArea
-
         ZStack {
-          Color.clear.frame(height: 40)
+          Color.clear.frame(height: 30)
           if let status = turnStatus {
             Text(status.text)
               .font(.headline)
@@ -141,7 +167,7 @@ struct ContentView: View {
           }
         }
         ZStack {
-          Color.clear.frame(height: 40)
+          Color.clear.frame(height: 30)
           if vm.movesMade == 0, vm.myColor == .some(.white) {
             Button(String.loc("play_black")) { vm.swapColorsIfAllowed() }
               .font(.caption2)
@@ -152,6 +178,7 @@ struct ContentView: View {
               .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
               .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.black.opacity(0.8), lineWidth: 1))
           }
+          resetButtonArea
         }
       }
 
@@ -201,8 +228,7 @@ struct ContentView: View {
     } message: {
       Text(String.loc("incoming_join_message", vm.incomingJoinRequestPeer ?? ""))
     }
-    .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .ignoresSafeArea()
+  .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 }
 
@@ -286,8 +312,6 @@ struct BoardView: View {
       }
     }
     .aspectRatio(1, contentMode: .fit)
-    //    .clipShape(RoundedRectangle(cornerRadius: 8))
-    //    .overlay(RoundedRectangle(cornerRadius: 8).stroke(.black, lineWidth: 1))
     .overlay(Rectangle().stroke(.black, lineWidth: 1))
   }
 
