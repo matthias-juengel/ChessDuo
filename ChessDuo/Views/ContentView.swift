@@ -30,16 +30,6 @@ struct ContentView: View {
         // Reset button area (outside board) with placeholder to keep layout stable
         HStack {
           Spacer()
-          if vm.movesMade == 0, vm.myColor == .some(.white) {
-            Button("Seiten tauschen") { vm.swapColorsIfAllowed() }
-              .font(.caption2)
-              .padding(.horizontal, 10)
-              .padding(.vertical, 5)
-              .background(Color.white.opacity(0.9))
-              .foregroundColor(.black)
-              .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-              .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.black.opacity(0.8), lineWidth: 1))
-          }
           Group {
             if vm.movesMade > 0 {
               Button(action: { vm.resetGame() }) {
@@ -82,23 +72,43 @@ struct ContentView: View {
 
         CapturedRow(pieces: vm.capturedByMe)
 
-        Text("Am Zug: \(vm.engine.sideToMove == .white ? "Weiß" : "Schwarz")")
-          .font(.subheadline)
-          .foregroundStyle(vm.engine.sideToMove == .white ? .white : .black)
-
-
-        // Connected devices footer
-        if !vm.otherDeviceNames.isEmpty {
-          Text("Andere Geräte: " + vm.otherDeviceNames.joined(separator: ", "))
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .center)
-        } else {
-          Text("Keine anderen Geräte verbunden")
-            .font(.caption2)
-            .foregroundStyle(.tertiary)
-            .frame(maxWidth: .infinity, alignment: .center)
+        ZStack {
+          Color.clear.frame(height: 40)
+          if vm.peers.isConnected {
+            let colorText = vm.engine.sideToMove == .white ? "Weiß" : "Schwarz"
+            let turnText = vm.myColor == vm.engine.sideToMove ? "\(colorText) (Du)" : colorText
+            Text("Am Zug: \(turnText)")
+              .font(.subheadline)
+              .foregroundStyle(vm.engine.sideToMove == .white ? .white : .black)
+          }
         }
+
+        ZStack {
+          Color.clear.frame(height: 40)
+          if vm.movesMade == 0, vm.myColor == .some(.white) {
+            Button("Schwarz spielen") { vm.swapColorsIfAllowed() }
+              .font(.caption2)
+              .padding(.horizontal, 10)
+              .padding(.vertical, 5)
+              .background(Color.white.opacity(0.9))
+              .foregroundColor(.black)
+              .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+              .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.black.opacity(0.8), lineWidth: 1))
+          }
+        }
+
+//        // Connected devices footer
+//        if !vm.otherDeviceNames.isEmpty {
+//          Text("Andere Geräte: " + vm.otherDeviceNames.joined(separator: ", "))
+//            .font(.caption2)
+//            .foregroundStyle(.secondary)
+//            .frame(maxWidth: .infinity, alignment: .center)
+//        } else {
+//          Text("Keine anderen Geräte verbunden")
+//            .font(.caption2)
+//            .foregroundStyle(.tertiary)
+//            .frame(maxWidth: .infinity, alignment: .center)
+//        }
       }
       .padding()
     }
