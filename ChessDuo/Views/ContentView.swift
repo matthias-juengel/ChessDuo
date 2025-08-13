@@ -85,7 +85,9 @@ struct ContentView: View {
   var boardWithCapturedPieces: some View {
     VStack(spacing: 12) {
       Spacer() // neded to align center with background
-      CapturedRow(pieces: vm.capturedByOpponent, rotatePieces: !vm.peers.isConnected).frame(height: 30)
+      CapturedRow(pieces: vm.capturedByOpponent, rotatePieces: !vm.peers.isConnected)
+      .padding(10)
+      .frame(height: 30)
       ZStack {
         Group {
           let inCheck = vm.engine.isInCheck(vm.engine.sideToMove)
@@ -104,7 +106,9 @@ struct ContentView: View {
           }
         }
       }.aspectRatio(1, contentMode: .fit)
-      CapturedRow(pieces: vm.capturedByMe, rotatePieces: false).frame(height: 30)
+      CapturedRow(pieces: vm.capturedByMe, rotatePieces: false)
+        .padding(10)
+        .frame(height: 30)
       Spacer() // neded to align center with background
     }
   }
@@ -125,7 +129,7 @@ struct ContentView: View {
   var body: some View {
     ZStack {
       viewBackground.ignoresSafeArea()
-      boardWithCapturedPieces.ignoresSafeArea().padding([.leading, .trailing], 10)
+      boardWithCapturedPieces.ignoresSafeArea()//.padding([.leading, .trailing], 10)
       overlayControls
     }
     .onChange(of: vm.discoveredPeerNames) { new in
