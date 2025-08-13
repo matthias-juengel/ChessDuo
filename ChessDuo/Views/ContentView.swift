@@ -33,7 +33,8 @@ struct ContentView: View {
 
   private var resetButtonArea: some View {
     Group {
-      if vm.movesMade > 0 {
+      let canShow = !vm.peers.isConnected || vm.myColor == vm.engine.sideToMove
+      if vm.movesMade > 0, canShow {
         Button(action: { vm.resetGame() }) {
           Text(vm.peers.isConnected && vm.awaitingResetConfirmation ? String.loc("new_game_confirm") : String.loc("new_game"))
             .font(.title3)
@@ -47,6 +48,7 @@ struct ContentView: View {
         }
         .transition(.opacity)
       } else {
+        // Placeholder to keep layout stable when hidden
         Text(String.loc("new_game"))
           .font(.title3)
           .fontWeight(.semibold)
