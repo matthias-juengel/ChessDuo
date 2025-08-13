@@ -13,16 +13,25 @@ struct ContentView: View {
   @State private var selected: Square? = nil
   @State private var showPeerChooser = false
   @State private var selectedPeerToJoin: String? = nil
+  @State private var exportFlash: Bool = false
 
-  private var turnStatus: (text: String, color: Color)? {
+  // Compute status text for a specific overlay perspective (overlayColor).
+  private func turnStatus(for overlayColor: PieceColor?) -> (text: String, color: Color)? {
     switch vm.outcome {
     case .ongoing:
-//      guard !vm.peers.isConnected else { return nil }
       let baseColor = vm.engine.sideToMove == .white ? String.loc("turn_white") : String.loc("turn_black")
-      let colorText: String = {
-        if vm.myColor == vm.engine.sideToMove { return baseColor + " " + String.loc("you_mark") }
-        return baseColor
+      let showYou: Bool = {
+        if vm.peers.isConnected {
+          // Only my own overlay and only if I'm the side to move
+            if let mine = vm.myColor, let ov = overlayColor, mine == ov, mine == vm.engine.sideToMove { return true }
+            return false
+        } else {
+          // Single-device: only the overlay whose color is the side to move shows (you)
+          if let ov = overlayColor, ov == vm.engine.sideToMove { return true }
+          return false
+        }
       }()
+      let colorText = showYou ? baseColor + " " + String.loc("you_mark") : baseColor
       let fg = vm.engine.sideToMove == .white ? Color.white : Color.black
       return (String.loc("turn_prefix", colorText), fg)
     case .win: return (String.loc("win_text"), .green)
@@ -31,10 +40,19 @@ struct ContentView: View {
     }
   }
 
-  private var resetButtonArea: some View {
+  private func resetButtonArea(for overlayColor: PieceColor?) -> some View {
     Group {
-      let canShow = !vm.peers.isConnected || vm.myColor == vm.engine.sideToMove
-      if vm.movesMade > 0, canShow {
+      let canShow: Bool = {
+        if vm.movesMade == 0 { return false }
+        if vm.peers.isConnected {
+          guard let my = vm.myColor, let oc = overlayColor else { return false }
+          return oc == my && my == vm.engine.sideToMove
+        } else {
+          guard let oc = overlayColor else { return false }
+          return oc == vm.engine.sideToMove
+        }
+      }()
+      if canShow {
         Button(action: { vm.resetGame() }) {
           Text(vm.peers.isConnected && vm.awaitingResetConfirmation ? String.loc("new_game_confirm") : String.loc("new_game"))
             .font(.title3)
@@ -48,7 +66,6 @@ struct ContentView: View {
         }
         .transition(.opacity)
       } else {
-        // Placeholder to keep layout stable when hidden
         Text(String.loc("new_game"))
           .font(.title3)
           .fontWeight(.semibold)
@@ -141,7 +158,15 @@ struct ContentView: View {
     ZStack {
       viewBackground.ignoresSafeArea()
       boardWithCapturedPieces.ignoresSafeArea()//.padding([.leading, .trailing], 10)
-      overlayControls
+      if vm.peers.isConnected {
+        overlayControls(for: vm.myColor) // show only my side
+      } else {
+        // Single-device: show both sides explicitly with fixed colors
+        overlayControls(for: .white)
+        overlayControls(for: .black)
+          .rotationEffect(.degrees(180))
+          .zIndex(400)
+      }
       if vm.showingPromotionPicker, let pending = vm.pendingPromotionMove {
         let promoColor = vm.engine.board.piece(at: pending.from)?.color ?? vm.engine.sideToMove.opposite
         let rotate = !vm.peers.isConnected && promoColor == .black
@@ -154,7 +179,27 @@ struct ContentView: View {
         .zIndex(500)
         .ignoresSafeArea()
       }
+      if exportFlash { Text("Copied state")
+          .padding(8)
+          .background(Color.black.opacity(0.7))
+          .foregroundColor(.white)
+          .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+          .transition(.opacity)
+          .zIndex(900)
+      }
     }
+    .highPriorityGesture(
+      TapGesture(count: 5).onEnded {
+        let text = vm.exportText()
+        #if canImport(UIKit)
+        UIPasteboard.general.string = text
+        #endif
+        withAnimation(.easeInOut(duration: 0.3)) { exportFlash = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+          withAnimation(.easeOut(duration: 0.3)) { exportFlash = false }
+        }
+      }
+    )
     .onChange(of: vm.discoveredPeerNames) { new in
       // Show chooser when a new peer appears and we're not connected; hide automatically if list empties while visible
       if new.isEmpty {
@@ -263,18 +308,18 @@ private struct PromotionPickerView: View {
 }
 
 private extension ContentView {
-  var overlayControls: some View {
+  func overlayControls(for color: PieceColor?) -> some View {
     VStack {
       Spacer().allowsHitTesting(false)
-      statusBar
-      controlBar
+  statusBar(for: color)
+      controlBar(for: color)
     }
   }
 
-  var statusBar: some View {
+  func statusBar(for overlayColor: PieceColor?) -> some View {
     ZStack {
       Color.clear.frame(height: 30)
-      if let status = turnStatus {
+      if let status = turnStatus(for: overlayColor) {
         Text(status.text)
           .font(.title)
           .foregroundStyle(status.color)
@@ -282,13 +327,13 @@ private extension ContentView {
     }.allowsHitTesting(false)
   }
 
-  var controlBar: some View {
+  func controlBar(for overlayColor: PieceColor?) -> some View {
     ZStack {
       Color.clear.frame(height: 30)
-      if vm.movesMade == 0, vm.myColor == .some(.white) {
+      if vm.movesMade == 0, vm.myColor == .some(.white), vm.peers.isConnected { // swap only relevant connected pre-game
         swapColorButton
       }
-      resetButtonArea
+      resetButtonArea(for: overlayColor)
     }
   }
 

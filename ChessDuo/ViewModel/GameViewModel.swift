@@ -30,6 +30,89 @@ final class GameViewModel: ObservableObject {
     // Promotion handling
     @Published var pendingPromotionMove: Move? = nil // move without promotion yet
     @Published var showingPromotionPicker: Bool = false
+    
+    // Export current game state as a textual snapshot (for debugging / tests)
+    func exportText() -> String {
+    // Ensure status is up to date before exporting (fallback safety)
+    recomputeOutcomeIfNeeded()
+        var lines: [String] = []
+        lines.append("ChessDuoExport v1")
+        // Board in FEN-style ranks 8..1
+        lines.append("Board:")
+        for rank in (0..<8).reversed() { // 7 down to 0
+            var fenRank = ""
+            var emptyCount = 0
+            for file in 0..<8 {
+                let sq = Square(file: file, rank: rank)
+                if let p = engine.board.piece(at: sq) {
+                    if emptyCount > 0 { fenRank.append(String(emptyCount)); emptyCount = 0 }
+                    fenRank.append(pieceChar(p))
+                } else {
+                    emptyCount += 1
+                }
+            }
+            if emptyCount > 0 { fenRank.append(String(emptyCount)) }
+            lines.append(fenRank)
+        }
+        lines.append("SideToMove: \(engine.sideToMove == .white ? "w" : "b")")
+        lines.append("MovesMade: \(movesMade)")
+        if let lm = lastMove { lines.append("LastMove: \(algebraic(lm.from))->\(algebraic(lm.to))") }
+        lines.append("Outcome: \(outcomeString(outcome))")
+        // Captured pieces (approximate perspective neutral): compute missing from initial for each color
+        lines.append("CapturedWhite: \(capturedPiecesDescription(color: .white))")
+        lines.append("CapturedBlack: \(capturedPiecesDescription(color: .black))")
+            let legal = engine.generateLegalMoves(for: engine.sideToMove)
+                .map { "\(algebraic($0.from))->\(algebraic($0.to))" }
+                .sorted()
+            lines.append("LegalMoves: \(legal.joined(separator: ","))")
+        let side = engine.sideToMove
+        lines.append("InCheck: \(engine.isInCheck(side) ? "1" : "0")")
+        lines.append("Checkmate: \(engine.isCheckmate(for: side) ? "1" : "0")")
+        lines.append("Stalemate: \(engine.isStalemate(for: side) ? "1" : "0")")
+        return lines.joined(separator: "\n")
+    }
+
+    private func pieceChar(_ p: Piece) -> String {
+        let map: [PieceType:String] = [.king:"k", .queen:"q", .rook:"r", .bishop:"b", .knight:"n", .pawn:"p"]
+        let base = map[p.type] ?? "?"
+        return p.color == .white ? base.uppercased() : base
+    }
+    private func algebraic(_ sq: Square) -> String {
+        let files = "abcdefgh"
+        let fileChar = files[files.index(files.startIndex, offsetBy: sq.file)]
+        return "\(fileChar)\(sq.rank + 1)"
+    }
+    private func outcomeString(_ o: GameOutcome) -> String {
+        switch o { case .ongoing: return "ongoing"; case .win: return "win"; case .loss: return "loss"; case .draw: return "draw" }
+    }
+    private func capturedPiecesDescription(color: PieceColor) -> String {
+        // Count initial pieces per color
+        var initial: [PieceType:Int] = [.king:1, .queen:1, .rook:2, .bishop:2, .knight:2, .pawn:8]
+        // Subtract those still on board
+        for rank in 0..<8 { for file in 0..<8 { let sq = Square(file: file, rank: rank); if let p = engine.board.piece(at: sq), p.color == color { initial[p.type, default:0] -= 1 } } }
+        // Build string
+        return initial.compactMap { (type, missing) in missing > 0 ? "\(missing)x\(pieceChar(Piece(type: type, color: color)))" : nil }.sorted().joined(separator: ",")
+    }
+
+    func recomputeOutcomeIfNeeded() {
+        let side = engine.sideToMove
+        let currentOutcome = outcome
+        let isMate = engine.isCheckmate(for: side)
+        let isStale = engine.isStalemate(for: side)
+        let isRep = engine.isThreefoldRepetition()
+        if isMate {
+            let winner = side.opposite
+            if winner == myColor { outcome = .win; statusText = "Du hast gewonnen" } else if myColor != nil { outcome = .loss; statusText = "Du bist Matt" } else { statusText = "Schachmatt" }
+        } else if isStale {
+            outcome = .draw; statusText = "Remis"
+        } else if isRep {
+            outcome = .draw; statusText = "Remis (dreifache Stellungswiederholung)"
+        } else if currentOutcome != .ongoing {
+            // Keep terminal result
+        } else {
+            outcome = .ongoing
+        }
+    }
 
     let peers = PeerService()
     private var cancellables: Set<AnyCancellable> = []
@@ -167,23 +250,24 @@ final class GameViewModel: ObservableObject {
         let move = Move(from: from, to: to)
         let capturedBefore = engine.board.piece(at: to)
     if engine.tryMakeMove(move) {
-            withAnimation(.easeInOut(duration: 0.35)) {
-                peers.send(.init(kind: .move, move: move))
-                if let cap = capturedBefore {
-                    capturedByMe.append(cap)
-                    lastCapturedPieceID = cap.id
-                    lastCaptureByMe = true
-                } else {
-                    lastCapturedPieceID = nil
-                    lastCaptureByMe = nil
-                }
-                movesMade += 1
-        lastMove = move
-                updateStatusAfterMove()
+        withAnimation(.easeInOut(duration: 0.35)) {
+            peers.send(.init(kind: .move, move: move))
+            if let cap = capturedBefore {
+                capturedByMe.append(cap)
+                lastCapturedPieceID = cap.id
+                lastCaptureByMe = true
+            } else {
+                lastCapturedPieceID = nil
+                lastCaptureByMe = nil
             }
-        } else {
-            statusText = "Illegaler Zug (König im Schach?)"
+            movesMade += 1
+            lastMove = move
+            updateStatusAfterMove()
+            recomputeOutcomeIfNeeded()
         }
+    } else {
+        statusText = "Illegaler Zug (König im Schach?)"
+    }
     }
 
     /// Local move for single-device mode (no network); both colors playable
@@ -199,26 +283,27 @@ final class GameViewModel: ObservableObject {
         let moverColor = engine.sideToMove
         let capturedBefore = engine.board.piece(at: to)
     if engine.tryMakeMove(move) {
-            withAnimation(.easeInOut(duration: 0.35)) {
-                if let cap = capturedBefore {
-                    // Attribute capture list based on mover color (white = my side list if we treat white bottom)
-                    if moverColor == .white {
-                        capturedByMe.append(cap)
-                        lastCaptureByMe = true
-                    } else {
-                        capturedByOpponent.append(cap)
-                        lastCaptureByMe = false
-                    }
-                    lastCapturedPieceID = cap.id
+        withAnimation(.easeInOut(duration: 0.35)) {
+            if let cap = capturedBefore {
+                // Attribute capture list based on mover color (white = my side list if we treat white bottom)
+                if moverColor == .white {
+                    capturedByMe.append(cap)
+                    lastCaptureByMe = true
                 } else {
-                    lastCapturedPieceID = nil
-                    lastCaptureByMe = nil
+                    capturedByOpponent.append(cap)
+                    lastCaptureByMe = false
                 }
-                movesMade += 1
-        lastMove = move
-                updateStatusAfterMove()
+                lastCapturedPieceID = cap.id
+            } else {
+                lastCapturedPieceID = nil
+                lastCaptureByMe = nil
             }
+            movesMade += 1
+            lastMove = move
+            updateStatusAfterMove()
+            recomputeOutcomeIfNeeded()
         }
+    }
     }
 
     private func handle(_ msg: NetMessage) {
@@ -313,6 +398,7 @@ final class GameViewModel: ObservableObject {
                     lastCapturedPieceID = nil
                     lastCaptureByMe = nil
                 }
+                recomputeOutcomeIfNeeded()
             } else if let remoteMoves = msg.movesMade, remoteMoves < movesMade {
                 // We're ahead; send our snapshot back (echo) so peer can adopt.
                 sendSnapshot()

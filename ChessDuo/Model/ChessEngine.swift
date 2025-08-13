@@ -226,6 +226,42 @@ struct ChessEngine: Codable {
         return false
     }
 
+    /// Enumerate all legal moves for a color (debug/testing)
+    func generateLegalMoves(for color: PieceColor) -> [Move] {
+        var moves: [Move] = []
+        for rank in 0..<8 {
+            for file in 0..<8 {
+                let from = Square(file: file, rank: rank)
+                guard let piece = board.piece(at: from), piece.color == color else { continue }
+                for tr in 0..<8 {
+                    for tf in 0..<8 {
+                        let to = Square(file: tf, rank: tr)
+                        let m = Move(from: from, to: to)
+                        if !Board.inBounds(m.from) || !Board.inBounds(m.to) { continue }
+                        if !isPseudoLegal(piece: piece, from: m.from, to: m.to) { continue }
+                        let isCastling = piece.type == .king && abs(m.to.file - m.from.file) == 2
+                        if isCastling {
+                            if !isValidCastling(from: m.from, to: m.to, color: piece.color) { continue }
+                        } else {
+                            if let dest = board.piece(at: m.to), dest.color == piece.color { continue }
+                            if [.rook, .bishop, .queen].contains(piece.type) {
+                                if !isPathClear(m.from, m.to, on: board) { continue }
+                            }
+                        }
+                        var sim = board
+                        var p = piece
+                        var simCastlingRights = (whiteCanCastleKingside, whiteCanCastleQueenside, blackCanCastleKingside, blackCanCastleQueenside)
+                        applyCastlingMove(m, promotingFrom: &p, on: &sim, castlingRights: &simCastlingRights)
+                        if !isKingInCheck(color, on: sim) {
+                            moves.append(m)
+                        }
+                    }
+                }
+            }
+        }
+        return moves
+    }
+
     private func isPseudoLegal(piece: Piece, from: Square, to: Square) -> Bool {
         let df = to.file - from.file
         let dr = to.rank - from.rank
