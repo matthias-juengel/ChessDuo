@@ -30,6 +30,12 @@ struct Square: Hashable, Codable {
 struct Move: Codable {
     let from: Square
     let to: Square
+    let promotion: PieceType?
+    init(from: Square, to: Square, promotion: PieceType? = nil) {
+        self.from = from
+        self.to = to
+        self.promotion = promotion
+    }
 }
 
 struct NetMessage: Codable {

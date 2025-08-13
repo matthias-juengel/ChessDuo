@@ -30,3 +30,5 @@
 "offline_new_game_message" = "The current game will be ended.";
 "offline_new_game_keep" = "Keep playing";
 "offline_new_game_confirm" = "New game";
+
+"promote_choose" = "Choose promotion";

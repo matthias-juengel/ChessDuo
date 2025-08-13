@@ -30,3 +30,5 @@
 "offline_new_game_message" = "当前对局将被结束。";
 "offline_new_game_keep" = "继续对局";
 "offline_new_game_confirm" = "新游戏";
+
+"promote_choose" = "选择升变";

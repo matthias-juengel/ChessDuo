@@ -30,3 +30,5 @@
 "offline_new_game_message" = "Die aktuelle Partie wird beendet.";
 "offline_new_game_keep" = "Weiterspielen";
 "offline_new_game_confirm" = "Neues Spiel";
+
+"promote_choose" = "Umwandlung wählen";

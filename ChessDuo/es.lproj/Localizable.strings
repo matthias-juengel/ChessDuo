@@ -30,3 +30,5 @@
 "offline_new_game_message" = "La partida actual se terminará.";
 "offline_new_game_keep" = "Seguir jugando";
 "offline_new_game_confirm" = "Nueva partida";
+
+"promote_choose" = "Elegir pieza";

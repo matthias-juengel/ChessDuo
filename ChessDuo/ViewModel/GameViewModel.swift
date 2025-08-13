@@ -27,6 +27,9 @@ final class GameViewModel: ObservableObject {
     @Published var lastMove: Move? = nil
     @Published var lastCapturedPieceID: UUID? = nil
     @Published var lastCaptureByMe: Bool? = nil
+    // Promotion handling
+    @Published var pendingPromotionMove: Move? = nil // move without promotion yet
+    @Published var showingPromotionPicker: Bool = false
 
     let peers = PeerService()
     private var cancellables: Set<AnyCancellable> = []
@@ -154,6 +157,13 @@ final class GameViewModel: ObservableObject {
     func makeMove(from: Square, to: Square) {
         guard outcome == .ongoing else { return }
         guard let me = myColor, engine.sideToMove == me else { return }
+        let isPromotion = isPromotionMove(from: from, to: to)
+        if isPromotion {
+            // Defer until user picks piece
+            pendingPromotionMove = Move(from: from, to: to, promotion: nil)
+            showingPromotionPicker = true
+            return
+        }
         let move = Move(from: from, to: to)
         let capturedBefore = engine.board.piece(at: to)
     if engine.tryMakeMove(move) {
@@ -179,6 +189,12 @@ final class GameViewModel: ObservableObject {
     /// Local move for single-device mode (no network); both colors playable
     func makeLocalMove(from: Square, to: Square) {
         guard outcome == .ongoing else { return }
+        let isPromotion = isPromotionMove(from: from, to: to)
+        if isPromotion {
+            pendingPromotionMove = Move(from: from, to: to, promotion: nil)
+            showingPromotionPicker = true
+            return
+        }
         let move = Move(from: from, to: to)
         let moverColor = engine.sideToMove
         let capturedBefore = engine.board.piece(at: to)
@@ -404,6 +420,51 @@ final class GameViewModel: ObservableObject {
             outcome = .ongoing
             statusText = "Am Zug: \(engine.sideToMove == .white ? "Weiß" : "Schwarz")"
         }
+    }
+
+    // Determine if a move from->to is a promotion (pawn reaching last rank)
+    private func isPromotionMove(from: Square, to: Square) -> Bool {
+        guard let piece = engine.board.piece(at: from) else { return false }
+        guard piece.type == .pawn else { return false }
+        if piece.color == .white && to.rank == 7 { return true }
+        if piece.color == .black && to.rank == 0 { return true }
+        return false
+    }
+
+    // Finalize promotion selection
+    func promote(to pieceType: PieceType) {
+        guard var base = pendingPromotionMove else { return }
+        base = Move(from: base.from, to: base.to, promotion: pieceType)
+        let capturedBefore = engine.board.piece(at: base.to)
+        if engine.tryMakeMove(base) {
+            withAnimation(.easeInOut(duration: 0.35)) {
+                if let cap = capturedBefore {
+                    if myColor == engine.sideToMove.opposite { // move just made by me
+                        capturedByMe.append(cap)
+                        lastCapturedPieceID = cap.id
+                        lastCaptureByMe = true
+                    } else if myColor != nil { // opponent capture path (unlikely here)
+                        capturedByOpponent.append(cap)
+                        lastCapturedPieceID = cap.id
+                        lastCaptureByMe = false
+                    }
+                } else {
+                    lastCapturedPieceID = nil
+                    lastCaptureByMe = nil
+                }
+                movesMade += 1
+                lastMove = base
+                updateStatusAfterMove()
+                if peers.isConnected { peers.send(.init(kind: .move, move: base)) }
+            }
+        }
+        pendingPromotionMove = nil
+        showingPromotionPicker = false
+    }
+
+    func cancelPromotion() {
+        pendingPromotionMove = nil
+        showingPromotionPicker = false
     }
 }
 

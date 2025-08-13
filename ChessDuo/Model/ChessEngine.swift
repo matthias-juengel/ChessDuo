@@ -420,7 +420,7 @@ struct ChessEngine: Codable {
         return true
     }
 
-    // Apply a move on a given board copy (with simple promotion to queen)
+    // Apply a move on a given board copy (promotion uses provided piece type if any)
     private func applyMove(_ m: Move, promotingFrom pieceRef: inout Piece, on b: inout Board) {
         b.set(nil, at: m.from)
         var piece = pieceRef
@@ -433,8 +433,8 @@ struct ChessEngine: Codable {
             }
         }
         if piece.type == .pawn && ((m.to.rank == 7 && piece.color == .white) || (m.to.rank == 0 && piece.color == .black)) {
-            // Preserve identity but change type (new Piece with same id would need manual copy; simpler: create new piece id for promoted queen)
-            piece = Piece(type: .queen, color: piece.color)
+            let promoteTo = m.promotion ?? .queen
+            piece = Piece(type: promoteTo, color: piece.color)
         }
         b.set(piece, at: m.to)
         pieceRef = piece
