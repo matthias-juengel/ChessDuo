@@ -24,6 +24,9 @@ final class GameViewModel: ObservableObject {
     @Published var outcome: GameOutcome = .ongoing
     @Published var incomingJoinRequestPeer: String? = nil
     @Published var offlineResetPrompt: Bool = false
+    @Published var lastMove: Move? = nil
+    @Published var lastCapturedPieceID: UUID? = nil
+    @Published var lastCaptureByMe: Bool? = nil
 
     let peers = PeerService()
     private var cancellables: Set<AnyCancellable> = []
@@ -153,11 +156,19 @@ final class GameViewModel: ObservableObject {
         guard let me = myColor, engine.sideToMove == me else { return }
         let move = Move(from: from, to: to)
         let capturedBefore = engine.board.piece(at: to)
-        if engine.tryMakeMove(move) {
+    if engine.tryMakeMove(move) {
             withAnimation(.easeInOut(duration: 0.35)) {
                 peers.send(.init(kind: .move, move: move))
-                if let cap = capturedBefore { capturedByMe.append(cap) }
+                if let cap = capturedBefore {
+                    capturedByMe.append(cap)
+                    lastCapturedPieceID = cap.id
+                    lastCaptureByMe = true
+                } else {
+                    lastCapturedPieceID = nil
+                    lastCaptureByMe = nil
+                }
                 movesMade += 1
+        lastMove = move
                 updateStatusAfterMove()
             }
         } else {
@@ -171,13 +182,24 @@ final class GameViewModel: ObservableObject {
         let move = Move(from: from, to: to)
         let moverColor = engine.sideToMove
         let capturedBefore = engine.board.piece(at: to)
-        if engine.tryMakeMove(move) {
+    if engine.tryMakeMove(move) {
             withAnimation(.easeInOut(duration: 0.35)) {
                 if let cap = capturedBefore {
                     // Attribute capture list based on mover color (white = my side list if we treat white bottom)
-                    if moverColor == .white { capturedByMe.append(cap) } else { capturedByOpponent.append(cap) }
+                    if moverColor == .white {
+                        capturedByMe.append(cap)
+                        lastCaptureByMe = true
+                    } else {
+                        capturedByOpponent.append(cap)
+                        lastCaptureByMe = false
+                    }
+                    lastCapturedPieceID = cap.id
+                } else {
+                    lastCapturedPieceID = nil
+                    lastCaptureByMe = nil
                 }
                 movesMade += 1
+        lastMove = move
                 updateStatusAfterMove()
             }
         }
@@ -198,13 +220,27 @@ final class GameViewModel: ObservableObject {
             movesMade = 0
             awaitingResetConfirmation = false
             incomingResetRequest = false
+            lastMove = nil
+            lastCapturedPieceID = nil
+            lastCaptureByMe = nil
         case .move:
             if let m = msg.move {
                 let capturedBefore = engine.board.piece(at: m.to)
                 if outcome == .ongoing, engine.tryMakeMove(m) {
                     withAnimation(.easeInOut(duration: 0.35)) {
-                        if let cap = capturedBefore, cap.color == myColor { capturedByOpponent.append(cap) }
+                        if let cap = capturedBefore, cap.color == myColor {
+                            capturedByOpponent.append(cap)
+                            lastCapturedPieceID = cap.id
+                            lastCaptureByMe = false
+                        } else if let cap = capturedBefore {
+                            lastCapturedPieceID = cap.id
+                            lastCaptureByMe = true
+                        } else {
+                            lastCapturedPieceID = nil
+                            lastCaptureByMe = nil
+                        }
                         movesMade += 1
+                        lastMove = m
                         updateStatusAfterMove()
                     }
                 } else {
@@ -281,6 +317,9 @@ final class GameViewModel: ObservableObject {
     offlineResetPrompt = false
         statusText = "Neu gestartet. Am Zug: Weiß"
         outcome = .ongoing
+    lastMove = nil
+    lastCapturedPieceID = nil
+    lastCaptureByMe = nil
         if send { peers.send(.init(kind: .reset)) }
     }
 

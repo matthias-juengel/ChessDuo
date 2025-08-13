@@ -85,9 +85,11 @@ struct ContentView: View {
   var boardWithCapturedPieces: some View {
     VStack(spacing: 0) {
       Spacer() // neded to align center with background
-      CapturedRow(pieces: vm.capturedByOpponent, rotatePieces: !vm.peers.isConnected)
+      CapturedRow(pieces: vm.capturedByOpponent,
+                  rotatePieces: !vm.peers.isConnected,
+                  highlightPieceID: vm.lastCaptureByMe == false ? vm.lastCapturedPieceID : nil)
       .padding(10)
-      .frame(height: 30)
+      .frame(height: 50)
       Color.black.frame(height: 2)
       ZStack {
         Group {
@@ -100,6 +102,7 @@ struct ContentView: View {
                     inCheckCurrentSide: inCheck,
                     isCheckmatePosition: isMate,
                     singleDevice: !vm.peers.isConnected,
+                    lastMove: vm.lastMove,
                     selected: $selected) { from, to, single in
             if single { vm.makeLocalMove(from: from, to: to) } else { vm.makeMove(from: from, to: to) }
           }.onChange(of: vm.engine.sideToMove) { newValue in
@@ -108,9 +111,11 @@ struct ContentView: View {
         }
       }.aspectRatio(1, contentMode: .fit)
       Color.black.frame(height: 2)
-      CapturedRow(pieces: vm.capturedByMe, rotatePieces: false)
+  CapturedRow(pieces: vm.capturedByMe,
+      rotatePieces: false,
+      highlightPieceID: vm.lastCaptureByMe == true ? vm.lastCapturedPieceID : nil)
         .padding(10)
-        .frame(height: 30)
+        .frame(height: 50)
       Spacer() // neded to align center with background
     }
   }
@@ -233,15 +238,25 @@ private extension ContentView {
 struct CapturedRow: View {
   let pieces: [Piece]
   var rotatePieces: Bool = false
+  var highlightPieceID: UUID? = nil
   var body: some View {
     ScrollView(.horizontal, showsIndicators: false) {
       HStack(spacing: 4) {
         ForEach(sortedPieces().indices, id: \.self) { idx in
           let p = sortedPieces()[idx]
-          Text(symbol(for: p))
-            .font(.system(size: 32))
-            .foregroundStyle(p.color == .white ? .white : .black)
-            .rotationEffect(rotatePieces ? .degrees(180) : .degrees(0))
+          ZStack {
+            Text(symbol(for: p))
+              .font(.system(size: 32))
+              .foregroundStyle(p.color == .white ? .white : .black)
+              .rotationEffect(rotatePieces ? .degrees(180) : .degrees(0))
+              .padding(2)
+            if highlightPieceID == p.id {
+              RoundedRectangle(cornerRadius: 4)
+                .fill(Color.green.opacity(0.45))
+                .blendMode(.plusLighter)
+            }
+          }
+          .animation(.easeInOut(duration: 0.3), value: highlightPieceID)
         }
       }
       .padding(.vertical, 2)
@@ -283,6 +298,7 @@ struct BoardView: View {
   let inCheckCurrentSide: Bool
   let isCheckmatePosition: Bool
   let singleDevice: Bool
+  let lastMove: Move?
   @Binding var selected: Square?
   let onMove: (Square, Square, Bool) -> Void
   @Namespace private var pieceNamespace
@@ -308,11 +324,12 @@ struct BoardView: View {
             let piece = board.piece(at: sq)
             let kingInCheckHighlight = inCheckCurrentSide && piece?.type == .king && piece?.color == sideToMove
             SquareView(square: sq,
-                       piece: nil, // draw only square styling; pieces drawn in separate overlay for animation
+                       piece: nil,
                        isSelected: selected == sq,
                        isKingInCheck: kingInCheckHighlight,
                        isKingCheckmated: isCheckmatePosition && kingInCheckHighlight,
-                       rotateForOpponent: false)
+                       rotateForOpponent: false,
+                       lastMoveHighlight: isLastMoveSquare(sq))
               .frame(width: squareSize, height: squareSize)
               .position(x: CGFloat(colIdx) * squareSize + squareSize / 2,
                         y: CGFloat(rowIdx) * squareSize + squareSize / 2)
@@ -454,14 +471,19 @@ struct SquareView: View {
   let isKingInCheck: Bool
   let isKingCheckmated: Bool
   let rotateForOpponent: Bool
+  var lastMoveHighlight: Bool = false
 
   var body: some View {
     ZStack {
       Rectangle()
-        .fill(colorForSquare(square))
+        .fill(baseColor())
       // if isSelected {
       //   Rectangle().stroke(Color.white, lineWidth: 1).padding(1)
       // }
+      if lastMoveHighlight {
+        Rectangle()
+          .fill(Color.green.opacity(0.45))
+      }
       if isKingInCheck {
         RoundedRectangle(cornerRadius: 6, style: .continuous)
           .fill(isKingCheckmated ? Color.red.opacity(0.9) : Color.red.opacity(0.7))
@@ -481,10 +503,10 @@ struct SquareView: View {
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
-  private func colorForSquare(_ s: Square) -> Color {
+  private func baseColor() -> Color {
+    let s = square
     let grayBlack = Color(red: 0.4, green: 0.4, blue: 0.4)
     let grayWhite = Color(red: 0.6, green: 0.6, blue: 0.6)
-
     return ((s.file + s.rank) % 2 == 0) ? grayBlack : grayWhite
 
     //    return ((s.file + s.rank) % 2 == 0) ? Color(red: 0.93, green: 0.86, blue: 0.75)
@@ -500,5 +522,12 @@ struct SquareView: View {
     case .knight: return "♞"
     case .pawn:   return "♟︎"
     }
+  }
+}
+
+private extension BoardView {
+  func isLastMoveSquare(_ sq: Square) -> Bool {
+    guard let mv = lastMove else { return false }
+    return mv.from == sq || mv.to == sq
   }
 }
