@@ -13,7 +13,6 @@ import SwiftUI
 final class GameViewModel: ObservableObject {
   @Published private(set) var engine = ChessEngine()
   @Published var myColor: PieceColor? = nil
-  @Published var statusText: String = "Nicht verbunden"
   @Published var otherDeviceNames: [String] = []
   @Published var discoveredPeerNames: [String] = [] // for UI prompt (friendly names without unique suffix)
   @Published var capturedByMe: [Piece] = []
@@ -21,7 +20,7 @@ final class GameViewModel: ObservableObject {
   @Published var movesMade: Int = 0
   @Published var awaitingResetConfirmation: Bool = false
   @Published var incomingResetRequest: Bool = false
-  @Published var outcome: GameOutcome = .ongoing
+//  @Published var outcome: GameOutcome = .ongoing
   @Published var incomingJoinRequestPeer: String? = nil
   @Published var offlineResetPrompt: Bool = false
   @Published var lastMove: Move? = nil
@@ -34,7 +33,7 @@ final class GameViewModel: ObservableObject {
   // Export current game state as a textual snapshot (for debugging / tests)
   func exportText() -> String {
     // Ensure status is up to date before exporting (fallback safety)
-    recomputeOutcomeIfNeeded()
+//    recomputeOutcomeIfNeeded()
     var lines: [String] = []
     lines.append("ChessDuoExport v1")
     // Board in FEN-style ranks 8..1
@@ -57,7 +56,7 @@ final class GameViewModel: ObservableObject {
     lines.append("SideToMove: \(engine.sideToMove == .white ? "w" : "b")")
     lines.append("MovesMade: \(movesMade)")
     if let lm = lastMove { lines.append("LastMove: \(algebraic(lm.from))->\(algebraic(lm.to))") }
-    lines.append("Outcome: \(outcomeString(outcome))")
+//    lines.append("Outcome: \(outcomeString(outcome))")
     // Captured pieces (approximate perspective neutral): compute missing from initial for each color
     lines.append("CapturedWhite: \(capturedPiecesDescription(color: .white))")
     lines.append("CapturedBlack: \(capturedPiecesDescription(color: .black))")
@@ -94,23 +93,26 @@ final class GameViewModel: ObservableObject {
     return initial.compactMap { (type, missing) in missing > 0 ? "\(missing)x\(pieceChar(Piece(type: type, color: color)))" : nil }.sorted().joined(separator: ",")
   }
 
-  func recomputeOutcomeIfNeeded() {
-    let side = engine.sideToMove
-    let currentOutcome = outcome
+  var gameIsOver: Bool {
+    print("Black:", outcomeForSide(.black), "White:", outcomeForSide(.white))
+    return outcomeForSide(.black) != .ongoing || outcomeForSide(.white) != .ongoing
+  }
+
+  func outcomeForSide(_ side: PieceColor) -> GameOutcome {
     let isMate = engine.isCheckmate(for: side)
     let isStale = engine.isStalemate(for: side)
     let isRep = engine.isThreefoldRepetition()
-    if isMate {
-      let winner = side.opposite
-      if winner == myColor { outcome = .win; statusText = "Du hast gewonnen" } else if myColor != nil { outcome = .loss; statusText = "Du bist Matt" } else { statusText = "Schachmatt" }
-    } else if isStale {
-      outcome = .draw; statusText = "Remis"
-    } else if isRep {
-      outcome = .draw; statusText = "Remis (dreifache Stellungswiederholung)"
-    } else if currentOutcome != .ongoing {
-      // Keep terminal result
+
+    if isMate { return .loss }
+    else if isStale { return .draw }
+    else if isRep { return .draw }
+
+    let otherSide = side == .white ? PieceColor.black : PieceColor.white
+
+    if engine.isCheckmate(for: otherSide) {
+      return .win
     } else {
-      outcome = .ongoing
+      return .ongoing
     }
   }
 
@@ -191,20 +193,17 @@ final class GameViewModel: ObservableObject {
   func host() {
     peers.startHosting()
     myColor = .white
-    statusText = "Hosting… (Du bist Weiß)"
     sendHello()
   }
 
   func join() {
     peers.join()
     myColor = .black
-    statusText = "Suche Host… (Du bist Schwarz)"
     sendHello()
   }
 
   func disconnect() {
     peers.stop()
-    statusText = "Nicht verbunden"
     capturedByMe.removeAll()
     capturedByOpponent.removeAll()
     awaitingResetConfirmation = false
@@ -238,7 +237,7 @@ final class GameViewModel: ObservableObject {
   }
 
   func makeMove(from: Square, to: Square) {
-    guard outcome == .ongoing else { return }
+    guard !gameIsOver else { return }
     guard let me = myColor, engine.sideToMove == me else { return }
     let isPromotion = isPromotionMove(from: from, to: to)
     if isPromotion {
@@ -262,17 +261,13 @@ final class GameViewModel: ObservableObject {
         }
         movesMade += 1
         lastMove = move
-        updateStatusAfterMove()
-        recomputeOutcomeIfNeeded()
       }
-    } else {
-      statusText = "Illegaler Zug (König im Schach?)"
     }
   }
 
   /// Local move for single-device mode (no network); both colors playable
   func makeLocalMove(from: Square, to: Square) {
-    guard outcome == .ongoing else { return }
+    guard !gameIsOver else { return }
     let isPromotion = isPromotionMove(from: from, to: to)
     if isPromotion {
       pendingPromotionMove = Move(from: from, to: to, promotion: nil)
@@ -300,8 +295,6 @@ final class GameViewModel: ObservableObject {
         }
         movesMade += 1
         lastMove = move
-        updateStatusAfterMove()
-        recomputeOutcomeIfNeeded()
       }
     }
   }
@@ -309,15 +302,12 @@ final class GameViewModel: ObservableObject {
   private func handle(_ msg: NetMessage) {
     switch msg.kind {
     case .hello:
-      // nichts weiter nötig; Anzeige aktualisieren
-      statusText = peers.isConnected ? "Verbunden" : statusText
       attemptRoleProposalIfNeeded()
       requestSync()
     case .reset:
       engine.reset()
       capturedByMe.removeAll()
       capturedByOpponent.removeAll()
-      statusText = "Neu gestartet. Am Zug: Weiß"
       movesMade = 0
       awaitingResetConfirmation = false
       incomingResetRequest = false
@@ -327,7 +317,7 @@ final class GameViewModel: ObservableObject {
     case .move:
       if let m = msg.move {
         let capturedBefore = engine.board.piece(at: m.to)
-        if outcome == .ongoing, engine.tryMakeMove(m) {
+        if !gameIsOver, engine.tryMakeMove(m) {
           withAnimation(.easeInOut(duration: 0.35)) {
             if let cap = capturedBefore, cap.color == myColor {
               capturedByOpponent.append(cap)
@@ -342,23 +332,18 @@ final class GameViewModel: ObservableObject {
             }
             movesMade += 1
             lastMove = m
-            updateStatusAfterMove()
           }
-        } else {
-          updateStatusAfterMove()
         }
       }
     case .proposeRole:
       // Other peer proposes it is white; accept if we don't have a color yet.
       if myColor == nil {
         myColor = .black
-        statusText = "Verbunden – Du bist Schwarz"
         peers.send(.init(kind: .acceptRole))
       }
     case .acceptRole:
       // Other peer accepted our proposal, we should already have set our color.
       if myColor == nil { myColor = .white }
-      statusText = "Verbunden – Du bist Weiß"
     case .requestReset:
       // Show incoming request; cancel any outgoing waiting state
       incomingResetRequest = true
@@ -368,7 +353,6 @@ final class GameViewModel: ObservableObject {
     case .declineReset:
       awaitingResetConfirmation = false
       incomingResetRequest = false
-      statusText = "Gegner hat Reset abgelehnt"
     case .syncRequest:
       sendSnapshot()
     case .syncState:
@@ -383,7 +367,6 @@ final class GameViewModel: ObservableObject {
         capturedByOpponent = remoteCapturedBySender
         capturedByMe = remoteCapturedByOpponent
         movesMade = remoteMoves
-        statusText = "Synchronisiert (Übernahme)"
         // Adopt last move / capture highlighting from remote (translate perspective)
         if let from = msg.lastMoveFrom, let to = msg.lastMoveTo {
           lastMove = Move(from: from, to: to)
@@ -398,7 +381,7 @@ final class GameViewModel: ObservableObject {
           lastCapturedPieceID = nil
           lastCaptureByMe = nil
         }
-        recomputeOutcomeIfNeeded()
+//        recomputeOutcomeIfNeeded()
       } else if let remoteMoves = msg.movesMade, remoteMoves < movesMade {
         // We're ahead; send our snapshot back (echo) so peer can adopt.
         sendSnapshot()
@@ -416,7 +399,6 @@ final class GameViewModel: ObservableObject {
     let iAmWhite = peers.localDisplayName < first.displayName
     if iAmWhite {
       myColor = .white
-      statusText = "Verbunden – Du bist Weiß"
       peers.send(.init(kind: .proposeRole))
     } else {
       // Wait to receive proposeRole; if none arrives (race), we can still fallback later.
@@ -431,8 +413,7 @@ final class GameViewModel: ObservableObject {
     awaitingResetConfirmation = false
     incomingResetRequest = false
     offlineResetPrompt = false
-    statusText = "Neu gestartet. Am Zug: Weiß"
-    outcome = .ongoing
+//    outcome = .ongoing
     lastMove = nil
     lastCapturedPieceID = nil
     lastCaptureByMe = nil
@@ -462,7 +443,6 @@ final class GameViewModel: ObservableObject {
     guard me == .white else { return }
     myColor = .black
     peers.send(.init(kind: .colorSwap))
-    statusText = "Farben getauscht – Du bist Schwarz"
   }
 
   private func requestSync() {
@@ -484,28 +464,6 @@ final class GameViewModel: ObservableObject {
                          lastCapturedPieceID: lastCapturedPieceID,
                          lastCaptureByMe: lastCaptureByMe)
     peers.send(msg)
-  }
-
-  private func updateStatusAfterMove() {
-    let side = engine.sideToMove
-    if engine.isCheckmate(for: side) {
-      let winner = side.opposite
-      if let me = myColor {
-        outcome = (winner == me) ? .win : .loss
-        statusText = outcome == .win ? "Du hast gewonnen" : "Du bist Matt"
-      } else {
-        statusText = "Schachmatt"
-      }
-    } else if engine.isStalemate(for: side) {
-      outcome = .draw
-      statusText = "Remis"
-    } else if engine.isThreefoldRepetition() {
-      outcome = .draw
-      statusText = "Remis (dreifache Stellungswiederholung)"
-    } else {
-      outcome = .ongoing
-      statusText = "Am Zug: \(engine.sideToMove == .white ? "Weiß" : "Schwarz")"
-    }
   }
 
   // Determine if a move from->to is a promotion (pawn reaching last rank)
@@ -540,7 +498,6 @@ final class GameViewModel: ObservableObject {
         }
         movesMade += 1
         lastMove = base
-        updateStatusAfterMove()
         if peers.isConnected { peers.send(.init(kind: .move, move: base)) }
       }
     }

@@ -17,8 +17,8 @@ struct ContentView: View {
 
   // Compute status text for a specific overlay perspective (overlayColor).
   private func turnStatus(for overlayColor: PieceColor?) -> (text: String, color: Color)? {
-    print("turnStatus: vm.outcome", vm.outcome)
-    switch vm.outcome {
+    print("overlayColor", overlayColor)
+    switch vm.outcomeForSide(overlayColor ?? vm.engine.sideToMove) {
     case .ongoing:
       let baseColor = vm.engine.sideToMove == .white ? String.loc("turn_white") : String.loc("turn_black")
       let showYou: Bool = {
@@ -81,7 +81,7 @@ struct ContentView: View {
     // Full-screen background indicating turn status
     ZStack {
       Color(red: 0.5, green: 0.5, blue: 0.5)
-      if vm.outcome == .ongoing { // show turn background only while game running
+      if vm.outcomeForSide(vm.engine.sideToMove) == .ongoing { // show turn background only while game running
         if vm.peers.isConnected {
           if let my = vm.myColor, vm.engine.sideToMove == my {
             Color.green.opacity(0.4)
@@ -201,9 +201,6 @@ struct ContentView: View {
         }
       }
     )
-    .onChange(of: vm.outcome) { _ in
-      // This empty block forces a view update when outcome changes, ensuring end-of-game UI updates in single-device mode.
-    }
     .onChange(of: vm.discoveredPeerNames) { new in
       // Show chooser when a new peer appears and we're not connected; hide automatically if list empties while visible
       if new.isEmpty {
