@@ -54,4 +54,9 @@ struct NetMessage: Codable {
     var movesMade: Int? = nil
     var capturedByMe: [Piece]? = nil // pieces captured by sender
     var capturedByOpponent: [Piece]? = nil // pieces captured by sender's opponent
+    // Last move / capture highlight info (sender perspective)
+    var lastMoveFrom: Square? = nil
+    var lastMoveTo: Square? = nil
+    var lastCapturedPieceID: UUID? = nil
+    var lastCaptureByMe: Bool? = nil
 }

@@ -283,6 +283,20 @@ final class GameViewModel: ObservableObject {
                 capturedByMe = remoteCapturedByOpponent
                 movesMade = remoteMoves
                 statusText = "Synchronisiert (Übernahme)"
+                // Adopt last move / capture highlighting from remote (translate perspective)
+                if let from = msg.lastMoveFrom, let to = msg.lastMoveTo {
+                    lastMove = Move(from: from, to: to)
+                } else {
+                    lastMove = nil
+                }
+                // Capture highlight: if remote lastCaptureByMe == true, then from our POV the capture was by opponent.
+                if let capID = msg.lastCapturedPieceID, let bySender = msg.lastCaptureByMe {
+                    lastCapturedPieceID = capID
+                    lastCaptureByMe = !bySender // invert perspective
+                } else {
+                    lastCapturedPieceID = nil
+                    lastCaptureByMe = nil
+                }
             } else if let remoteMoves = msg.movesMade, remoteMoves < movesMade {
                 // We're ahead; send our snapshot back (echo) so peer can adopt.
                 sendSnapshot()
@@ -362,7 +376,11 @@ final class GameViewModel: ObservableObject {
                               sideToMove: engine.sideToMove,
                               movesMade: movesMade,
                               capturedByMe: capturedByMe,
-                              capturedByOpponent: capturedByOpponent)
+                              capturedByOpponent: capturedByOpponent,
+                              lastMoveFrom: lastMove?.from,
+                              lastMoveTo: lastMove?.to,
+                              lastCapturedPieceID: lastCapturedPieceID,
+                              lastCaptureByMe: lastCaptureByMe)
         peers.send(msg)
     }
 
