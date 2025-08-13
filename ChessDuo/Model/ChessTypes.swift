@@ -6,9 +6,20 @@ enum PieceColor: String, Codable { case white, black
 
 enum PieceType: String, Codable { case king, queen, rook, bishop, knight, pawn }
 
-struct Piece: Codable, Equatable {
+// Add stable identity so SwiftUI can animate moves (matchedGeometryEffect)
+struct Piece: Codable, Equatable, Identifiable {
+    let id: UUID
     let type: PieceType
     let color: PieceColor
+
+    init(type: PieceType, color: PieceColor, id: UUID = UUID()) {
+        self.id = id
+        self.type = type
+        self.color = color
+    }
+
+    // Custom CodingKeys to preserve backward compatibility possibility
+    private enum CodingKeys: String, CodingKey { case id, type, color }
 }
 
 struct Square: Hashable, Codable {

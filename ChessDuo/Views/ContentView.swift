@@ -283,6 +283,7 @@ struct BoardView: View {
   let singleDevice: Bool
   @Binding var selected: Square?
   let onMove: (Square, Square, Bool) -> Void
+  @Namespace private var pieceNamespace
 
   var bodyx: some View {
     VStack {
@@ -298,24 +299,40 @@ struct BoardView: View {
       let colArray = cols()
       let squareSize = boardSide / 8.0
       ZStack(alignment: .topLeading) {
-        // Squares + pieces
+        // Base squares
         ForEach(Array(rowArray.enumerated()), id: \.offset) { rowIdx, rank in
           ForEach(Array(colArray.enumerated()), id: \.offset) { colIdx, file in
             let sq = Square(file: file, rank: rank)
             let piece = board.piece(at: sq)
             let kingInCheckHighlight = inCheckCurrentSide && piece?.type == .king && piece?.color == sideToMove
             SquareView(square: sq,
-                       piece: piece,
+                       piece: nil, // draw only square styling; pieces drawn in separate overlay for animation
                        isSelected: selected == sq,
                        isKingInCheck: kingInCheckHighlight,
                        isKingCheckmated: isCheckmatePosition && kingInCheckHighlight,
-                       rotateForOpponent: singleDevice && (piece?.color == .black))
+                       rotateForOpponent: false)
               .frame(width: squareSize, height: squareSize)
               .position(x: CGFloat(colIdx) * squareSize + squareSize / 2,
                         y: CGFloat(rowIdx) * squareSize + squareSize / 2)
               .contentShape(Rectangle())
-              .zIndex(selected == sq ? 100 : 1)
+              .onTapGesture { tap(sq) }
           }
+        }
+        // Pieces layer (animated)
+        ForEach(piecesOnBoard(), id: \.piece.id) { item in
+          let rowIdx = rowArray.firstIndex(of: item.square.rank) ?? 0
+          let colIdx = colArray.firstIndex(of: item.square.file) ?? 0
+          Text(symbol(for: item.piece))
+            .font(.system(size: squareSize * 0.75))
+            .foregroundColor(item.piece.color == .white ? .white : .black)
+            .rotationEffect(singleDevice && item.piece.color == .black ? .degrees(180) : .degrees(0))
+            .frame(width: squareSize, height: squareSize)
+            .position(x: CGFloat(colIdx) * squareSize + squareSize / 2,
+                      y: CGFloat(rowIdx) * squareSize + squareSize / 2)
+            .matchedGeometryEffect(id: item.piece.id, in: pieceNamespace)
+            .zIndex(selected == item.square ? 100 : 10)
+            .contentShape(Rectangle())
+            .onTapGesture { tap(item.square) }
         }
         // Border overlay
         Rectangle()
@@ -344,10 +361,8 @@ struct BoardView: View {
               squareSize: squareSize
             ) ?? startSq
             if startSq == endSq {
-              // Simple tap: delegate to tap() so it can select or move depending on current selection
               tap(startSq)
             } else {
-              // Drag to a different square: ensure origin is selected, then let the next tap logic move
               if selected != startSq { selected = startSq }
               if selected == startSq { tap(endSq) }
             }
@@ -388,6 +403,21 @@ struct BoardView: View {
       if let p = board.piece(at: sq), p.color == ownershipColor {
         selected = sq
       }
+    }
+  }
+  private func piecesOnBoard() -> [(square: Square, piece: Piece)] {
+    var list: [(Square, Piece)] = []
+    for rank in 0..<8 { for file in 0..<8 { let sq = Square(file: file, rank: rank); if let p = board.piece(at: sq) { list.append((sq,p)) } } }
+    return list
+  }
+  private func symbol(for p: Piece) -> String {
+    switch p.type {
+    case .king: return "♚"
+    case .queen: return "♛"
+    case .rook: return "♜"
+    case .bishop: return "♝"
+    case .knight: return "♞"
+    case .pawn: return "♟︎"
     }
   }
 

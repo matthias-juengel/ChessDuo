@@ -8,6 +8,7 @@
 
 import Foundation
 import Combine
+import SwiftUI
 
 final class GameViewModel: ObservableObject {
     @Published private(set) var engine = ChessEngine()
@@ -153,10 +154,12 @@ final class GameViewModel: ObservableObject {
         let move = Move(from: from, to: to)
         let capturedBefore = engine.board.piece(at: to)
         if engine.tryMakeMove(move) {
-            peers.send(.init(kind: .move, move: move))
-            if let cap = capturedBefore { capturedByMe.append(cap) }
-            movesMade += 1
-            updateStatusAfterMove()
+            withAnimation(.easeInOut(duration: 0.35)) {
+                peers.send(.init(kind: .move, move: move))
+                if let cap = capturedBefore { capturedByMe.append(cap) }
+                movesMade += 1
+                updateStatusAfterMove()
+            }
         } else {
             statusText = "Illegaler Zug (König im Schach?)"
         }
@@ -169,12 +172,14 @@ final class GameViewModel: ObservableObject {
         let moverColor = engine.sideToMove
         let capturedBefore = engine.board.piece(at: to)
         if engine.tryMakeMove(move) {
-            if let cap = capturedBefore {
-                // Attribute capture list based on mover color (white = my side list if we treat white bottom)
-                if moverColor == .white { capturedByMe.append(cap) } else { capturedByOpponent.append(cap) }
+            withAnimation(.easeInOut(duration: 0.35)) {
+                if let cap = capturedBefore {
+                    // Attribute capture list based on mover color (white = my side list if we treat white bottom)
+                    if moverColor == .white { capturedByMe.append(cap) } else { capturedByOpponent.append(cap) }
+                }
+                movesMade += 1
+                updateStatusAfterMove()
             }
-            movesMade += 1
-            updateStatusAfterMove()
         }
     }
 
@@ -197,10 +202,14 @@ final class GameViewModel: ObservableObject {
             if let m = msg.move {
                 let capturedBefore = engine.board.piece(at: m.to)
                 if outcome == .ongoing, engine.tryMakeMove(m) {
-                    if let cap = capturedBefore, cap.color == myColor { capturedByOpponent.append(cap) }
+                    withAnimation(.easeInOut(duration: 0.35)) {
+                        if let cap = capturedBefore, cap.color == myColor { capturedByOpponent.append(cap) }
+                        movesMade += 1
+                        updateStatusAfterMove()
+                    }
+                } else {
+                    updateStatusAfterMove()
                 }
-                movesMade += 1
-                updateStatusAfterMove()
             }
         case .proposeRole:
             // Other peer proposes it is white; accept if we don't have a color yet.

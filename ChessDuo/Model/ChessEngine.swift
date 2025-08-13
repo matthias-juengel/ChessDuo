@@ -433,6 +433,7 @@ struct ChessEngine: Codable {
             }
         }
         if piece.type == .pawn && ((m.to.rank == 7 && piece.color == .white) || (m.to.rank == 0 && piece.color == .black)) {
+            // Preserve identity but change type (new Piece with same id would need manual copy; simpler: create new piece id for promoted queen)
             piece = Piece(type: .queen, color: piece.color)
         }
         b.set(piece, at: m.to)
