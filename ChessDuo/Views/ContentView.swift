@@ -17,6 +17,7 @@ struct ContentView: View {
 
   // Compute status text for a specific overlay perspective (overlayColor).
   private func turnStatus(for overlayColor: PieceColor?) -> (text: String, color: Color)? {
+    print("turnStatus: vm.outcome", vm.outcome)
     switch vm.outcome {
     case .ongoing:
       let baseColor = vm.engine.sideToMove == .white ? String.loc("turn_white") : String.loc("turn_black")
@@ -200,6 +201,9 @@ struct ContentView: View {
         }
       }
     )
+    .onChange(of: vm.outcome) { _ in
+      // This empty block forces a view update when outcome changes, ensuring end-of-game UI updates in single-device mode.
+    }
     .onChange(of: vm.discoveredPeerNames) { new in
       // Show chooser when a new peer appears and we're not connected; hide automatically if list empties while visible
       if new.isEmpty {
@@ -311,7 +315,7 @@ private extension ContentView {
   func overlayControls(for color: PieceColor?) -> some View {
     VStack {
       Spacer().allowsHitTesting(false)
-  statusBar(for: color)
+      statusBar(for: color)
       controlBar(for: color)
     }
   }
@@ -608,7 +612,7 @@ struct SquareView: View {
       }
       if isKingInCheck {
         RoundedRectangle(cornerRadius: 6, style: .continuous)
-          .fill(isKingCheckmated ? Color.red.opacity(0.9) : Color.red.opacity(0.7))
+          .fill(isKingCheckmated ? Color.red.opacity(0.9) : Color.orange.opacity(0.7))
           .padding(4)
       }
       if let p = piece {
