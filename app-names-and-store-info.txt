@@ -1,65 +1,15 @@
-App Store Metadata Plan for "Mein Schachbrett / My Chess Board"
-
-Features:
-- Kein Brett parat? Nutze die App!
-- Nur legale Züge sind erlaubt.
-- Automatische Erkennung von Schachmatt und Patt.
-- Rochade wird unterstützt.
-- En passant wird unterstützt.
-- Kein Schnickschnack.
-- Keine Robo-Gegner.
-- Jeder kann auf seinem eigenen Gerät spielen. Die Geräte verbinden sich automatisch. (WLAN und Bluetooth müssen aktiviert sein. WLAN wird aber nur für die Verbindung zwischen den Geräten benötigt. Es muss keinen WLAN-Zugangspunkt geben.)
-
-- Man braucht keine Internetverbindung.
-- Es gibt keine eingebauten "Social Features".
-- Keine Werbung
-- Man muss sich nicht registrieren (das Konzept gibt es gar nicht)
-
-
-
-English:
-Name: My Chess Board  
-Subtitle: Play and improve your chess skills  
-Keywords: chess, board, game, strategy, play, tactics, puzzles, learn, online, multiplayer  
-Description:  
-Experience the classic game of chess anytime, anywhere with My Chess Board. Whether you are a beginner or a seasoned player, this app offers intuitive gameplay, interactive puzzles, and online multiplayer matches to sharpen your skills. Customize your board and pieces, challenge friends or AI opponents, and track your progress with detailed statistics. Perfect for casual play or serious training, My Chess Board makes learning and mastering chess fun and accessible for all ages.
-
 German:
 Name: Mein Schachbrett  
 Subtitle: Spiele und verbessere deine Schachfähigkeiten  
 Keywords: schach, brett, spiel, strategie, spielen, taktik, rätsel, lernen, online, mehrspieler  
 Description:  
-Erlebe das klassische Spiel Schach jederzeit und überall mit Mein Schachbrett. Egal, ob Anfänger oder erfahrener Spieler – diese App bietet intuitive Spielabläufe, interaktive Rätsel und Online-Mehrspielermatches, um deine Fähigkeiten zu verbessern. Passe dein Brett und deine Figuren an, fordere Freunde oder KI-Gegner heraus und verfolge deinen Fortschritt mit detaillierten Statistiken. Ideal für entspanntes Spielen oder ernsthaftes Training macht Mein Schachbrett das Lernen und Meistern von Schach für alle Altersgruppen zugänglich und unterhaltsam.
+Kein physisches Schachbrett zur Hand? Kein Problem! Mein Schachbrett ermöglicht dir, jederzeit und überall Schach zu spielen – ganz ohne Schnickschnack.  
 
-Spanish:
-Name: Mi Tablero de Ajedrez  
-Subtitle: Juega y mejora tus habilidades de ajedrez  
-Keywords: ajedrez, tablero, juego, estrategia, jugar, tácticas, rompecabezas, aprender, en línea, multijugador  
-Description:  
-Disfruta del clásico juego de ajedrez en cualquier momento y lugar con Mi Tablero de Ajedrez. Ya seas principiante o jugador avanzado, esta aplicación ofrece un juego intuitivo, rompecabezas interactivos y partidas multijugador en línea para mejorar tus habilidades. Personaliza tu tablero y piezas, desafía a amigos o a la IA y sigue tu progreso con estadísticas detalladas. Perfecto para juego casual o entrenamiento serio, Mi Tablero de Ajedrez hace que aprender y dominar el ajedrez sea divertido y accesible para todas las edades.
+- Nur legale Züge sind erlaubt, damit du dich voll auf das Spiel konzentrieren kannst.  
+- Automatische Erkennung von Schachmatt und Patt sorgt für ein reibungsloses Spielerlebnis.  
+- Unterstützt werden auch Rochade und en passant.  
+- Es gibt keine Robo-Gegner – jeder spielt auf seinem eigenen Gerät.  
+- Die Geräte verbinden sich automatisch per WLAN oder Bluetooth, ganz ohne Internetverbindung oder WLAN-Zugangspunkt.  
+- Keine eingebauten Social Features, keine Werbung und keine Registrierung erforderlich.  
 
-French:
-Name: Mon Échiquier  
-Subtitle: Jouez et améliorez vos compétences aux échecs  
-Keywords: échecs, échiquier, jeu, stratégie, jouer, tactiques, puzzles, apprendre, en ligne, multijoueur  
-Description:  
-Jouez au jeu classique des échecs à tout moment et en tout lieu avec Mon Échiquier. Que vous soyez débutant ou joueur confirmé, cette application propose un gameplay intuitif, des énigmes interactives et des matchs multijoueurs en ligne pour améliorer vos compétences. Personnalisez votre plateau et vos pièces, défiez vos amis ou l'IA, et suivez vos progrès grâce à des statistiques détaillées. Parfait pour jouer de manière décontractée ou pour un entraînement sérieux, Mon Échiquier rend l'apprentissage et la maîtrise des échecs amusants et accessibles à tous.
-
-Simplified Chinese:
-Name: 我的棋盘  
-Subtitle: 下棋并提升您的棋艺  
-Keywords: 国际象棋, 棋盘, 游戏, 策略, 下棋, 战术, 谜题, 学习, 在线, 多人  
-Description:  
-随时随地体验经典的国际象棋游戏，尽在《我的棋盘》。无论您是初学者还是经验丰富的玩家，这款应用都提供直观的玩法、互动谜题以及在线多人比赛，帮助您提高棋艺。自定义棋盘和棋子，挑战朋友或人工智能对手，并通过详细的统计数据跟踪您的进步。无论是休闲娱乐还是专业训练，《我的棋盘》都能让学习和掌握国际象棋变得有趣且易于上手。
-
---- Recherche ---
-
-- **App Stores:**
-  - Weder "Mein Schachbrett" noch "Mein Chessboard" werden derzeit im Apple App Store oder im Google Play Store verwendet.
-
-- **Markenregister:**
-  - Recherchen in den Registern DPMA, EUIPO und WIPO ergaben keine eingetragenen Marken für diese Namen oder verwirrend ähnliche Varianten.
-
-- Beide Namen scheinen zum jetzigen Zeitpunkt verfügbar und verwendbar zu sein.
-
---- Recherche ---
+Ideal für alle, die Schach entspannt und ohne Ablenkungen spielen möchten.
