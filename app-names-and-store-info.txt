@@ -1,5 +1,22 @@
 App Store Metadata Plan for "Mein Schachbrett / My Chess Board"
 
+Features:
+- Kein Brett parat? Nutze die App!
+- Nur legale Züge sind erlaubt.
+- Automatische Erkennung von Schachmatt und Patt.
+- Rochade wird unterstützt.
+- En passant wird unterstützt.
+- Kein Schnickschnack.
+- Keine Robo-Gegner.
+- Jeder kann auf seinem eigenen Gerät spielen. Die Geräte verbinden sich automatisch. (WLAN und Bluetooth müssen aktiviert sein. WLAN wird aber nur für die Verbindung zwischen den Geräten benötigt. Es muss keinen WLAN-Zugangspunkt geben.)
+
+- Man braucht keine Internetverbindung.
+- Es gibt keine eingebauten "Social Features".
+- Keine Werbung
+- Man muss sich nicht registrieren (das Konzept gibt es gar nicht)
+
+
+
 English:
 Name: My Chess Board  
 Subtitle: Play and improve your chess skills  
@@ -35,3 +52,14 @@ Keywords: 国际象棋, 棋盘, 游戏, 策略, 下棋, 战术, 谜题, 学习, 
 Description:  
 随时随地体验经典的国际象棋游戏，尽在《我的棋盘》。无论您是初学者还是经验丰富的玩家，这款应用都提供直观的玩法、互动谜题以及在线多人比赛，帮助您提高棋艺。自定义棋盘和棋子，挑战朋友或人工智能对手，并通过详细的统计数据跟踪您的进步。无论是休闲娱乐还是专业训练，《我的棋盘》都能让学习和掌握国际象棋变得有趣且易于上手。
 
+--- Recherche ---
+
+- **App Stores:**
+  - Weder "Mein Schachbrett" noch "Mein Chessboard" werden derzeit im Apple App Store oder im Google Play Store verwendet.
+
+- **Markenregister:**
+  - Recherchen in den Registern DPMA, EUIPO und WIPO ergaben keine eingetragenen Marken für diese Namen oder verwirrend ähnliche Varianten.
+
+- Beide Namen scheinen zum jetzigen Zeitpunkt verfügbar und verwendbar zu sein.
+
+--- Recherche ---
