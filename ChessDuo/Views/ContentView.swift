@@ -83,11 +83,12 @@ struct ContentView: View {
   }
 
   var boardWithCapturedPieces: some View {
-    VStack(spacing: 12) {
+    VStack(spacing: 0) {
       Spacer() // neded to align center with background
       CapturedRow(pieces: vm.capturedByOpponent, rotatePieces: !vm.peers.isConnected)
       .padding(10)
       .frame(height: 30)
+      Color.black.frame(height: 2)
       ZStack {
         Group {
           let inCheck = vm.engine.isInCheck(vm.engine.sideToMove)
@@ -106,6 +107,7 @@ struct ContentView: View {
           }
         }
       }.aspectRatio(1, contentMode: .fit)
+      Color.black.frame(height: 2)
       CapturedRow(pieces: vm.capturedByMe, rotatePieces: false)
         .padding(10)
         .frame(height: 30)
@@ -322,25 +324,34 @@ struct BoardView: View {
         ForEach(piecesOnBoard(), id: \.piece.id) { item in
           let rowIdx = rowArray.firstIndex(of: item.square.rank) ?? 0
           let colIdx = colArray.firstIndex(of: item.square.file) ?? 0
-          Text(symbol(for: item.piece))
-            .font(.system(size: squareSize * 0.75))
-            .foregroundColor(item.piece.color == .white ? .white : .black)
-            .rotationEffect(singleDevice && item.piece.color == .black ? .degrees(180) : .degrees(0))
-            .frame(width: squareSize, height: squareSize)
-            .position(x: CGFloat(colIdx) * squareSize + squareSize / 2,
-                      y: CGFloat(rowIdx) * squareSize + squareSize / 2)
-            .matchedGeometryEffect(id: item.piece.id, in: pieceNamespace)
-            .zIndex(selected == item.square ? 100 : 10)
-            .contentShape(Rectangle())
-            .onTapGesture { tap(item.square) }
+          ZStack {
+            if selected == item.square {
+              RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .stroke(Color.white, lineWidth: 2)
+                .padding(2)
+                .shadow(color: .white.opacity(0.6), radius: 4)
+            }
+            Text(symbol(for: item.piece))
+              .font(.system(size: squareSize * 0.75))
+              .foregroundColor(item.piece.color == .white ? .white : .black)
+              .rotationEffect(singleDevice && item.piece.color == .black ? .degrees(180) : .degrees(0))
+          }
+          .frame(width: squareSize, height: squareSize)
+          .position(x: CGFloat(colIdx) * squareSize + squareSize / 2,
+                    y: CGFloat(rowIdx) * squareSize + squareSize / 2)
+          .matchedGeometryEffect(id: item.piece.id, in: pieceNamespace)
+          .zIndex(selected == item.square ? 100 : 10)
+          .contentShape(Rectangle())
+          // .onTapGesture { tap(item.square) }
         }
-        // Border overlay
-        Rectangle()
-          .stroke(Color.black, lineWidth: 2)
-          .frame(width: boardSide, height: boardSide)
+        // // Border overlay
+        // Rectangle()
+        //   .stroke(Color.black, lineWidth: 2)
+        //   .frame(width: boardSide, height: boardSide)
       }
       .frame(width: boardSide, height: boardSide, alignment: .topLeading)
       .contentShape(Rectangle())
+      .animation(.easeInOut(duration: 0.35), value: board)
       .gesture(
         DragGesture(minimumDistance: 0)
           .onEnded { value in
@@ -383,25 +394,27 @@ struct BoardView: View {
     if !singleDevice {
       guard myColor == sideToMove else { return }
     }
-    if let sel = selected {
-      if sel == sq {
-        // Deselect if tapping the same square
-        selected = nil
-        return
-      }
-      // If tapping another own piece, switch selection; otherwise attempt move
-      let ownershipColor = singleDevice ? sideToMove : myColor
-      if let p = board.piece(at: sq), p.color == ownershipColor {
-        selected = sq
+    withAnimation(.easeInOut(duration: 0.18)) {
+      if let sel = selected {
+        if sel == sq {
+          // Deselect if tapping the same square
+          selected = nil
+          return
+        }
+        // If tapping another own piece, switch selection; otherwise attempt move
+        let ownershipColor = singleDevice ? sideToMove : myColor
+        if let p = board.piece(at: sq), p.color == ownershipColor {
+          selected = sq
+        } else {
+          onMove(sel, sq, singleDevice)
+          selected = nil
+        }
       } else {
-        onMove(sel, sq, singleDevice)
-        selected = nil
-      }
-    } else {
-      // Only allow selecting a square that has a piece of the side to move
-      let ownershipColor = singleDevice ? sideToMove : myColor
-      if let p = board.piece(at: sq), p.color == ownershipColor {
-        selected = sq
+        // Only allow selecting a square that has a piece of the side to move
+        let ownershipColor = singleDevice ? sideToMove : myColor
+        if let p = board.piece(at: sq), p.color == ownershipColor {
+          selected = sq
+        }
       }
     }
   }
@@ -446,9 +459,9 @@ struct SquareView: View {
     ZStack {
       Rectangle()
         .fill(colorForSquare(square))
-      if isSelected {
-        Rectangle().stroke(Color.white, lineWidth: 1).padding(1)
-      }
+      // if isSelected {
+      //   Rectangle().stroke(Color.white, lineWidth: 1).padding(1)
+      // }
       if isKingInCheck {
         RoundedRectangle(cornerRadius: 6, style: .continuous)
           .fill(isKingCheckmated ? Color.red.opacity(0.9) : Color.red.opacity(0.7))
