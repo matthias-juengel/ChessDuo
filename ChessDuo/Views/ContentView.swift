@@ -61,23 +61,25 @@ struct ContentView: View {
     // Full-screen background indicating turn status
     ZStack {
       Color(red: 0.5, green: 0.5, blue: 0.5)
-      if vm.peers.isConnected {
-        if let my = vm.myColor, vm.engine.sideToMove == my {
-          Color.green.opacity(0.4)
-        }
-      } else {
-        // Single-device: highlight only the half belonging to the side to move
-        VStack(spacing: 0) {
-          if vm.engine.sideToMove == .black {
-            Color.green.opacity(0.38)
-            Color.clear
-          } else {
-            Color.clear
-            Color.green.opacity(0.38)
+      if vm.outcome == .ongoing { // show turn background only while game running
+        if vm.peers.isConnected {
+          if let my = vm.myColor, vm.engine.sideToMove == my {
+            Color.green.opacity(0.4)
           }
+        } else {
+          // Single-device: highlight only the half belonging to the side to move
+          VStack(spacing: 0) {
+            if vm.engine.sideToMove == .black {
+              Color.green.opacity(0.38)
+              Color.clear
+            } else {
+              Color.clear
+              Color.green.opacity(0.38)
+            }
+          }
+          .allowsHitTesting(false)
+          .transition(.opacity)
         }
-        .allowsHitTesting(false)
-        .transition(.opacity)
       }
     }
   }
@@ -88,8 +90,8 @@ struct ContentView: View {
       CapturedRow(pieces: vm.capturedByOpponent,
                   rotatePieces: !vm.peers.isConnected,
                   highlightPieceID: vm.lastCaptureByMe == false ? vm.lastCapturedPieceID : nil)
-      .padding(10)
-      .frame(height: 50)
+    .padding(.horizontal, 10)
+    .padding(.top, 6)
       Color.black.frame(height: 2)
       ZStack {
         Group {
@@ -114,8 +116,8 @@ struct ContentView: View {
   CapturedRow(pieces: vm.capturedByMe,
       rotatePieces: false,
       highlightPieceID: vm.lastCaptureByMe == true ? vm.lastCapturedPieceID : nil)
-        .padding(10)
-        .frame(height: 50)
+  .padding(.horizontal, 10)
+  .padding(.bottom, 6)
       Spacer() // neded to align center with background
     }
   }
@@ -239,27 +241,35 @@ struct CapturedRow: View {
   let pieces: [Piece]
   var rotatePieces: Bool = false
   var highlightPieceID: UUID? = nil
+  private let maxBaseSize: CGFloat = 32
+  private let minSize: CGFloat = 14
   var body: some View {
-    ScrollView(.horizontal, showsIndicators: false) {
-      HStack(spacing: 4) {
-        ForEach(sortedPieces().indices, id: \.self) { idx in
-          let p = sortedPieces()[idx]
-          ZStack {
-            Text(symbol(for: p))
-              .font(.system(size: 32))
-              .foregroundStyle(p.color == .white ? .white : .black)
-              .rotationEffect(rotatePieces ? .degrees(180) : .degrees(0))
-              .padding(2)
-            if highlightPieceID == p.id {
+    GeometryReader { geo in
+      let sorted = sortedPieces()
+      // Desired total width with base size & spacing
+      let spacing: CGFloat = 4
+      let count = CGFloat(sorted.count)
+      let available = max(geo.size.width - (count - 1) * spacing, 10)
+      let idealSize = min(maxBaseSize, available / max(count, 1))
+      let size = max(minSize, idealSize)
+      HStack(spacing: spacing) {
+        ForEach(sorted.indices, id: \.self) { idx in
+          let p = sorted[idx]
+          Text(symbol(for: p))
+            .font(.system(size: size))
+            .foregroundStyle(p.color == .white ? .white : .black)
+            .rotationEffect(rotatePieces ? .degrees(180) : .degrees(0))
+            .frame(width: size, height: size)
+            .background(
               RoundedRectangle(cornerRadius: 4)
                 .fill(Color.green.opacity(0.45))
-                .blendMode(.plusLighter)
-            }
-          }
-          .animation(.easeInOut(duration: 0.3), value: highlightPieceID)
+                .opacity(highlightPieceID == p.id ? 1 : 0)
+            )
+            .animation(.easeInOut(duration: 0.25), value: highlightPieceID)
         }
+        Spacer(minLength: 0)
       }
-      .padding(.vertical, 2)
+      .frame(width: geo.size.width, height: geo.size.height, alignment: .leading)
     }
     .frame(height: 44)
   }
