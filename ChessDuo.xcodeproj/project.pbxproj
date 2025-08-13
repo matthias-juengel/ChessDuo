@@ -208,6 +208,7 @@
 				de,
 				fr,
 				es,
+				"zh-Hans",
 			);
 			mainGroup = 7DAE26312E4870ED006F9BFE;
 			minimizedProjectReferenceProxies = 1;
@@ -427,7 +428,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.1;
-				PRODUCT_BUNDLE_IDENTIFIER = app.chefs.ChessDuo2;
+				PRODUCT_BUNDLE_IDENTIFIER = "app.chefs.my-chess-board";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -452,7 +453,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.1;
-				PRODUCT_BUNDLE_IDENTIFIER = app.chefs.ChessDuo2;
+				PRODUCT_BUNDLE_IDENTIFIER = "app.chefs.my-chess-board";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
