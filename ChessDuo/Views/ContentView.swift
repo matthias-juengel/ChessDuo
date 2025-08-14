@@ -15,11 +15,15 @@ struct ContentView: View {
   @State private var selectedPeerToJoin: String? = nil
   @State private var exportFlash: Bool = false
   @State private var showHistorySlider: Bool = false
+  @State private var historySliderOwner: PieceColor? = nil // which side opened the slider (single-device)
 
   // Centralized helper: hide slider AND ensure we're on latest game state
   private func hideHistory() {
-    if vm.historyIndex != nil { vm.historyIndex = nil }
+    withAnimation(.easeInOut(duration: 0.35)) {
+      if vm.historyIndex != nil { vm.historyIndex = nil }
+    }
     if showHistorySlider { showHistorySlider = false }
+    historySliderOwner = nil
   }
 
   // Historical captured computation
@@ -179,9 +183,9 @@ struct ContentView: View {
         onAttemptInteraction: { hideHistory() },
                     selected: $selected) { from, to, single in
             // If in history view, first tap/drag exits to live view instead of making a move
-            if vm.historyIndex != nil { withAnimation { vm.historyIndex = nil }; return false }
+    if vm.historyIndex != nil { withAnimation(.easeInOut(duration: 0.35)) { vm.historyIndex = nil }; return false }
             let success: Bool = (single ? vm.makeLocalMove(from: from, to: to) : vm.makeMove(from: from, to: to))
-      if success { withAnimation { hideHistory() } }
+  if success { hideHistory() }
             return success
           }.onChange(of: vm.engine.sideToMove) { newValue in
             if let mine = vm.myColor, mine != newValue { selected = nil }
@@ -270,6 +274,14 @@ struct ContentView: View {
     // Hide slider if history cleared (e.g., new game)
     .onChange(of: vm.moveHistory.count) { newCount in
   if newCount == 0 { hideHistory() }
+    }
+    // Hide slider when opponent makes a move (connected mode)
+    .onChange(of: vm.engine.sideToMove) { newSide in
+      if vm.peers.isConnected {
+        if let mine = vm.myColor, newSide == mine { // opponent just moved
+          if showHistorySlider { hideHistory() }
+        }
+      }
     }
     // Incoming reset request alert
     .alert(String.loc("reset_accept_title"), isPresented: $vm.incomingResetRequest, actions: {
@@ -384,37 +396,33 @@ private extension ContentView {
     return ZStack {
       // Keep constant height (max of slider vs status) to avoid vertical shifts elsewhere.
       Color.clear.frame(height: 54)
-      if showHistorySlider && canShowSlider && (overlayColor == nil || overlayColor == vm.engine.sideToMove || vm.peers.isConnected) {
+      let showForThisBar: Bool = {
+        if !showHistorySlider || !canShowSlider { return false }
+        if vm.peers.isConnected {
+          // Only my overlay bar shows slider in connected mode
+          if let my = vm.myColor, overlayColor == my { return true }
+          return false
+        } else {
+          // Single device: show slider only on the owner side
+          return overlayColor == historySliderOwner
+        }
+      }()
+      if showForThisBar {
         // History slider replaces status text
         VStack(spacing: 4) {
           HStack {
             Text(vm.historyIndex == nil ? "Live" : "Move \(vm.historyIndex!) / \(vm.moveHistory.count)")
               .font(.caption)
               .padding(.leading, 4)
-            Spacer()
-            // Fast-forward button placeholder to keep layout stable
-            Group {
-              if vm.historyIndex != nil {
-                Button("⏩") { vm.historyIndex = nil }
-                  .font(.caption)
-                  .padding(.horizontal, 6).padding(.vertical,4)
-                  .background(Color.white.opacity(0.85))
-                  .foregroundColor(.black)
-                  .clipShape(Capsule())
-              } else {
-                // Invisible placeholder
-                Text("⏩")
-                  .font(.caption)
-                  .padding(.horizontal, 6).padding(.vertical,4)
-                  .opacity(0)
-              }
-            }
+            Spacer(minLength: 0)
           }
           Slider(value: Binding<Double>(
             get: { Double(vm.historyIndex ?? vm.moveHistory.count) },
             set: { newVal in
               let idx = Int(newVal.rounded())
-              if idx == vm.moveHistory.count { vm.historyIndex = nil } else { vm.historyIndex = max(0, min(idx, vm.moveHistory.count)) }
+              let newHistory: Int? = (idx == vm.moveHistory.count ? nil : max(0, min(idx, vm.moveHistory.count)))
+              if newHistory == vm.historyIndex { return } // avoid redundant redraw
+              withAnimation(.easeInOut(duration: 0.35)) { vm.historyIndex = newHistory }
             }), in: 0...Double(vm.moveHistory.count), step: 1)
             .tint(.green)
             .padding(.horizontal, 4)
@@ -431,7 +439,25 @@ private extension ContentView {
     .contentShape(Rectangle())
     .onTapGesture {
       guard canShowSlider else { return }
-      if showHistorySlider { hideHistory() } else { showHistorySlider = true }
+      if vm.peers.isConnected {
+        // Connected: single bar (mine) controls slider
+        if showHistorySlider { hideHistory() } else {
+          historySliderOwner = overlayColor
+          showHistorySlider = true
+        }
+      } else {
+        // Single device: decide ownership per tap
+        if showHistorySlider {
+          if historySliderOwner == overlayColor {
+            hideHistory()
+          } else {
+            historySliderOwner = overlayColor
+          }
+        } else {
+            historySliderOwner = overlayColor
+            showHistorySlider = true
+        }
+      }
     }
   }
 
