@@ -1,3 +1,4 @@
+````
 === Keep this section for reference ===
 Required fields:
 - Name: Mein Schachbrett
@@ -8,5 +9,7 @@ Required fields:
 
 === App Store Information for all languages ===
 == German (Reference languages) ==
+Mein Schachbrett bietet Ihnen ein elegantes und benutzerfreundliches Schacherlebnis auf Ihrem Gerät. Mit einer klaren, intuitiven Benutzeroberfläche können Sie Ihre Partien bequem verfolgen, analysieren und verbessern. Die App unterstützt verschiedene Spielmodi und bietet umfangreiche Funktionen zur Partieverwaltung, sodass Sie Ihre Fortschritte stets im Blick behalten. Egal ob Anfänger oder erfahrener Spieler – Mein Schachbrett macht das Spiel zugänglich und fördert Ihre Fähigkeiten durch praktische Werkzeuge und eine ansprechende Darstellung. Erleben Sie Schach neu mit einer App, die auf Präzision, Komfort und Stil setzt.
 
 == Translations ==
+````

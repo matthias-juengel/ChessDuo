@@ -21,3 +21,7 @@ Beschreibung was die App kann und wofuer sie gut ist
 Auch toll wenn man im selben Raum aber jeder gemuetlich in seiner eigenen Ecke spielt, dann einfach jeder auf seinem Gerät.
 
 Kein Streit, weil sich einer "verzogen" hat. Es gibt kein rueckgaenging.
+
+Workflow Description
+
+This document outlines the features and benefits of the app to inspire the creation of a professional, concise, and engaging App Store description. It is intended to serve as a source of ideas and should not be copied verbatim. Additionally, no new features should be introduced beyond those described here when crafting the official app description. The goal is to clearly present the app’s main functionalities and advantages in a manner suitable for App Store submission.
