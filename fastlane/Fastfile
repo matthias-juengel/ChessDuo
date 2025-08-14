@@ -27,4 +27,45 @@ platform :ios do
       run_precheck_before_submit: false,
     )
   end
+
+  desc "Build & upload to TestFlight external group"
+  lane :beta do |options|
+    # --- Auth (reuse App Store Connect API key) ---
+    api_key = app_store_connect_api_key(
+      key_id: "3GB6K78M56",
+      issuer_id: "69a6de81-d2b1-47e3-e053-5b8c7c11a4d1",
+      key_filepath: "AuthKey_3GB6K78M56.p8",
+      in_house: false
+    )
+
+    # --- Build (gym) ---
+    scheme_name = (options[:scheme] || "ChessDuo")
+    build_ios_app(
+      scheme: scheme_name,
+      clean: true,
+      export_method: "app-store"
+    )
+
+    # --- Upload to TestFlight & distribute to external group ---
+    pilot(
+      api_key: api_key,
+      app_identifier: "app.chefs.my-chess-board",
+      distribute_external: true,
+      groups: [ (options[:group] || "Public Beta") ],
+      notify_external_testers: true,
+      wait_for_uploaded_build: true,
+      changelog: (options[:changelog] || "Bug fixes and improvements"),
+      beta_app_description: "Simple two-player offline chessboard.",
+      beta_app_feedback_email: "itunes@matthias-juengel.de",
+      beta_app_review_info: {
+        contact_email: "itunes@matthias-juengel.de",
+        contact_first_name: "Matthias",
+        contact_last_name: "Juengel",
+        contact_phone: "+491795270558",
+        demo_account_name: "",
+        demo_account_password: "",
+        notes: "Offline two-player chess. No sign-in, no ads."
+      }
+    )
+  end
 end

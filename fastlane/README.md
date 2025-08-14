@@ -23,6 +23,14 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 Upload ONLY metadata and promotional text (no build, no screenshots)
 
+### ios beta
+
+```sh
+[bundle exec] fastlane ios beta
+```
+
+Build & upload to TestFlight external group
+
 ----
 
 This README.md is auto-generated and will be re-generated every time [_fastlane_](https://fastlane.tools) is run.
