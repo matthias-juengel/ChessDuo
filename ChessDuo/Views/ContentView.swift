@@ -14,6 +14,40 @@ struct ContentView: View {
   @State private var showPeerChooser = false
   @State private var selectedPeerToJoin: String? = nil
   @State private var exportFlash: Bool = false
+  @State private var showHistorySlider: Bool = false
+
+  // Historical captured computation
+  private func capturedAtHistory(byMe: Bool) -> [Piece] {
+    guard let idx = vm.historyIndex else { return byMe ? vm.capturedByMe : vm.capturedByOpponent }
+    // Reconstruct engine up to idx moves and collect missing pieces compared to starting position attributed by capturer.
+    var engine = ChessEngine()
+    var capsByWhite: [Piece] = []
+    var capsByBlack: [Piece] = []
+    for i in 0..<min(idx, vm.moveHistory.count) {
+      let move = vm.moveHistory[i]
+      // Detect capture before making move
+      if let piece = engine.board.piece(at: move.to) { // normal capture
+        if piece.color == .white { capsByBlack.append(piece) } else { capsByWhite.append(piece) }
+      } else {
+        // Possible en passant
+        if let moving = engine.board.piece(at: move.from), moving.type == .pawn, move.from.file != move.to.file, engine.board.piece(at: move.to) == nil {
+          // en passant target square is behind destination
+            let dir = moving.color == .white ? 1 : -1
+            let capturedSq = Square(file: move.to.file, rank: move.to.rank - dir)
+            if let epPawn = engine.board.piece(at: capturedSq), epPawn.color != moving.color, epPawn.type == .pawn {
+              if epPawn.color == .white { capsByBlack.append(epPawn) } else { capsByWhite.append(epPawn) }
+            }
+        }
+      }
+      _ = engine.tryMakeMove(move)
+    }
+    // Determine whose perspective 'capturedByMe' refers to.
+    if let my = vm.myColor { // connected mode
+      return byMe ? (my == .white ? capsByWhite : capsByBlack) : (my == .white ? capsByBlack : capsByWhite)
+    } else { // single device: capturedByMe shows white's captures at bottom
+      return byMe ? capsByWhite : capsByBlack
+    }
+  }
 
   // Compute status text for a specific overlay perspective (overlayColor).
    private func turnStatus(for overlayColor: PieceColor?) -> (text: String, color: Color)? {
@@ -107,7 +141,7 @@ struct ContentView: View {
   var boardWithCapturedPieces: some View {
     VStack(spacing: 0) {
       Spacer() // neded to align center with background
-      CapturedRow(pieces: vm.capturedByOpponent,
+  CapturedRow(pieces: vm.historyIndex == nil ? vm.capturedByOpponent : capturedAtHistory(byMe: false),
                   rotatePieces: !vm.peers.isConnected,
                   highlightPieceID: vm.lastCaptureByMe == false ? vm.lastCapturedPieceID : nil)
       .padding(.horizontal, 10)
@@ -117,6 +151,12 @@ struct ContentView: View {
         Group {
           let inCheck = vm.engine.isInCheck(vm.engine.sideToMove)
           let isMate = inCheck && vm.engine.isCheckmate(for: vm.engine.sideToMove)
+          let displayedLastMove: Move? = {
+            if let idx = vm.historyIndex {
+              if idx > 0 && idx <= vm.moveHistory.count { return vm.moveHistory[idx - 1] } else { return nil }
+            }
+            return vm.lastMove
+          }()
           BoardView(board: vm.displayedBoard,
                     perspective: vm.myColor ?? .white,
                     myColor: vm.myColor ?? .white,
@@ -124,18 +164,21 @@ struct ContentView: View {
                     inCheckCurrentSide: inCheck,
                     isCheckmatePosition: isMate,
                     singleDevice: !vm.peers.isConnected,
-                    lastMove: vm.lastMove,
+                    lastMove: displayedLastMove,
+                    disableInteraction: showHistorySlider,
                     selected: $selected) { from, to, single in
             // If in history view, first tap/drag exits to live view instead of making a move
             if vm.historyIndex != nil { withAnimation { vm.historyIndex = nil }; return false }
-            if single { return vm.makeLocalMove(from: from, to: to) } else { return vm.makeMove(from: from, to: to) }
+            let success: Bool = (single ? vm.makeLocalMove(from: from, to: to) : vm.makeMove(from: from, to: to))
+            if success { withAnimation { showHistorySlider = false } }
+            return success
           }.onChange(of: vm.engine.sideToMove) { newValue in
             if let mine = vm.myColor, mine != newValue { selected = nil }
           }
         }
       }.aspectRatio(1, contentMode: .fit)
       Color.black.frame(height: 2)
-      CapturedRow(pieces: vm.capturedByMe,
+  CapturedRow(pieces: vm.historyIndex == nil ? vm.capturedByMe : capturedAtHistory(byMe: true),
                   rotatePieces: false,
                   highlightPieceID: vm.lastCaptureByMe == true ? vm.lastCapturedPieceID : nil)
       .padding(.horizontal, 10)
@@ -173,6 +216,10 @@ struct ContentView: View {
       )
 
       boardWithCapturedPieces.ignoresSafeArea()//.padding([.leading, .trailing], 10)
+        .contentShape(Rectangle())
+        .onTapGesture {
+          if vm.gameIsOver || showHistorySlider { showHistorySlider = false }
+        }
       if vm.peers.isConnected {
         overlayControls(for: vm.myColor) // show only my side
       } else {
@@ -194,7 +241,7 @@ struct ContentView: View {
         .zIndex(500)
         .ignoresSafeArea()
       }
-      if exportFlash { Text("Copied state")
+  if exportFlash { Text("Copied state")
           .padding(8)
           .background(Color.black.opacity(0.7))
           .foregroundColor(.white)
@@ -202,42 +249,6 @@ struct ContentView: View {
           .transition(.opacity)
           .zIndex(900)
       }
-      // History slider overlay
-      VStack {
-        Spacer()
-        if vm.moveHistory.count > 0 {
-          VStack(spacing: 4) {
-            HStack {
-              Text(vm.historyIndex == nil ? "Live" : "Move \(vm.historyIndex!) / \(vm.moveHistory.count)")
-                .font(.caption)
-                .padding(.leading, 8)
-              Spacer()
-              if vm.historyIndex != nil {
-                Button("Continue") { withAnimation { vm.historyIndex = nil } }
-                  .font(.caption)
-                  .padding(.horizontal, 8).padding(.vertical,4)
-                  .background(Color.white.opacity(0.85))
-                  .foregroundColor(.black)
-                  .clipShape(Capsule())
-              }
-            }
-            Slider(value: Binding<Double>(
-              get: { Double(vm.historyIndex ?? vm.moveHistory.count) },
-              set: { newVal in
-                let idx = Int(newVal.rounded())
-                if idx == vm.moveHistory.count { vm.historyIndex = nil } else { vm.historyIndex = max(0, min(idx, vm.moveHistory.count)) }
-              }), in: 0...Double(vm.moveHistory.count), step: 1)
-              .tint(.green)
-              .padding(.horizontal, 8)
-              .onTapGesture { } // absorb
-          }
-          .padding(.vertical, 6)
-          .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-          .padding(.horizontal, 20)
-          .padding(.bottom, 10)
-        }
-      }
-      .allowsHitTesting(true)
     }
     .onChange(of: vm.discoveredPeerNames) { new in
       // Show chooser when a new peer appears and we're not connected; hide automatically if list empties while visible
@@ -356,14 +367,59 @@ private extension ContentView {
   }
 
   func statusBar(for overlayColor: PieceColor?) -> some View {
-    ZStack {
-      Color.clear.frame(height: 30)
-      if let status = turnStatus(for: overlayColor) {
+    let canShowSlider = vm.moveHistory.count > 0
+    return ZStack {
+      // Keep constant height (max of slider vs status) to avoid vertical shifts elsewhere.
+      Color.clear.frame(height: 54)
+      if showHistorySlider && canShowSlider && (overlayColor == nil || overlayColor == vm.engine.sideToMove || vm.peers.isConnected) {
+        // History slider replaces status text
+        VStack(spacing: 4) {
+          HStack {
+            Text(vm.historyIndex == nil ? "Live" : "Move \(vm.historyIndex!) / \(vm.moveHistory.count)")
+              .font(.caption)
+              .padding(.leading, 4)
+            Spacer()
+            // Fast-forward button placeholder to keep layout stable
+            Group {
+              if vm.historyIndex != nil {
+                Button("⏩") { vm.historyIndex = nil }
+                  .font(.caption)
+                  .padding(.horizontal, 6).padding(.vertical,4)
+                  .background(Color.white.opacity(0.85))
+                  .foregroundColor(.black)
+                  .clipShape(Capsule())
+              } else {
+                // Invisible placeholder
+                Text("⏩")
+                  .font(.caption)
+                  .padding(.horizontal, 6).padding(.vertical,4)
+                  .opacity(0)
+              }
+            }
+          }
+          Slider(value: Binding<Double>(
+            get: { Double(vm.historyIndex ?? vm.moveHistory.count) },
+            set: { newVal in
+              let idx = Int(newVal.rounded())
+              if idx == vm.moveHistory.count { vm.historyIndex = nil } else { vm.historyIndex = max(0, min(idx, vm.moveHistory.count)) }
+            }), in: 0...Double(vm.moveHistory.count), step: 1)
+            .tint(.green)
+            .padding(.horizontal, 4)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 6)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+      } else if let status = turnStatus(for: overlayColor) {
         Text(status.text)
           .font(.title)
           .foregroundStyle(status.color)
       }
-    }.allowsHitTesting(false)
+    }
+    .contentShape(Rectangle())
+    .onTapGesture {
+      guard canShowSlider else { return }
+      showHistorySlider.toggle()
+    }
   }
 
   func controlBar(for overlayColor: PieceColor?) -> some View {
@@ -460,6 +516,7 @@ struct BoardView: View {
   let isCheckmatePosition: Bool
   let singleDevice: Bool
   let lastMove: Move?
+  var disableInteraction: Bool = false
   @Binding var selected: Square?
   let onMove: (Square, Square, Bool) -> Bool
   @Namespace private var pieceNamespace
@@ -566,7 +623,7 @@ struct BoardView: View {
       .animation(.easeInOut(duration: 0.35), value: board)
       .gesture(
         DragGesture(minimumDistance: 0)
-          .onChanged { value in
+          .onChanged { value in guard !disableInteraction else { return } ;
             let point = value.location
             if dragStartPoint == nil {
               dragStartPoint = point
@@ -604,7 +661,7 @@ struct BoardView: View {
               dragTarget = nil
             }
           }
-          .onEnded { value in
+          .onEnded { value in guard !disableInteraction else { return } ;
             let point = value.location
             let pieceCenter = adjustedDragCenter(rawPoint: point, squareSize: squareSize)
             let releasedSquare = square(at: pieceCenter, boardSide: boardSide, rowArray: rowArray, colArray: colArray, squareSize: squareSize)
