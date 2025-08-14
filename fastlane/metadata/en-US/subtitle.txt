@@ -1,1 +1,1 @@
-Play chess offline with two players
+Offline two player chess

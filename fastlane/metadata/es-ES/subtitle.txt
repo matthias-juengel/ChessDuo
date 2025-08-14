@@ -1,1 +1,1 @@
-Juega ajedrez offline para dos jugadores
+Ajedrez a dos sin conexión

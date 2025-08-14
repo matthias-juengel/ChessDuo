@@ -1,3 +1,4 @@
+require 'json'
 default_platform(:ios)
 
 platform :ios do
@@ -12,10 +13,12 @@ platform :ios do
     deliver(
       api_key: api_key,
       app_identifier: "app.chefs.my-chess-board",
+      app_version: "1.0",
+      app_review_information: JSON.parse(File.read("metadata/review_information.json")),
       skip_screenshots: true,
       skip_binary_upload: true,
       submit_for_review: false,
-      force: true,
+      force: true
     )
   end
 end
