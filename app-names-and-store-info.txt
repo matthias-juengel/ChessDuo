@@ -46,3 +46,171 @@ Antwort: Nein, die App ist werbefrei.
 
 Frage: Muss ich mich registrieren, um die App zu nutzen?
 Antwort: Nein, es ist keine Registrierung erforderlich.
+
+== English ==
+Name: My Chessboard
+Subtitle: Play chess offline with two players
+Keywords: chess,boardgame,strategy,multiplayer,friends,2players,twoplayer,castling,enpassant,adfree
+Promotional Text:
+Play chess anywhere – offline, no ads, no sign-up.
+
+"My Chessboard" is a digital chessboard that lets you play chess games without a physical board or pieces.
+The app only allows legal moves and supports special moves like castling, en passant, and promotion (pawn transformation).
+It works completely offline, so you can play chess anytime, anywhere without internet or ads.
+You can play with two players on one iOS device or connect two devices.
+
+ONE-DEVICE MODE:
+Two players can comfortably play against each other on a single iOS device, perfect for playing together on the go.
+
+TWO-DEVICE MODE:
+Two devices can be connected.
+This is easy via Bluetooth or Wi-Fi.
+So you can play chess comfortably in the car, train, bus, or same room on separate devices.
+Ideal for anyone who just wants to play chess with two players.
+
+GAME HISTORY:
+The app saves the current game's history and lets you review previous moves anytime.
+You can analyze the game during or after playing.
+The current game is always saved, even if you close the app, and can be resumed later.
+
+FAQ:
+Q: Is the app suitable for children?
+A: Yes, the app is suitable for children.
+
+Q: Can you play against computer opponents (AI, robots)?
+A: No.
+
+Q: Do I need an internet connection to use the app?
+A: No, "My Chessboard" works fully offline and does not require internet.
+
+Q: Is there advertising in the app?
+A: No, the app is ad-free.
+
+Q: Do I need to register to use the app?
+A: No, registration is not required.
+
+== Spanish ==
+Name: Mi tablero de ajedrez
+Subtitle: Juega ajedrez offline para dos jugadores
+Keywords: chess,ajedrez,juego de mesa,estrategia,multijugador,amigos,2jugadores,dosjugadores,enroque,enpassant,sin anuncios
+Promotional Text:
+Juega ajedrez en cualquier lugar – sin conexión, sin anuncios, sin registro.
+
+"Mi tablero de ajedrez" es un tablero digital que te permite jugar partidas sin un tablero físico ni piezas.
+La app solo permite movimientos legales y soporta movimientos especiales como enroque, captura al paso y promoción (transformar un peón).
+Funciona completamente offline, para que puedas jugar ajedrez en cualquier momento y lugar sin internet ni anuncios.
+Puedes jugar dos personas en un dispositivo iOS o conectar dos dispositivos.
+
+MODO UN DISPOSITIVO:
+Dos jugadores pueden jugar cómodamente en un solo dispositivo iOS, ideal para jugar juntos en cualquier lugar.
+
+MODO DOS DISPOSITIVOS:
+Se pueden conectar dos dispositivos.
+Esto es fácil mediante Bluetooth o Wi-Fi.
+Así puedes jugar ajedrez cómodamente en el auto, tren, bus o en la misma habitación con dispositivos separados.
+Ideal para quienes solo quieren jugar ajedrez para dos.
+
+HISTORIAL DE PARTIDAS:
+La app guarda el historial de la partida actual y permite revisar movimientos anteriores en cualquier momento.
+Puedes analizar la partida durante o después de jugar.
+La partida actual siempre se guarda, incluso si cierras la app, y puedes continuarla más tarde.
+
+FAQ:
+P: ¿La app es adecuada para niños?
+R: Sí, la app es adecuada para niños.
+
+P: ¿Se puede jugar contra oponentes de computadora (IA, robots)?
+R: No.
+
+P: ¿Necesito conexión a internet para usar la app?
+R: No, "Mi tablero de ajedrez" funciona completamente offline y no requiere internet.
+
+P: ¿Hay publicidad en la app?
+R: No, la app está libre de anuncios.
+
+P: ¿Necesito registrarme para usar la app?
+R: No, no se requiere registro.
+
+== French ==
+Name: Mon échiquier
+Subtitle: Jouez aux échecs à deux hors ligne
+Keywords: chess,échecs,jeu de société,stratégie,multijoueur,amis,2joueurs,mode deux joueurs,roque,enpassant,sans publicité
+Promotional Text:
+Jouez aux échecs partout – hors ligne, sans pub, sans inscription.
+
+"Mon échiquier" est un échiquier numérique qui vous permet de jouer sans plateau ni pièces physiques.
+L’application n’autorise que les coups légaux et prend en charge les coups spéciaux comme le roque, la prise en passant et la promotion (transformation d’un pion).
+Elle fonctionne entièrement hors ligne, vous pouvez jouer aux échecs à tout moment, n’importe où, sans internet ni publicité.
+Vous pouvez jouer à deux sur un seul appareil iOS ou connecter deux appareils.
+
+MODE UN APPAREIL:
+Deux joueurs peuvent jouer confortablement sur un seul appareil iOS, parfait pour jouer ensemble en déplacement.
+
+MODE DEUX APPAREILS:
+Deux appareils peuvent être connectés.
+C’est facile via Bluetooth ou Wi-Fi.
+Vous pouvez ainsi jouer aux échecs confortablement en voiture, train, bus ou dans la même pièce sur des appareils séparés.
+Idéal pour ceux qui veulent simplement jouer aux échecs à deux.
+
+HISTORIQUE DE PARTIE:
+L’application sauvegarde l’historique de la partie en cours et vous permet de revoir les coups précédents à tout moment.
+Vous pouvez analyser la partie pendant ou après le jeu.
+La partie en cours est toujours sauvegardée, même si vous fermez l’application, et peut être reprise plus tard.
+
+FAQ:
+Q : L’application est-elle adaptée aux enfants ?
+R : Oui, l’application est adaptée aux enfants.
+
+Q : Peut-on jouer contre un adversaire informatique (IA, robot) ?
+R : Non.
+
+Q : Ai-je besoin d’une connexion internet pour utiliser l’application ?
+R : Non, "Mon échiquier" fonctionne entièrement hors ligne et ne nécessite pas d’internet.
+
+Q : Y a-t-il de la publicité dans l’application ?
+R : Non, l’application est sans publicité.
+
+Q : Dois-je m’inscrire pour utiliser l’application ?
+R : Non, aucune inscription n’est requise.
+
+== Simplified Chinese ==
+Name: 我的棋盘
+Subtitle: 离线双人国际象棋
+Keywords: chess,国际象棋,棋盘游戏,策略,多人游戏,朋友,2人游戏,双人游戏,王车易位,吃过路兵,无广告
+Promotional Text:
+随时随地下棋 – 离线，无广告，无需注册。
+
+“我的棋盘”是一款数字棋盘，让你无需实体棋盘和棋子即可下棋。
+应用只允许合法走法，支持特殊走法，如王车易位、吃过路兵和升变（兵的变身）。
+它完全离线运行，可以随时随地下棋，无需网络和广告。
+你可以在一台iOS设备上双人对弈，或连接两台设备。
+
+单设备模式：
+两名玩家可以在单台iOS设备上舒适对弈，非常适合外出时一起玩。
+
+双设备模式：
+可以连接两台设备。
+通过蓝牙或Wi-Fi轻松实现连接。
+这样你可以在车上、火车上、公交车上或同一房间内用不同设备舒适地下棋。
+适合只想两人下棋的玩家。
+
+游戏记录：
+应用保存当前游戏记录，随时查看之前的走法。
+你可以在游戏中或结束后分析棋局。
+当前游戏会被保存，即使关闭应用，也能稍后继续。
+
+常见问题：
+问：这个应用适合儿童吗？
+答：是的，适合儿童使用。
+
+问：可以和电脑对手（人工智能，机器人）玩吗？
+答：不可以。
+
+问：使用应用需要网络连接吗？
+答：不，“我的棋盘”完全离线运行，不需要网络。
+
+问：应用内有广告吗？
+答：没有，应用无广告。
+
+问：使用应用需要注册吗？
+答：不，不需要注册。
