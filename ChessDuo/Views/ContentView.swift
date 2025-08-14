@@ -24,8 +24,8 @@ struct ContentView: View {
       let showYou: Bool = {
         if vm.peers.isConnected {
           // Only my own overlay and only if I'm the side to move
-            if let mine = vm.myColor, let ov = overlayColor, mine == ov, mine == vm.engine.sideToMove { return true }
-            return false
+          if let mine = vm.myColor, let ov = overlayColor, mine == ov, mine == vm.engine.sideToMove { return true }
+          return false
         } else {
           // Single-device: only the overlay whose color is the side to move shows (you)
           if let ov = overlayColor, ov == vm.engine.sideToMove { return true }
@@ -110,8 +110,8 @@ struct ContentView: View {
       CapturedRow(pieces: vm.capturedByOpponent,
                   rotatePieces: !vm.peers.isConnected,
                   highlightPieceID: vm.lastCaptureByMe == false ? vm.lastCapturedPieceID : nil)
-    .padding(.horizontal, 10)
-    .padding(.top, 6)
+      .padding(.horizontal, 10)
+      .padding(.top, 6)
       Color.black.frame(height: 2)
       ZStack {
         Group {
@@ -133,11 +133,11 @@ struct ContentView: View {
         }
       }.aspectRatio(1, contentMode: .fit)
       Color.black.frame(height: 2)
-  CapturedRow(pieces: vm.capturedByMe,
-      rotatePieces: false,
-      highlightPieceID: vm.lastCaptureByMe == true ? vm.lastCapturedPieceID : nil)
-  .padding(.horizontal, 10)
-  .padding(.bottom, 6)
+      CapturedRow(pieces: vm.capturedByMe,
+                  rotatePieces: false,
+                  highlightPieceID: vm.lastCaptureByMe == true ? vm.lastCapturedPieceID : nil)
+      .padding(.horizontal, 10)
+      .padding(.bottom, 6)
       Spacer() // neded to align center with background
     }
   }
@@ -192,9 +192,9 @@ struct ContentView: View {
     .highPriorityGesture(
       TapGesture(count: 5).onEnded {
         let text = vm.exportText()
-        #if canImport(UIKit)
+#if canImport(UIKit)
         UIPasteboard.general.string = text
-        #endif
+#endif
         withAnimation(.easeInOut(duration: 0.3)) { exportFlash = true }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
           withAnimation(.easeOut(duration: 0.3)) { exportFlash = false }
@@ -251,7 +251,7 @@ struct ContentView: View {
     } message: {
       Text(String.loc("incoming_join_message", vm.incomingJoinRequestPeer ?? ""))
     }
-  .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 }
 
@@ -263,7 +263,7 @@ private struct PromotionPickerView: View {
   let onCancel: () -> Void
   private let choices: [PieceType] = [.queen, .rook, .bishop, .knight]
   var body: some View {
-  ZStack {
+    ZStack {
       Color.black.opacity(0.55).ignoresSafeArea().onTapGesture { onCancel() }
       VStack(spacing: 16) {
         Text(String.loc("promote_choose"))
@@ -453,10 +453,10 @@ struct BoardView: View {
                        isKingCheckmated: isCheckmatePosition && kingInCheckHighlight,
                        rotateForOpponent: false,
                        lastMoveHighlight: isLastMoveSquare(sq))
-              .frame(width: squareSize, height: squareSize)
-              .position(x: CGFloat(colIdx) * squareSize + squareSize / 2,
-                        y: CGFloat(rowIdx) * squareSize + squareSize / 2)
-              .contentShape(Rectangle())
+            .frame(width: squareSize, height: squareSize)
+            .position(x: CGFloat(colIdx) * squareSize + squareSize / 2,
+                      y: CGFloat(rowIdx) * squareSize + squareSize / 2)
+            .contentShape(Rectangle())
           }
         }
         // Pieces layer (animated)
