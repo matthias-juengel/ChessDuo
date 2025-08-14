@@ -25,13 +25,15 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="${SCRIPT_DIR%/scripts}"
 ICON_INPUT="${1:-$REPO_ROOT/icon.png}"
 
-WITH_TITLE=0
+WITH_TITLE=1
 shift || true
 for arg in "$@"; do
   case "$arg" in
     --with-title)
       WITH_TITLE=1
       ;;
+    --no-title)
+      WITH_TITLE=0;;
   esac
 done
 
@@ -80,9 +82,15 @@ make_placeholder() {
 font_for_locale() {
   case "$1" in
     zh-Hans)
-      if [[ -f "/System/Library/Fonts/PingFang.ttc" ]]; then echo "/System/Library/Fonts/PingFang.ttc"; fi ;;
+      if [[ -f "/System/Library/Fonts/Hiragino Sans GB.ttc" ]]; then
+        echo "/System/Library/Fonts/Hiragino Sans GB.ttc"
+      fi
+      ;;
     *)
-      if [[ -f "/System/Library/Fonts/Helvetica.ttc" ]]; then echo "/System/Library/Fonts/Helvetica.ttc"; fi ;;
+      if [[ -f "/System/Library/Fonts/Helvetica.ttc" ]]; then
+        echo "/System/Library/Fonts/Helvetica.ttc"
+      fi
+      ;;
   esac
 }
 
