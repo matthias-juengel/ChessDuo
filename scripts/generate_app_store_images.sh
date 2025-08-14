@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+DEBUG=${DEBUG:-0}
 
 # Generate minimal App Store placeholder screenshots from icon.png
 # Creates portraits for iPhone 6.5", iPhone 5.5", and iPad Pro 12.9".
@@ -33,12 +34,13 @@ LOCALES=(de-DE en-US es-ES fr-FR zh-Hans)
 make_placeholder() {
   local src="$1" w="$2" h="$3" out="$4"
   local tmp
-  tmp="$(mktemp -t iconfit.XXXXXX.png)"
+  tmp="$(mktemp -t iconfit.XXXXXX).png"
   # Fit square icon to min(w,h), then pad to exact size (white background)
   local fit
   if [[ "$w" -lt "$h" ]]; then fit="$w"; else fit="$h"; fi
-  sips -s format png "$src" -z "$fit" "$fit" --out "$tmp" >/dev/null
-  sips -s format png "$tmp" --padToHeightWidth "$h" "$w" --out "$out" >/dev/null
+  sips -s format png "$src" -z "$fit" "$fit" --out "$tmp"
+  sips -s format png "$tmp" --padToHeightWidth "$h" "$w" --out "$out"
+  if [[ ! -s "$out" ]]; then echo "ERROR: Failed to create '$out'" >&2; exit 1; fi
   rm -f "$tmp"
 }
 
@@ -51,5 +53,13 @@ for L in "${LOCALES[@]}"; do
   make_placeholder "$ICON_INPUT" "$IPAD129_W"  "$IPAD129_H"  "$OUT_DIR/03_ipad129_portrait.png"
   echo "Wrote placeholders to $OUT_DIR"
 done
+
+if [[ "$DEBUG" -eq 1 ]]; then
+  echo "\nDEBUG: Listing created screenshot files:"
+  for L in "${LOCALES[@]}"; do
+    OUT_DIR="$REPO_ROOT/fastlane/screenshots/$L"
+    echo "-- $OUT_DIR"; ls -l "$OUT_DIR" || true
+  done
+fi
 
 echo "Done. Placeholders ready for deliver upload."
