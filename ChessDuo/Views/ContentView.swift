@@ -451,13 +451,19 @@ struct BoardView: View {
             let sq = Square(file: file, rank: rank)
             let piece = board.piece(at: sq)
             let kingInCheckHighlight = inCheckCurrentSide && piece?.type == .king && piece?.color == sideToMove
+            let dragHighlight: Bool = {
+              // Show green highlight for start and current potential drop target while dragging
+              if let from = draggingFrom, from == sq { return true }
+              if let target = dragTarget, target == sq { return true }
+              return false
+            }()
             SquareView(square: sq,
                        piece: nil,
                        isSelected: selected == sq,
                        isKingInCheck: kingInCheckHighlight,
                        isKingCheckmated: isCheckmatePosition && kingInCheckHighlight,
                        rotateForOpponent: false,
-                       lastMoveHighlight: isLastMoveSquare(sq))
+                       lastMoveHighlight: isLastMoveSquare(sq) || dragHighlight)
             .frame(width: squareSize, height: squareSize)
             .position(x: CGFloat(colIdx) * squareSize + squareSize / 2,
                       y: CGFloat(rowIdx) * squareSize + squareSize / 2)
@@ -506,17 +512,7 @@ struct BoardView: View {
           .contentShape(Rectangle())
         }
 
-        // Highlight potential drop target while dragging
-        if let target = dragTarget,
-           let frame = squareFrame(for: target, rowArray: rowArray, colArray: colArray, squareSize: squareSize) {
-          Rectangle()
-            .fill(Color.yellow.opacity(0.25))
-            .overlay(Rectangle().stroke(Color.yellow, lineWidth: 3))
-            .frame(width: squareSize, height: squareSize)
-            .position(x: frame.midX, y: frame.midY)
-            .allowsHitTesting(false)
-            .transition(.opacity)
-        }
+  // Yellow overlay removed; drag highlights handled per-square via lastMoveHighlight flag.
       }
       .frame(width: boardSide, height: boardSide, alignment: .topLeading)
       .contentShape(Rectangle())
