@@ -44,7 +44,7 @@ make_placeholder() {
 
 # Output to each locale folder
 for L in "${LOCALES[@]}"; do
-  OUT_DIR="$REPO_ROOT/fastlane/metadata/$L/screenshots"
+  OUT_DIR="$REPO_ROOT/fastlane/screenshots/$L"
   mkdir -p "$OUT_DIR"
   make_placeholder "$ICON_INPUT" "$IPHONE65_W" "$IPHONE65_H" "$OUT_DIR/01_iphone65_portrait.png"
   make_placeholder "$ICON_INPUT" "$IPHONE55_W" "$IPHONE55_H" "$OUT_DIR/02_iphone55_portrait.png"

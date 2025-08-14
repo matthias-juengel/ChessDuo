@@ -19,12 +19,41 @@ platform :ios do
       api_key: api_key,
       app_identifier: "app.chefs.my-chess-board",
       app_version: "1.0",
-      app_review_information: JSON.parse(File.read("metadata/review_information.json")),
-      skip_screenshots: true,
+      app_review_information: JSON.parse(File.read("fastlane/metadata/review_information.json"), symbolize_names: true),
+      # Upload both metadata and screenshots from fastlane/metadata
+      skip_metadata: false,
+      skip_screenshots: false,
+      overwrite_screenshots: true,
       skip_binary_upload: true,
       submit_for_review: false,
       force: true,
       run_precheck_before_submit: false,
+    )
+  end
+
+  desc "Generate placeholder screenshots from icon.png and upload them"
+  lane :screenshots_placeholders do |options|
+    # Generate placeholders into fastlane/screenshots/<locale>
+    sh("../scripts/generate_app_store_images.sh #{options[:icon] || '../icon.png'}")
+
+    api_key = app_store_connect_api_key(
+      key_id: "3GB6K78M56",
+      issuer_id: "69a6de81-d2b1-47e3-e053-5b8c7c11a4d1",
+      key_filepath: "AuthKey_3GB6K78M56.p8",
+      in_house: false
+    )
+
+    deliver(
+      api_key: api_key,
+      app_identifier: "app.chefs.my-chess-board",
+      app_version: "1.0",
+      # Only upload screenshots (leave metadata/build alone)
+      skip_metadata: true,
+      skip_binary_upload: true,
+      skip_screenshots: false,
+      overwrite_screenshots: true,
+      run_precheck_before_submit: false,
+      force: true,
     )
   end
 

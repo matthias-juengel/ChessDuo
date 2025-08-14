@@ -23,6 +23,14 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 Upload ONLY metadata and promotional text (no build, no screenshots)
 
+### ios screenshots_placeholders
+
+```sh
+[bundle exec] fastlane ios screenshots_placeholders
+```
+
+Generate placeholder screenshots from icon.png and upload them
+
 ### ios beta
 
 ```sh
