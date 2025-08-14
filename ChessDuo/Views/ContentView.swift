@@ -117,7 +117,7 @@ struct ContentView: View {
         Group {
           let inCheck = vm.engine.isInCheck(vm.engine.sideToMove)
           let isMate = inCheck && vm.engine.isCheckmate(for: vm.engine.sideToMove)
-          BoardView(board: vm.engine.board,
+          BoardView(board: vm.displayedBoard,
                     perspective: vm.myColor ?? .white,
                     myColor: vm.myColor ?? .white,
                     sideToMove: vm.engine.sideToMove,
@@ -126,6 +126,8 @@ struct ContentView: View {
                     singleDevice: !vm.peers.isConnected,
                     lastMove: vm.lastMove,
                     selected: $selected) { from, to, single in
+            // If in history view, first tap/drag exits to live view instead of making a move
+            if vm.historyIndex != nil { withAnimation { vm.historyIndex = nil }; return false }
             if single { return vm.makeLocalMove(from: from, to: to) } else { return vm.makeMove(from: from, to: to) }
           }.onChange(of: vm.engine.sideToMove) { newValue in
             if let mine = vm.myColor, mine != newValue { selected = nil }
@@ -200,6 +202,42 @@ struct ContentView: View {
           .transition(.opacity)
           .zIndex(900)
       }
+      // History slider overlay
+      VStack {
+        Spacer()
+        if vm.moveHistory.count > 0 {
+          VStack(spacing: 4) {
+            HStack {
+              Text(vm.historyIndex == nil ? "Live" : "Move \(vm.historyIndex!) / \(vm.moveHistory.count)")
+                .font(.caption)
+                .padding(.leading, 8)
+              Spacer()
+              if vm.historyIndex != nil {
+                Button("Continue") { withAnimation { vm.historyIndex = nil } }
+                  .font(.caption)
+                  .padding(.horizontal, 8).padding(.vertical,4)
+                  .background(Color.white.opacity(0.85))
+                  .foregroundColor(.black)
+                  .clipShape(Capsule())
+              }
+            }
+            Slider(value: Binding<Double>(
+              get: { Double(vm.historyIndex ?? vm.moveHistory.count) },
+              set: { newVal in
+                let idx = Int(newVal.rounded())
+                if idx == vm.moveHistory.count { vm.historyIndex = nil } else { vm.historyIndex = max(0, min(idx, vm.moveHistory.count)) }
+              }), in: 0...Double(vm.moveHistory.count), step: 1)
+              .tint(.green)
+              .padding(.horizontal, 8)
+              .onTapGesture { } // absorb
+          }
+          .padding(.vertical, 6)
+          .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+          .padding(.horizontal, 20)
+          .padding(.bottom, 10)
+        }
+      }
+      .allowsHitTesting(true)
     }
     .onChange(of: vm.discoveredPeerNames) { new in
       // Show chooser when a new peer appears and we're not connected; hide automatically if list empties while visible

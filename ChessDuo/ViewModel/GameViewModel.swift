@@ -29,6 +29,11 @@ final class GameViewModel: ObservableObject {
   // Promotion handling
   @Published var pendingPromotionMove: Move? = nil // move without promotion yet
   @Published var showingPromotionPicker: Bool = false
+  // Move history & time-travel
+  @Published var moveHistory: [Move] = [] // sequence of all executed moves (local or remote)
+  // When not nil represents index into moveHistory (number of moves applied) for historical view.
+  // Nil means live current engine state.
+  @Published var historyIndex: Int? = nil
 
   // Export current game state as a textual snapshot (for debugging / tests)
   func exportText() -> String {
@@ -264,6 +269,8 @@ final class GameViewModel: ObservableObject {
         }
         movesMade += 1
         lastMove = move
+  moveHistory.append(move)
+  historyIndex = nil
   saveGame()
       }
       return true
@@ -302,6 +309,8 @@ final class GameViewModel: ObservableObject {
         }
         movesMade += 1
         lastMove = move
+  moveHistory.append(move)
+  historyIndex = nil
   saveGame()
       }
       return true
@@ -342,6 +351,8 @@ final class GameViewModel: ObservableObject {
             }
             movesMade += 1
             lastMove = m
+            moveHistory.append(m)
+            historyIndex = nil
             saveGame()
           }
         }
@@ -428,6 +439,8 @@ final class GameViewModel: ObservableObject {
     lastMove = nil
     lastCapturedPieceID = nil
     lastCaptureByMe = nil
+  moveHistory = []
+  historyIndex = nil
     if send { peers.send(.init(kind: .reset)) }
   saveGame()
   }
@@ -525,6 +538,8 @@ final class GameViewModel: ObservableObject {
         movesMade += 1
         lastMove = base
         if peers.isConnected { peers.send(.init(kind: .move, move: base)) }
+  moveHistory.append(base)
+  historyIndex = nil
   saveGame()
       }
     }
@@ -539,8 +554,8 @@ final class GameViewModel: ObservableObject {
 }
 
 // MARK: - Persistence
-private extension GameViewModel {
-  struct GamePersistedV1: Codable {
+extension GameViewModel {
+  struct GamePersistedV1: Codable { // legacy without moveHistory
     let version: Int
     let engine: ChessEngine
     let myColor: PieceColor?
@@ -550,6 +565,18 @@ private extension GameViewModel {
     let lastMove: Move?
     let lastCapturedPieceID: UUID?
     let lastCaptureByMe: Bool?
+  }
+  struct GamePersistedV2: Codable { // adds moveHistory
+    let version: Int
+    let engine: ChessEngine
+    let myColor: PieceColor?
+    let capturedByMe: [Piece]
+    let capturedByOpponent: [Piece]
+    let movesMade: Int
+    let lastMove: Move?
+    let lastCapturedPieceID: UUID?
+    let lastCaptureByMe: Bool?
+    let moveHistory: [Move]
   }
 
   var saveURL: URL {
@@ -563,15 +590,16 @@ private extension GameViewModel {
   }
 
   func saveGame() {
-    let snapshot = GamePersistedV1(version: 1,
-                                   engine: engine,
-                                   myColor: myColor,
-                                   capturedByMe: capturedByMe,
-                                   capturedByOpponent: capturedByOpponent,
-                                   movesMade: movesMade,
-                                   lastMove: lastMove,
-                                   lastCapturedPieceID: lastCapturedPieceID,
-                                   lastCaptureByMe: lastCaptureByMe)
+  let snapshot = GamePersistedV2(version: 2,
+                   engine: engine,
+                   myColor: myColor,
+                   capturedByMe: capturedByMe,
+                   capturedByOpponent: capturedByOpponent,
+                   movesMade: movesMade,
+                   lastMove: lastMove,
+                   lastCapturedPieceID: lastCapturedPieceID,
+                   lastCaptureByMe: lastCaptureByMe,
+                   moveHistory: moveHistory)
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.withoutEscapingSlashes]
     do {
@@ -591,8 +619,17 @@ private extension GameViewModel {
     let url = saveURL
     guard let data = try? Data(contentsOf: url) else { return }
     let decoder = JSONDecoder()
-    if let v1 = try? decoder.decode(GamePersistedV1.self, from: data) {
-      // Future: switch on v1.version for migrations
+    if let v2 = try? decoder.decode(GamePersistedV2.self, from: data) {
+      engine = v2.engine
+      myColor = v2.myColor
+      capturedByMe = v2.capturedByMe
+      capturedByOpponent = v2.capturedByOpponent
+      movesMade = v2.movesMade
+      lastMove = v2.lastMove
+      lastCapturedPieceID = v2.lastCapturedPieceID
+      lastCaptureByMe = v2.lastCaptureByMe
+      moveHistory = v2.moveHistory
+    } else if let v1 = try? decoder.decode(GamePersistedV1.self, from: data) {
       engine = v1.engine
       myColor = v1.myColor
       capturedByMe = v1.capturedByMe
@@ -601,8 +638,20 @@ private extension GameViewModel {
       lastMove = v1.lastMove
       lastCapturedPieceID = v1.lastCapturedPieceID
       lastCaptureByMe = v1.lastCaptureByMe
+      moveHistory = []
     }
   }
+
+  // Reconstruct a board state after n moves from history (n in 0...moveHistory.count)
+  func boardAfterMoves(_ n: Int) -> Board {
+    if n == moveHistory.count { return engine.board }
+    var e = ChessEngine()
+    for i in 0..<min(n, moveHistory.count) { _ = e.tryMakeMove(moveHistory[i]) }
+    return e.board
+  }
+
+  var displayedBoard: Board { historyIndex.map { boardAfterMoves($0) } ?? engine.board }
+  var inHistoryView: Bool { historyIndex != nil }
 }
 
 private extension GameViewModel {
