@@ -1,19 +1,24 @@
 Jouez aux échecs partout – hors ligne, sans pub, sans inscription.
+
 "Mon échiquier" est un échiquier numérique qui vous permet de jouer sans plateau ni pièces physiques.
 L’application n’autorise que les coups légaux et prend en charge les coups spéciaux comme le roque, la prise en passant et la promotion (transformation d’un pion).
 Elle fonctionne entièrement hors ligne, vous pouvez jouer aux échecs à tout moment, n’importe où, sans internet ni publicité.
 Vous pouvez jouer à deux sur un seul appareil iOS ou connecter deux appareils.
+
 MODE UN APPAREIL:
 Deux joueurs peuvent jouer confortablement sur un seul appareil iOS, parfait pour jouer ensemble en déplacement.
+
 MODE DEUX APPAREILS:
 Deux appareils peuvent être connectés.
 C’est facile via Bluetooth ou Wi-Fi.
 Vous pouvez ainsi jouer aux échecs confortablement en voiture, train, bus ou dans la même pièce sur des appareils séparés.
 Idéal pour ceux qui veulent simplement jouer aux échecs à deux.
+
 HISTORIQUE DE PARTIE:
 L’application sauvegarde l’historique de la partie en cours et vous permet de revoir les coups précédents à tout moment.
 Vous pouvez analyser la partie pendant ou après le jeu.
 La partie en cours est toujours sauvegardée, même si vous fermez l’application, et peut être reprise plus tard.
+
 FAQ:
 Q : L’application est-elle adaptée aux enfants ?
 R : Oui, l’application est adaptée aux enfants.
