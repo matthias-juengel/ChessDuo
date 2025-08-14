@@ -12,9 +12,32 @@ Keywords: schach, brettspiel, strategie, offline, mehrspieler, rochade, en passa
 Promotional Text:
 Spiele Schach überall – offline, ohne Werbung, ohne Anmeldung.
 
-"Mein Schachbrett" ist ein digitales Schachbrett, das es Ihnen ermöglicht, Schachpartien ohne echtes Brett und Figuren zu spielen. Die App erlaubt nur legale Züge und unterstützt spezielle Züge wie Rochade und en passant. Sie funktioniert komplett offline und sie können überall sofort Schach spielen, ohne Internetverbindung oder Werbung. Man kann zu zweit auf einem iOS-Gerät spielen.
+"Mein Schachbrett" ist ein digitales Schachbrett, das es Ihnen ermöglicht, Schachpartien ohne echtes Brett und Figuren zu spielen. Die App erlaubt nur legale Züge und unterstützt spezielle Züge wie Rochade und en passant. Sie funktioniert komplett offline und sie können überall sofort Schach spielen, ohne Internetverbindung oder Werbung. Man kann zu zweit auf einem iOS-Gerät spielen oder zwei Geräte koppeln.
+
+EIN-GERÄTE-MODUS:
+Zwei Spieler können bequem auf einem einzigen iOS-Gerät gegeneinander antreten, ideal für gemeinsames Spielen unterwegs.
 
 ZWEI-GERÄTE-MODUS:
-Es können aber auch zwei Geräte gekoppelt werden. Das geht ganz einfach über Bluetooth oder WLAN. So können Sie bequem im Auto, Zug, Bus oder im selben Raum auf getrennten Geräten Schach spielen. Ideal für alle, die einfach nur zu zweit Schach spielen möchten, ohne Internet oder Werbung.
+Es können zwei Geräte gekoppelt werden. Das geht ganz einfach über Bluetooth oder WLAN. So können Sie bequem im Auto, Zug, Bus oder im selben Raum auf getrennten Geräten Schach spielen. Ideal für alle, die einfach nur zu zweit Schach spielen möchten.
 
-== Translations ==
+SPIELVERLAUF:
+Die App speichert den Verlauf des aktuellen Spiels und ermöglicht es jederzeit nocheinmal vorherige Züge anzusehen. So können Sie am Ende oder zwischendurch den Verlauf der Partie analysieren. Das aktuelle Spiel wird immer gespeichert auch wenn sie die App schließen und kann später fortgesetzt werden.
+
+FAQ:
+Frage: Ist die App für Kinder geeignet?
+Antwort: Ja, die App ist für Kinder geeignet.
+
+Frage: Kann man auch gegen Computergegner (KI, Roboter) spielen?
+Antwort: Nein.
+
+Frage: Benötige ich eine Internetverbindung, um die App zu nutzen?
+Antwort: Nein, "Mein Schachbrett" funktioniert vollständig offline und benötigt keine Internetverbindung.
+
+Frage: Gibt es Werbung in der App?
+Antwort: Nein, die App ist werbefrei.
+
+Frage: Muss ich mich registrieren, um die App zu nutzen?
+Antwort: Nein, es ist keine Registrierung erforderlich.
+
+---
+Missing feature descriptions:
