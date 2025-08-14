@@ -34,7 +34,7 @@ platform :ios do
   desc "Generate placeholder screenshots from icon.png and upload them"
   lane :screenshots_placeholders do |options|
     # Generate placeholders into fastlane/screenshots/<locale>
-    sh("../scripts/generate_app_store_images.sh #{options[:icon] || '../icon.png'}")
+    sh("../scripts/generate_app_store_images.sh #{options[:icon] || '../icon.png'} #{options[:with_title] ? '--with-title' : ''}")
 
     api_key = app_store_connect_api_key(
       key_id: "3GB6K78M56",
