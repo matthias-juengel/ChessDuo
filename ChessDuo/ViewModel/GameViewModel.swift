@@ -102,8 +102,9 @@ final class GameViewModel: ObservableObject {
   }
 
   var gameIsOver: Bool {
-    print("Black:", outcomeForSide(.black), "White:", outcomeForSide(.white))
-    return outcomeForSide(.black) != .ongoing || outcomeForSide(.white) != .ongoing
+    let currentPlayerOutcome = outcomeForSide(engine.sideToMove)
+    print("Current player (\(engine.sideToMove)) outcome:", currentPlayerOutcome)
+    return currentPlayerOutcome != .ongoing
   }
 
   func outcomeForSide(_ side: PieceColor) -> GameOutcome {
