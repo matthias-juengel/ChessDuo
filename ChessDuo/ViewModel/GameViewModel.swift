@@ -248,7 +248,7 @@ final class GameViewModel: ObservableObject {
       return true // treat as handled for drag success (piece will transition via picker)
     }
     let move = Move(from: from, to: to)
-    let capturedBefore = engine.board.piece(at: to)
+  let capturedBefore = capturedPieceConsideringEnPassant(from: from, to: to, board: engine.board)
     if engine.tryMakeMove(move) {
       withAnimation(.easeInOut(duration: 0.35)) {
         peers.send(.init(kind: .move, move: move))
@@ -280,7 +280,7 @@ final class GameViewModel: ObservableObject {
     }
     let move = Move(from: from, to: to)
     let moverColor = engine.sideToMove
-    let capturedBefore = engine.board.piece(at: to)
+  let capturedBefore = capturedPieceConsideringEnPassant(from: from, to: to, board: engine.board)
     if engine.tryMakeMove(move) {
       withAnimation(.easeInOut(duration: 0.35)) {
         if let cap = capturedBefore {
@@ -322,7 +322,7 @@ final class GameViewModel: ObservableObject {
       lastCaptureByMe = nil
     case .move:
       if let m = msg.move {
-        let capturedBefore = engine.board.piece(at: m.to)
+  let capturedBefore = capturedPieceConsideringEnPassant(from: m.from, to: m.to, board: engine.board)
         if !gameIsOver, engine.tryMakeMove(m) {
           withAnimation(.easeInOut(duration: 0.35)) {
             if let cap = capturedBefore, cap.color == myColor {
@@ -479,6 +479,20 @@ final class GameViewModel: ObservableObject {
     if piece.color == .white && to.rank == 7 { return true }
     if piece.color == .black && to.rank == 0 { return true }
     return false
+  }
+
+  // Detect en-passant captured pawn before engine.tryMakeMove mutates board.
+  private func capturedPieceConsideringEnPassant(from: Square, to: Square, board: Board) -> Piece? {
+    if let mover = board.piece(at: from), mover.type == .pawn {
+      let df = abs(to.file - from.file)
+      if df == 1, to.rank != from.rank, board.piece(at: to) == nil { // diagonal move to empty square
+        // En passant: captured pawn is behind destination (opposite direction of mover)
+        let dir = (mover.color == .white) ? 1 : -1
+        let capturedSq = Square(file: to.file, rank: to.rank - dir)
+        if let cap = board.piece(at: capturedSq), cap.type == .pawn, cap.color != mover.color { return cap }
+      }
+    }
+    return board.piece(at: to)
   }
 
   // Finalize promotion selection
