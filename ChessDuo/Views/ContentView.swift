@@ -16,7 +16,7 @@ struct ContentView: View {
   @State private var exportFlash: Bool = false
 
   // Compute status text for a specific overlay perspective (overlayColor).
-  private func turnStatus(for overlayColor: PieceColor?) -> (text: String, color: Color)? {
+   private func turnStatus(for overlayColor: PieceColor?) -> (text: String, color: Color)? {
     print("overlayColor", overlayColor)
     switch vm.outcomeForSide(overlayColor ?? vm.engine.sideToMove) {
     case .ongoing:
@@ -126,7 +126,7 @@ struct ContentView: View {
                     singleDevice: !vm.peers.isConnected,
                     lastMove: vm.lastMove,
                     selected: $selected) { from, to, single in
-            if single { vm.makeLocalMove(from: from, to: to) } else { vm.makeMove(from: from, to: to) }
+            if single { return vm.makeLocalMove(from: from, to: to) } else { return vm.makeMove(from: from, to: to) }
           }.onChange(of: vm.engine.sideToMove) { newValue in
             if let mine = vm.myColor, mine != newValue { selected = nil }
           }
@@ -423,7 +423,7 @@ struct BoardView: View {
   let singleDevice: Bool
   let lastMove: Move?
   @Binding var selected: Square?
-  let onMove: (Square, Square, Bool) -> Void
+  let onMove: (Square, Square, Bool) -> Bool
   @Namespace private var pieceNamespace
   // Drag state
   @State private var draggingFrom: Square? = nil
@@ -587,7 +587,7 @@ struct BoardView: View {
                       withAnimation(.easeInOut(duration: 0.18)) { selected = target }
                     } else {
                       // Attempt move from selected to target
-                      onMove(sel, target, singleDevice)
+                      _ = onMove(sel, target, singleDevice)
                       withAnimation(.easeInOut(duration: 0.18)) { selected = nil }
                     }
                   }
@@ -611,38 +611,69 @@ struct BoardView: View {
               return
             }
             guard let origin = draggingFrom, dragActivated else { return }
-
+            var performedMove = false
             if let release = releasedSquare {
               if origin == release {
-                // Tap on same square: if not already selected, select it; else deselect
-                if selected != origin {
-                  withAnimation(.easeInOut(duration: 0.18)) { selected = origin }
-                } else {
-                  // Keep selected (classic tap keeps selection) - remove next line to allow deselect
-                  // withAnimation { selected = nil }
-                }
+                // Dropped back on origin: ensure selection retained (or applied)
+                if selected != origin { withAnimation(.easeInOut(duration: 0.18)) { selected = origin } }
               } else {
-                // Attempt move or selection switch depending on ownership of release square
                 let ownershipColor = singleDevice ? sideToMove : myColor
                 if let p = board.piece(at: release), p.color == ownershipColor {
-                  // Switch selection to another own piece
+                  // Switch selection to another own piece (revert origin visually)
                   withAnimation(.easeInOut(duration: 0.18)) { selected = release }
                 } else if selected == origin {
-                  // Perform move
-                  onMove(origin, release, singleDevice)
-                  withAnimation(.easeInOut(duration: 0.18)) { selected = nil }
+                  // Perform move (legal attempt handled upstream in engine)
+                  let success = onMove(origin, release, singleDevice)
+                  if success {
+                    withAnimation(.easeInOut(duration: 0.18)) { selected = nil }
+                    performedMove = true
+                  }
                 } else {
-                  // If origin not currently selected, select origin first (two-step safety)
+                  // If origin not currently selected, select origin first
                   withAnimation(.easeInOut(duration: 0.18)) { selected = origin }
                 }
               }
             }
+            // Animate piece returning if no move executed
+            if !performedMove {
+              // Animate piece back to its origin center first, then clear drag state after animation completes.
+              if let originFrame = squareFrame(for: origin, rowArray: rowArray, colArray: colArray, squareSize: squareSize) {
+                let center = CGPoint(x: originFrame.midX, y: originFrame.midY)
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.72)) {
+                  dragActivated = false // scale down during return
+                  // Move the finger anchor point so that (anchor + offset) animates toward center
+                  if let off = dragOffsetFromCenter {
+                    dragLocation = CGPoint(x: center.x - off.width, y: center.y - off.height)
+                  } else {
+                    dragLocation = center
+                  }
+                }
+                // After animation completes, clear state (delay slightly longer than spring response)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.46) {
+                  if draggingFrom == origin { // ensure still same drag (user not started new one)
+                    draggingFrom = nil
+                    dragLocation = nil
+                    dragTarget = nil
+                    dragOffsetFromCenter = nil
+                  }
+                }
+              } else {
+                // Fallback: no frame => immediate clear
+                draggingFrom = nil
+                dragLocation = nil
+                dragTarget = nil
+                dragOffsetFromCenter = nil
+                dragActivated = false
+              }
+            } else {
+              // Move performed: just clear drag state without extra animation (board animation handles new position)
+              draggingFrom = nil
+              dragLocation = nil
+              dragTarget = nil
+              dragOffsetFromCenter = nil
+              dragActivated = false
+            }
             pendingDragFrom = nil
-            draggingFrom = nil
-            dragLocation = nil
-            dragTarget = nil
-            dragOffsetFromCenter = nil
-            dragActivated = false
             dragStartPoint = nil
             gestureInitialSelected = nil
           }
@@ -719,7 +750,7 @@ struct BoardView: View {
         if let p = board.piece(at: sq), p.color == ownershipColor {
           selected = sq
         } else {
-          onMove(sel, sq, singleDevice)
+          _ = onMove(sel, sq, singleDevice)
           selected = nil
         }
       } else {

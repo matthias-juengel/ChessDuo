@@ -236,15 +236,16 @@ final class GameViewModel: ObservableObject {
     }
   }
 
-  func makeMove(from: Square, to: Square) {
-    guard !gameIsOver else { return }
-    guard let me = myColor, engine.sideToMove == me else { return }
+  @discardableResult
+  func makeMove(from: Square, to: Square) -> Bool {
+    guard !gameIsOver else { return false }
+    guard let me = myColor, engine.sideToMove == me else { return false }
     let isPromotion = isPromotionMove(from: from, to: to)
     if isPromotion {
       // Defer until user picks piece
       pendingPromotionMove = Move(from: from, to: to, promotion: nil)
       showingPromotionPicker = true
-      return
+      return true // treat as handled for drag success (piece will transition via picker)
     }
     let move = Move(from: from, to: to)
     let capturedBefore = engine.board.piece(at: to)
@@ -262,17 +263,20 @@ final class GameViewModel: ObservableObject {
         movesMade += 1
         lastMove = move
       }
+      return true
     }
+    return false
   }
 
   /// Local move for single-device mode (no network); both colors playable
-  func makeLocalMove(from: Square, to: Square) {
-    guard !gameIsOver else { return }
+  @discardableResult
+  func makeLocalMove(from: Square, to: Square) -> Bool {
+    guard !gameIsOver else { return false }
     let isPromotion = isPromotionMove(from: from, to: to)
     if isPromotion {
       pendingPromotionMove = Move(from: from, to: to, promotion: nil)
       showingPromotionPicker = true
-      return
+      return true
     }
     let move = Move(from: from, to: to)
     let moverColor = engine.sideToMove
@@ -296,7 +300,9 @@ final class GameViewModel: ObservableObject {
         movesMade += 1
         lastMove = move
       }
+      return true
     }
+    return false
   }
 
   private func handle(_ msg: NetMessage) {
