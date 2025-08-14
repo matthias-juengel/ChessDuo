@@ -16,6 +16,12 @@ struct ContentView: View {
   @State private var exportFlash: Bool = false
   @State private var showHistorySlider: Bool = false
 
+  // Centralized helper: hide slider AND ensure we're on latest game state
+  private func hideHistory() {
+    if vm.historyIndex != nil { vm.historyIndex = nil }
+    if showHistorySlider { showHistorySlider = false }
+  }
+
   // Historical captured computation
   private func capturedAtHistory(byMe: Bool) -> [Piece] {
     guard let idx = vm.historyIndex else { return byMe ? vm.capturedByMe : vm.capturedByOpponent }
@@ -88,7 +94,11 @@ struct ContentView: View {
         }
       }()
       if canShow {
-        Button(action: { vm.resetGame() }) {
+        Button(action: {
+          // Exit history/slider to avoid interaction lock after reset
+          hideHistory()
+          vm.resetGame()
+        }) {
           Text(vm.peers.isConnected && vm.awaitingResetConfirmation ? String.loc("new_game_confirm") : String.loc("new_game"))
             .font(.title3)
             .fontWeight(.semibold)
@@ -166,11 +176,12 @@ struct ContentView: View {
                     singleDevice: !vm.peers.isConnected,
                     lastMove: displayedLastMove,
                     disableInteraction: showHistorySlider,
+        onAttemptInteraction: { hideHistory() },
                     selected: $selected) { from, to, single in
             // If in history view, first tap/drag exits to live view instead of making a move
             if vm.historyIndex != nil { withAnimation { vm.historyIndex = nil }; return false }
             let success: Bool = (single ? vm.makeLocalMove(from: from, to: to) : vm.makeMove(from: from, to: to))
-            if success { withAnimation { showHistorySlider = false } }
+      if success { withAnimation { hideHistory() } }
             return success
           }.onChange(of: vm.engine.sideToMove) { newValue in
             if let mine = vm.myColor, mine != newValue { selected = nil }
@@ -217,9 +228,7 @@ struct ContentView: View {
 
       boardWithCapturedPieces.ignoresSafeArea()//.padding([.leading, .trailing], 10)
         .contentShape(Rectangle())
-        .onTapGesture {
-          if vm.gameIsOver || showHistorySlider { showHistorySlider = false }
-        }
+        // Removed board tap gesture; handled inside BoardView gesture
       if vm.peers.isConnected {
         overlayControls(for: vm.myColor) // show only my side
       } else {
@@ -257,6 +266,10 @@ struct ContentView: View {
       } else if vm.otherDeviceNames.isEmpty {
         showPeerChooser = true
       }
+    }
+    // Hide slider if history cleared (e.g., new game)
+    .onChange(of: vm.moveHistory.count) { newCount in
+  if newCount == 0 { hideHistory() }
     }
     // Incoming reset request alert
     .alert(String.loc("reset_accept_title"), isPresented: $vm.incomingResetRequest, actions: {
@@ -418,7 +431,7 @@ private extension ContentView {
     .contentShape(Rectangle())
     .onTapGesture {
       guard canShowSlider else { return }
-      showHistorySlider.toggle()
+      if showHistorySlider { hideHistory() } else { showHistorySlider = true }
     }
   }
 
@@ -517,6 +530,7 @@ struct BoardView: View {
   let singleDevice: Bool
   let lastMove: Move?
   var disableInteraction: Bool = false
+  var onAttemptInteraction: () -> Void = {}
   @Binding var selected: Square?
   let onMove: (Square, Square, Bool) -> Bool
   @Namespace private var pieceNamespace
@@ -623,7 +637,9 @@ struct BoardView: View {
       .animation(.easeInOut(duration: 0.35), value: board)
       .gesture(
         DragGesture(minimumDistance: 0)
-          .onChanged { value in guard !disableInteraction else { return } ;
+          .onChanged { value in
+            onAttemptInteraction()
+            if disableInteraction { return }
             let point = value.location
             if dragStartPoint == nil {
               dragStartPoint = point
