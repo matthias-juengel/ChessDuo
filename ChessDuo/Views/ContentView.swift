@@ -157,7 +157,19 @@ struct ContentView: View {
 
   var body: some View {
     ZStack {
-      viewBackground.ignoresSafeArea()
+      viewBackground.ignoresSafeArea().highPriorityGesture(
+        TapGesture(count: 5).onEnded {
+          let text = vm.exportText()
+#if canImport(UIKit)
+          UIPasteboard.general.string = text
+#endif
+          withAnimation(.easeInOut(duration: 0.3)) { exportFlash = true }
+          DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            withAnimation(.easeOut(duration: 0.3)) { exportFlash = false }
+          }
+        }
+      )
+
       boardWithCapturedPieces.ignoresSafeArea()//.padding([.leading, .trailing], 10)
       if vm.peers.isConnected {
         overlayControls(for: vm.myColor) // show only my side
@@ -189,18 +201,6 @@ struct ContentView: View {
           .zIndex(900)
       }
     }
-    .highPriorityGesture(
-      TapGesture(count: 5).onEnded {
-        let text = vm.exportText()
-#if canImport(UIKit)
-        UIPasteboard.general.string = text
-#endif
-        withAnimation(.easeInOut(duration: 0.3)) { exportFlash = true }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-          withAnimation(.easeOut(duration: 0.3)) { exportFlash = false }
-        }
-      }
-    )
     .onChange(of: vm.discoveredPeerNames) { new in
       // Show chooser when a new peer appears and we're not connected; hide automatically if list empties while visible
       if new.isEmpty {
