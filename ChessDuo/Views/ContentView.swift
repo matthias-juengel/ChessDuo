@@ -425,6 +425,11 @@ struct BoardView: View {
   @Binding var selected: Square?
   let onMove: (Square, Square, Bool) -> Void
   @Namespace private var pieceNamespace
+  // Drag state
+  @State private var draggingFrom: Square? = nil
+  @State private var dragLocation: CGPoint? = nil // local board coords
+  @State private var dragTarget: Square? = nil
+  @State private var dragOffsetFromCenter: CGSize? = nil
 
   var bodyx: some View {
     VStack {
@@ -464,7 +469,7 @@ struct BoardView: View {
           let rowIdx = rowArray.firstIndex(of: item.square.rank) ?? 0
           let colIdx = colArray.firstIndex(of: item.square.file) ?? 0
           ZStack {
-            if selected == item.square {
+            if selected == item.square && draggingFrom == nil {
               RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .stroke(Color.white, lineWidth: 2)
                 .padding(2)
@@ -474,13 +479,43 @@ struct BoardView: View {
               .font(.system(size: squareSize * 0.75))
               .foregroundColor(item.piece.color == .white ? .white : .black)
               .rotationEffect(singleDevice && item.piece.color == .black ? .degrees(180) : .degrees(0))
+              .scaleEffect(draggingFrom == item.square ? 3.0 : 1.0)
+              // Visual lift while dragging: white (or any non-rotated) pieces lift upward, black in single-device mode lifts downward
+              // Logical center for targeting remains the unlifted square center (offset applied only visually here)
+              .offset(y: {
+                guard draggingFrom == item.square else { return 0 }
+                let magnitude = 50.0 //squareSize * 0.4 // proportional so it scales with board size / device
+                if singleDevice && item.piece.color == .black { return magnitude } // downlift for black side on shared device
+                return -magnitude // uplift otherwise
+              }())
+              .shadow(color: draggingFrom == item.square ? Color.black.opacity(0.4) : Color.clear, radius: 8, x: 0, y: 4)
           }
           .frame(width: squareSize, height: squareSize)
-          .position(x: CGFloat(colIdx) * squareSize + squareSize / 2,
-                    y: CGFloat(rowIdx) * squareSize + squareSize / 2)
+          .position(
+            x: positionForPiece(item.square,
+                                 defaultPos: CGFloat(colIdx) * squareSize + squareSize / 2,
+                                 squareSize: squareSize,
+                                 axis: .x),
+            y: positionForPiece(item.square,
+                                 defaultPos: CGFloat(rowIdx) * squareSize + squareSize / 2,
+                                 squareSize: squareSize,
+                                 axis: .y)
+          )
           .matchedGeometryEffect(id: item.piece.id, in: pieceNamespace)
-          .zIndex(selected == item.square ? 100 : 10)
+          .zIndex(zIndexForPiece(item.square))
           .contentShape(Rectangle())
+        }
+
+        // Highlight potential drop target while dragging
+        if let target = dragTarget,
+           let frame = squareFrame(for: target, rowArray: rowArray, colArray: colArray, squareSize: squareSize) {
+          Rectangle()
+            .fill(Color.yellow.opacity(0.25))
+            .overlay(Rectangle().stroke(Color.yellow, lineWidth: 3))
+            .frame(width: squareSize, height: squareSize)
+            .position(x: frame.midX, y: frame.midY)
+            .allowsHitTesting(false)
+            .transition(.opacity)
         }
       }
       .frame(width: boardSide, height: boardSide, alignment: .topLeading)
@@ -488,31 +523,89 @@ struct BoardView: View {
       .animation(.easeInOut(duration: 0.35), value: board)
       .gesture(
         DragGesture(minimumDistance: 0)
-          .onEnded { value in
-            let start = value.startLocation
-            let end = value.location
-            guard let startSq = square(
-              at: start,
-              boardSide: boardSide,
-              rowArray: rowArray,
-              colArray: colArray,
-              squareSize: squareSize
-            ) else { return }
-            let endSq = square(
-              at: end,
-              boardSide: boardSide,
-              rowArray: rowArray,
-              colArray: colArray,
-              squareSize: squareSize
-            ) ?? startSq
-            if startSq == endSq {
-              tap(startSq)
-            } else {
-              if selected != startSq { selected = startSq }
-              if selected == startSq { tap(endSq) }
+          .onChanged { value in
+            let point = value.location
+            if draggingFrom == nil {
+              // Determine start square once
+              if let sq = square(at: point, boardSide: boardSide, rowArray: rowArray, colArray: colArray, squareSize: squareSize), canPickUp(square: sq) {
+                draggingFrom = sq
+                selected = sq
+                // Record initial offset between finger and piece center
+                if let frame = squareFrame(for: sq, rowArray: rowArray, colArray: colArray, squareSize: squareSize) {
+                  let center = CGPoint(x: frame.midX, y: frame.midY)
+                  dragOffsetFromCenter = CGSize(width: center.x - point.x, height: center.y - point.y)
+                }
+              }
             }
+            dragLocation = point
+            // Compute piece center (finger + offset) to decide target square
+            let pieceCenter = adjustedDragCenter(rawPoint: point, squareSize: squareSize)
+            dragTarget = square(at: pieceCenter, boardSide: boardSide, rowArray: rowArray, colArray: colArray, squareSize: squareSize)
+          }
+          .onEnded { value in
+            let point = value.location
+            let from = draggingFrom
+            let pieceCenter = adjustedDragCenter(rawPoint: point, squareSize: squareSize)
+            let target = square(at: pieceCenter, boardSide: boardSide, rowArray: rowArray, colArray: colArray, squareSize: squareSize) ?? from
+            if let f = from, let t = target {
+              if f == t {
+                tap(f)
+              } else {
+                if selected != f { selected = f }
+                if selected == f { tap(t) }
+              }
+            }
+            draggingFrom = nil
+            dragLocation = nil
+            dragTarget = nil
+            dragOffsetFromCenter = nil
           }
       )
+    }
+  }
+
+  // MARK: - Drag helpers
+  private enum Axis { case x, y }
+  private func positionForPiece(_ sq: Square, defaultPos: CGFloat, squareSize: CGFloat, axis: Axis) -> CGFloat {
+    guard let from = draggingFrom, from == sq, let dragLocation else { return defaultPos }
+    var pos: CGFloat = (axis == .x ? dragLocation.x : dragLocation.y)
+    if let off = dragOffsetFromCenter {
+      pos += (axis == .x ? off.width : off.height)
+    }
+    // Clamp inside board
+    let limit = squareSize * 8
+    return min(max(pos, 0), limit)
+  }
+  // Compute current piece center based on raw finger point + stored offset
+  private func adjustedDragCenter(rawPoint: CGPoint, squareSize: CGFloat) -> CGPoint {
+    var x = rawPoint.x
+    var y = rawPoint.y
+    if let off = dragOffsetFromCenter {
+      x += off.width
+      y += off.height
+    }
+    let limit = squareSize * 8
+    x = min(max(x, 0), limit)
+    y = min(max(y, 0), limit)
+    return CGPoint(x: x, y: y)
+  }
+  private func zIndexForPiece(_ sq: Square) -> Double {
+    if draggingFrom == sq { return 500 }
+    if selected == sq { return 100 }
+    return 10
+  }
+  private func squareFrame(for sq: Square, rowArray: [Int], colArray: [Int], squareSize: CGFloat) -> CGRect? {
+    guard let rowIdx = rowArray.firstIndex(of: sq.rank), let colIdx = colArray.firstIndex(of: sq.file) else { return nil }
+    let origin = CGPoint(x: CGFloat(colIdx) * squareSize, y: CGFloat(rowIdx) * squareSize)
+    return CGRect(origin: origin, size: CGSize(width: squareSize, height: squareSize))
+  }
+  private func canPickUp(square: Square) -> Bool {
+    if singleDevice {
+      if let p = board.piece(at: square), p.color == sideToMove { return true }
+      return false
+    } else {
+      if let p = board.piece(at: square), p.color == myColor, myColor == sideToMove { return true }
+      return false
     }
   }
 
