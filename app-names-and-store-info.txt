@@ -1,5 +1,3 @@
-````
-=== Keep this section for reference ===
 Required fields:
 - Name: Mein Schachbrett
 - Subtitle (A summary of your app that will appear under your app’s name on your App Store product page. This can’t be longer than 30 characters.)
@@ -7,9 +5,16 @@ Required fields:
 - Promotional Text (Promotional text lets you inform your App Store visitors of any current app features without requiring an updated submission. This text will appear above your description on the App Store for customers with devices running iOS 11 or later, and macOS 10.13 or later.)
 - Description (A description of your app, detailing features and functionality.)
 
-=== App Store Information for all languages ===
-== German (Reference languages) ==
-Mein Schachbrett bietet Ihnen ein elegantes und benutzerfreundliches Schacherlebnis auf Ihrem Gerät. Mit einer klaren, intuitiven Benutzeroberfläche können Sie Ihre Partien bequem verfolgen, analysieren und verbessern. Die App unterstützt verschiedene Spielmodi und bietet umfangreiche Funktionen zur Partieverwaltung, sodass Sie Ihre Fortschritte stets im Blick behalten. Egal ob Anfänger oder erfahrener Spieler – Mein Schachbrett macht das Spiel zugänglich und fördert Ihre Fähigkeiten durch praktische Werkzeuge und eine ansprechende Darstellung. Erleben Sie Schach neu mit einer App, die auf Präzision, Komfort und Stil setzt.
+== German ==
+Name: Mein Schachbrett
+Subtitle: Schach lokal & mobil spielen
+Keywords: schach, brettspiel, strategie, offline, mehrspieler, rochade, en passant, kein internet, ohne werbung
+Promotional Text:
+Spiele Schach überall – offline, ohne Werbung, ohne Anmeldung.
+
+"Mein Schachbrett" ist ein digitales Schachbrett, das es Ihnen ermöglicht, Schachpartien ohne echtes Brett und Figuren zu spielen. Die App erlaubt nur legale Züge und unterstützt spezielle Züge wie Rochade und en passant. Sie funktioniert komplett offline und sie können überall sofort Schach spielen, ohne Internetverbindung oder Werbung. Man kann zu zweit auf einem iOS-Gerät spielen.
+
+ZWEI-GERÄTE-MODUS:
+Es können aber auch zwei Geräte gekoppelt werden. Das geht ganz einfach über Bluetooth oder WLAN. So können Sie bequem im Auto, Zug, Bus oder im selben Raum auf getrennten Geräten Schach spielen. Ideal für alle, die einfach nur zu zweit Schach spielen möchten, ohne Internet oder Werbung.
 
 == Translations ==
-````
