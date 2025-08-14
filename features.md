@@ -25,3 +25,22 @@ Kein Streit, weil sich einer "verzogen" hat. Es gibt kein rueckgaenging.
 Workflow Description
 
 This document outlines the features and benefits of the app to inspire the creation of a professional, concise, and engaging App Store description. It is intended to serve as a source of ideas and should not be copied verbatim. Additionally, no new features should be introduced beyond those described here when crafting the official app description. The goal is to clearly present the app’s main functionalities and advantages in a manner suitable for App Store submission.
+
+---
+Missing feature descriptions (extracted from agent)
+Weitere Funktionen:
+- Zeitreise-Schieberegler: Spielverlauf per Slider Schritt für Schritt ansehen und animiert zu beliebigen Zügen springen.
+- Letzter Zug Hervorhebung: Start- und Zielfeld werden einheitlich grün markiert – auch beim Durchblättern der Historie.
+- Anzeige geschlagener Figuren: Getrennte Reihen zeigen jederzeit welche Figuren bereits vom Brett sind – auch rückwirkend für historische Züge.
+- En passant & Rochade vollständig unterstützt (inkl. korrekter Erfassung der geschlagenen Bauern bei en passant).
+- Automatische Speicherung: Die aktuelle Partie (inkl. Zugliste) wird permanent lokal gesichert und nach App‑Neustart nahtlos fortgesetzt.
+- Zuglegalität: Nur regelkonforme Züge möglich; illegale Züge springen visuell zurück.
+- Zugrücknahme-Vorschau: Historie ansehen ohne den aktuellen Stand zu verlieren; Rückkehr zum Live‑Spiel mit animierter Aufholbewegung der Figuren.
+- Mehrsprachigkeit: Lokalisierung bereits für Deutsch, Englisch, Französisch, Spanisch und Chinesisch (vereinfacht) vorbereitet.
+- Geräte‑Kopplung ohne Konto: Lokales Peer‑to‑Peer über Bluetooth / WLAN – kein Server, keine Registrierung.
+- Farbtausch vor Spielbeginn (nur verbunden): Weiß kann einmalig vor dem ersten Zug die Farben tauschen.
+- Promotionsauswahl: Intuitive Auswahl der neuen Figur (Dame, Turm, Läufer, Springer) bei Bauernumwandlung.
+- Turnindikator & Check-Erkennung: Visuelle Hervorhebungen für Seite am Zug, Schach und Matt.
+- Kein Internetzwang: Alle Funktionen – inklusive Speicherung und Verlauf – laufen komplett offline.
+- Bedienung auf einem Gerät optimiert: Automatisches Drehen schwarzer Figuren und separate Statusleisten pro Seite.
+- Barrierearm durch klare Kontraste, große Figuren und konsistente Animationen.
