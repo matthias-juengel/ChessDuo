@@ -19,8 +19,8 @@ platform :ios do
       api_key: api_key,
       app_identifier: "app.chefs.my-chess-board",
       app_version: "1.0",
-      app_review_information: JSON.parse(File.read("fastlane/metadata/review_information.json"), symbolize_names: true),
-      # Upload both metadata and screenshots from fastlane/metadata
+      app_review_information: JSON.parse(File.read("metadata/review_information.json"), symbolize_names: true),
+      # Upload both metadata and screenshots from metadata
       skip_metadata: false,
       skip_screenshots: false,
       overwrite_screenshots: true,
