@@ -457,7 +457,6 @@ struct BoardView: View {
               .position(x: CGFloat(colIdx) * squareSize + squareSize / 2,
                         y: CGFloat(rowIdx) * squareSize + squareSize / 2)
               .contentShape(Rectangle())
-              .onTapGesture { tap(sq) }
           }
         }
         // Pieces layer (animated)
@@ -482,12 +481,7 @@ struct BoardView: View {
           .matchedGeometryEffect(id: item.piece.id, in: pieceNamespace)
           .zIndex(selected == item.square ? 100 : 10)
           .contentShape(Rectangle())
-          // .onTapGesture { tap(item.square) }
         }
-        // // Border overlay
-        // Rectangle()
-        //   .stroke(Color.black, lineWidth: 2)
-        //   .frame(width: boardSide, height: boardSide)
       }
       .frame(width: boardSide, height: boardSide, alignment: .topLeading)
       .contentShape(Rectangle())
