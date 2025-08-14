@@ -2,6 +2,18 @@
 set -euo pipefail
 DEBUG=${DEBUG:-0}
 
+IM_CMD=""
+ID_CMD=""
+if command -v magick >/dev/null 2>&1; then
+  IM_CMD="magick"
+  ID_CMD="magick identify"
+elif command -v convert >/dev/null 2>&1; then
+  IM_CMD="convert"
+  if command -v identify >/dev/null 2>&1; then
+    ID_CMD="identify"
+  fi
+fi
+
 # Generate minimal App Store placeholder screenshots from icon.png
 # Creates portraits for iPhone 6.5", iPhone 5.5", and iPad Pro 12.9".
 # Places identical placeholders into all locale screenshot folders so `deliver` can upload them.
@@ -59,30 +71,41 @@ make_placeholder() {
   # Fit square icon to min(w,h), then pad to exact size (white background)
   local fit
   if [[ "$w" -lt "$h" ]]; then fit="$w"; else fit="$h"; fi
-  sips -s format png "$src" -z "$fit" "$fit" --out "$tmp"
-  sips -s format png "$tmp" --padToHeightWidth "$h" "$w" --out "$out"
+  sips -s format png "$src" -z "$fit" "$fit" --out "$tmp" >/dev/null
+  sips -s format png "$tmp" --padToHeightWidth "$h" "$w" --out "$out" >/dev/null
   if [[ ! -s "$out" ]]; then echo "ERROR: Failed to create '$out'" >&2; exit 1; fi
   rm -f "$tmp"
 }
 
+font_for_locale() {
+  case "$1" in
+    zh-Hans)
+      if [[ -f "/System/Library/Fonts/PingFang.ttc" ]]; then echo "/System/Library/Fonts/PingFang.ttc"; fi ;;
+    *)
+      if [[ -f "/System/Library/Fonts/Helvetica.ttc" ]]; then echo "/System/Library/Fonts/Helvetica.ttc"; fi ;;
+  esac
+}
+
 overlay_title_on_image() {
-  local img="$1" title="$2"
-  if ! command -v convert >/dev/null 2>&1; then
-    echo "Warning: ImageMagick 'convert' not found; skipping title overlay for $img" >&2
+  local img="$1" title="$2" loc="$3"
+  if [[ -z "$IM_CMD" ]]; then
+    echo "Warning: ImageMagick not found; skipping title overlay for $img" >&2
     return 0
   fi
-  # Determine width to set a sensible point size
   local w
-  w=$(identify -format "%w" "$img" 2>/dev/null || echo 1242)
+  if [[ -n "$ID_CMD" ]]; then
+    w=$($ID_CMD -format "%w" "$img" 2>/dev/null || echo 1242)
+  else
+    w=1242
+  fi
   local pts=$(( w / 12 ))
-  # Draw a semi-transparent black strip behind the text at the top for readability
-  convert "$img" \
-    -gravity north \
-    -fill white \
-    -undercolor '#00000080' \
-    -pointsize "$pts" \
-    -annotate +0+40 "$title" \
-    "$img"
+  local font_path
+  font_path="$(font_for_locale "$loc")"
+  if [[ -n "$font_path" ]]; then
+    "$IM_CMD" "$img" -gravity north -fill white -undercolor '#00000080' -font "$font_path" -pointsize "$pts" -annotate +0+40 "$title" "$img"
+  else
+    "$IM_CMD" "$img" -gravity north -fill white -undercolor '#00000080' -pointsize "$pts" -annotate +0+40 "$title" "$img"
+  fi
 }
 
 # Output to each locale folder
@@ -94,9 +117,9 @@ for L in "${LOCALES[@]}"; do
   make_placeholder "$ICON_INPUT" "$IPAD129_W"  "$IPAD129_H"  "$OUT_DIR/03_ipad129_portrait.png"
   if [[ "$WITH_TITLE" -eq 1 ]]; then
     TITLE=$(local_title "$L")
-    overlay_title_on_image "$OUT_DIR/01_iphone65_portrait.png" "$TITLE"
-    overlay_title_on_image "$OUT_DIR/02_iphone55_portrait.png" "$TITLE"
-    overlay_title_on_image "$OUT_DIR/03_ipad129_portrait.png"  "$TITLE"
+    overlay_title_on_image "$OUT_DIR/01_iphone65_portrait.png" "$TITLE" "$L"
+    overlay_title_on_image "$OUT_DIR/02_iphone55_portrait.png" "$TITLE" "$L"
+    overlay_title_on_image "$OUT_DIR/03_ipad129_portrait.png"  "$TITLE" "$L"
   fi
   echo "Wrote placeholders to $OUT_DIR"
 done
