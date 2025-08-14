@@ -452,8 +452,9 @@ struct BoardView: View {
             let piece = board.piece(at: sq)
             let kingInCheckHighlight = inCheckCurrentSide && piece?.type == .king && piece?.color == sideToMove
             let dragHighlight: Bool = {
-              // Show green highlight for start and current potential drop target while dragging
-              if let from = draggingFrom, from == sq { return true }
+              // Highlight only when an owned piece is being dragged
+              guard let from = draggingFrom else { return false }
+              if from == sq { return true }
               if let target = dragTarget, target == sq { return true }
               return false
             }()
@@ -475,7 +476,7 @@ struct BoardView: View {
           let rowIdx = rowArray.firstIndex(of: item.square.rank) ?? 0
           let colIdx = colArray.firstIndex(of: item.square.file) ?? 0
           ZStack {
-            if selected == item.square && draggingFrom == nil {
+            if selected == item.square {
               RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .stroke(Color.white, lineWidth: 2)
                 .padding(2)
@@ -534,21 +535,77 @@ struct BoardView: View {
               }
             }
             dragLocation = point
-            // Compute piece center (finger + offset) to decide target square
-            let pieceCenter = adjustedDragCenter(rawPoint: point, squareSize: squareSize)
-            dragTarget = square(at: pieceCenter, boardSide: boardSide, rowArray: rowArray, colArray: colArray, squareSize: squareSize)
+            // Only compute target if we're actually dragging a piece
+            if draggingFrom != nil {
+              let pieceCenter = adjustedDragCenter(rawPoint: point, squareSize: squareSize)
+              dragTarget = square(at: pieceCenter, boardSide: boardSide, rowArray: rowArray, colArray: colArray, squareSize: squareSize)
+            } else {
+              dragTarget = nil
+            }
           }
           .onEnded { value in
             let point = value.location
-            let from = draggingFrom
             let pieceCenter = adjustedDragCenter(rawPoint: point, squareSize: squareSize)
-            let target = square(at: pieceCenter, boardSide: boardSide, rowArray: rowArray, colArray: colArray, squareSize: squareSize) ?? from
-            if let f = from, let t = target {
-              if f == t {
-                tap(f)
+            let releasedSquare = square(at: pieceCenter, boardSide: boardSide, rowArray: rowArray, colArray: colArray, squareSize: squareSize)
+
+            // Case 1: Pure tap without initiating drag (draggingFrom stayed nil)
+            if draggingFrom == nil {
+              if let target = releasedSquare {
+                if let sel = selected {
+                  if sel == target {
+                    // Second tap same square: deselect
+                    withAnimation(.easeInOut(duration: 0.18)) { selected = nil }
+                  } else {
+                    // If tapping own piece: change selection, else attempt move
+                    let ownershipColor = singleDevice ? sideToMove : myColor
+                    if let p = board.piece(at: target), p.color == ownershipColor {
+                      withAnimation(.easeInOut(duration: 0.18)) { selected = target }
+                    } else {
+                      // Attempt move from selected to target
+                      onMove(sel, target, singleDevice)
+                      withAnimation(.easeInOut(duration: 0.18)) { selected = nil }
+                    }
+                  }
+                } else {
+                  // No selection yet: select if own piece
+                  let ownershipColor = singleDevice ? sideToMove : myColor
+                  if let p = board.piece(at: target), p.color == ownershipColor {
+                    withAnimation(.easeInOut(duration: 0.18)) { selected = target }
+                  }
+                }
+              }
+              // Cleanup and return
+              draggingFrom = nil
+              dragLocation = nil
+              dragTarget = nil
+              dragOffsetFromCenter = nil
+              return
+            }
+            guard let origin = draggingFrom else { return }
+
+            if let release = releasedSquare {
+              if origin == release {
+                // Tap on same square: if not already selected, select it; else deselect
+                if selected != origin {
+                  withAnimation(.easeInOut(duration: 0.18)) { selected = origin }
+                } else {
+                  // Keep selected (classic tap keeps selection) - remove next line to allow deselect
+                  // withAnimation { selected = nil }
+                }
               } else {
-                if selected != f { selected = f }
-                if selected == f { tap(t) }
+                // Attempt move or selection switch depending on ownership of release square
+                let ownershipColor = singleDevice ? sideToMove : myColor
+                if let p = board.piece(at: release), p.color == ownershipColor {
+                  // Switch selection to another own piece
+                  withAnimation(.easeInOut(duration: 0.18)) { selected = release }
+                } else if selected == origin {
+                  // Perform move
+                  onMove(origin, release, singleDevice)
+                  withAnimation(.easeInOut(duration: 0.18)) { selected = nil }
+                } else {
+                  // If origin not currently selected, select origin first (two-step safety)
+                  withAnimation(.easeInOut(duration: 0.18)) { selected = origin }
+                }
               }
             }
             draggingFrom = nil
