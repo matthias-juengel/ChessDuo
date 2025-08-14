@@ -34,6 +34,9 @@ final class GameViewModel: ObservableObject {
   // When not nil represents index into moveHistory (number of moves applied) for historical view.
   // Nil means live current engine state.
   @Published var historyIndex: Int? = nil
+  // Board snapshots after each applied move (index 0 = initial position, i = board after i moves).
+  // Provides stable Piece.id continuity across adjacent history states for matchedGeometryEffect animations.
+  @Published private(set) var boardSnapshots: [Board] = []
 
   // Export current game state as a textual snapshot (for debugging / tests)
   func exportText() -> String {
@@ -130,6 +133,8 @@ final class GameViewModel: ObservableObject {
   init() {
   // Attempt to load persisted game before starting networking so board state is restored.
   loadGameIfAvailable()
+    // Initialize snapshots sequence (for loaded games we only have current board; future moves will extend)
+    boardSnapshots = [engine.board]
     peers.onMessage = { [weak self] msg in
       self?.handle(msg)
     }
@@ -271,6 +276,7 @@ final class GameViewModel: ObservableObject {
         lastMove = move
   moveHistory.append(move)
   historyIndex = nil
+  boardSnapshots.append(engine.board)
   saveGame()
       }
       return true
@@ -311,6 +317,7 @@ final class GameViewModel: ObservableObject {
         lastMove = move
   moveHistory.append(move)
   historyIndex = nil
+  boardSnapshots.append(engine.board)
   saveGame()
       }
       return true
@@ -353,6 +360,7 @@ final class GameViewModel: ObservableObject {
             lastMove = m
             moveHistory.append(m)
             historyIndex = nil
+            boardSnapshots.append(engine.board)
             saveGame()
           }
         }
@@ -441,6 +449,7 @@ final class GameViewModel: ObservableObject {
     lastCaptureByMe = nil
   moveHistory = []
   historyIndex = nil
+  boardSnapshots = [engine.board]
     if send { peers.send(.init(kind: .reset)) }
   saveGame()
   }
@@ -540,6 +549,7 @@ final class GameViewModel: ObservableObject {
         if peers.isConnected { peers.send(.init(kind: .move, move: base)) }
   moveHistory.append(base)
   historyIndex = nil
+  boardSnapshots.append(engine.board)
   saveGame()
       }
     }
@@ -629,6 +639,7 @@ extension GameViewModel {
       lastCapturedPieceID = v2.lastCapturedPieceID
       lastCaptureByMe = v2.lastCaptureByMe
       moveHistory = v2.moveHistory
+  boardSnapshots = [engine.board]
     } else if let v1 = try? decoder.decode(GamePersistedV1.self, from: data) {
       engine = v1.engine
       myColor = v1.myColor
@@ -639,15 +650,18 @@ extension GameViewModel {
       lastCapturedPieceID = v1.lastCapturedPieceID
       lastCaptureByMe = v1.lastCaptureByMe
       moveHistory = []
+  boardSnapshots = [engine.board]
     }
   }
 
   // Reconstruct a board state after n moves from history (n in 0...moveHistory.count)
   func boardAfterMoves(_ n: Int) -> Board {
-    if n == moveHistory.count { return engine.board }
-    var e = ChessEngine()
-    for i in 0..<min(n, moveHistory.count) { _ = e.tryMakeMove(moveHistory[i]) }
-    return e.board
+  if n < boardSnapshots.count { return boardSnapshots[n] }
+  if n == moveHistory.count { return engine.board }
+  // Fallback reconstruction for legacy states (e.g., loaded history before snapshots existed)
+  var e = ChessEngine()
+  for i in 0..<min(n, moveHistory.count) { _ = e.tryMakeMove(moveHistory[i]) }
+  return e.board
   }
 
   var displayedBoard: Board { historyIndex.map { boardAfterMoves($0) } ?? engine.board }

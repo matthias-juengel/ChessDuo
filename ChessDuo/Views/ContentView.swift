@@ -16,14 +16,45 @@ struct ContentView: View {
   @State private var exportFlash: Bool = false
   @State private var showHistorySlider: Bool = false
   @State private var historySliderOwner: PieceColor? = nil // which side opened the slider (single-device)
+  @State private var historyAnimationToken: Int = 0 // used to cancel in-flight history step animations
 
   // Centralized helper: hide slider AND ensure we're on latest game state
   private func hideHistory() {
-    withAnimation(.easeInOut(duration: 0.35)) {
-      if vm.historyIndex != nil { vm.historyIndex = nil }
+    if vm.historyIndex != nil {
+      // Animate stepping to live so pieces traverse their actual move path
+      stepHistoryToward(targetIndex: nil, animated: true)
     }
-    if showHistorySlider { showHistorySlider = false }
+    showHistorySlider = false
     historySliderOwner = nil
+  }
+
+  // Step history index gradually so each move animates its piece movement.
+  // targetIndex: nil means live (moveHistory.count)
+  private func stepHistoryToward(targetIndex: Int?, animated: Bool) {
+    let current = vm.historyIndex ?? vm.moveHistory.count
+    let target = targetIndex ?? vm.moveHistory.count
+    if current == target { return }
+    historyAnimationToken += 1
+    let token = historyAnimationToken
+    let distance = abs(target - current)
+    // Threshold: if too large, avoid long animation. Above threshold, jump directly with single animation.
+    let maxSteppedDistance = 20
+    if !animated || distance > maxSteppedDistance {
+      withAnimation(.easeInOut(duration: 0.35)) { vm.historyIndex = targetIndex }
+      return
+    }
+    let stepDuration: Double = distance <= 8 ? 0.18 : 0.10
+    let dir = target > current ? 1 : -1
+    let indices: [Int] = stride(from: current + dir, through: target, by: dir).map { $0 }
+    for (offset, idx) in indices.enumerated() {
+      let delay = stepDuration * Double(offset)
+      DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak vm] in
+        guard token == historyAnimationToken else { return } // canceled
+        withAnimation(.easeInOut(duration: stepDuration)) {
+          vm?.historyIndex = (idx == vm?.moveHistory.count ? nil : idx)
+        }
+      }
+    }
   }
 
   // Historical captured computation
@@ -183,7 +214,7 @@ struct ContentView: View {
         onAttemptInteraction: { hideHistory() },
                     selected: $selected) { from, to, single in
             // If in history view, first tap/drag exits to live view instead of making a move
-    if vm.historyIndex != nil { withAnimation(.easeInOut(duration: 0.35)) { vm.historyIndex = nil }; return false }
+            if vm.historyIndex != nil { stepHistoryToward(targetIndex: nil, animated: true); return false }
             let success: Bool = (single ? vm.makeLocalMove(from: from, to: to) : vm.makeMove(from: from, to: to))
   if success { hideHistory() }
             return success
@@ -421,8 +452,12 @@ private extension ContentView {
             set: { newVal in
               let idx = Int(newVal.rounded())
               let newHistory: Int? = (idx == vm.moveHistory.count ? nil : max(0, min(idx, vm.moveHistory.count)))
-              if newHistory == vm.historyIndex { return } // avoid redundant redraw
-              withAnimation(.easeInOut(duration: 0.35)) { vm.historyIndex = newHistory }
+              if newHistory == vm.historyIndex { return }
+              // Determine if user is scrubbing quickly (dragging) vs discrete taps
+              // SwiftUI Slider does not expose drag state directly; assume step-wise if difference is 1
+              let current = vm.historyIndex ?? vm.moveHistory.count
+              let dist = abs((newHistory ?? vm.moveHistory.count) - current)
+              stepHistoryToward(targetIndex: newHistory, animated: dist <= 4)
             }), in: 0...Double(vm.moveHistory.count), step: 1)
             .tint(.green)
             .padding(.horizontal, 4)
