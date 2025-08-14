@@ -1,0 +1,1 @@
+chess,échecs,jeu de société,stratégie,multijoueur,amis,2joueurs,mode deux joueurs,roque,enpassant,sans publicité

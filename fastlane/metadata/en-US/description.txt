@@ -1,0 +1,27 @@
+Play chess anywhere – offline, no ads, no sign-up.
+"My Chessboard" is a digital chessboard that lets you play chess games without a physical board or pieces.
+The app only allows legal moves and supports special moves like castling, en passant, and promotion (pawn transformation).
+It works completely offline, so you can play chess anytime, anywhere without internet or ads.
+You can play with two players on one iOS device or connect two devices.
+ONE-DEVICE MODE:
+Two players can comfortably play against each other on a single iOS device, perfect for playing together on the go.
+TWO-DEVICE MODE:
+Two devices can be connected.
+This is easy via Bluetooth or Wi-Fi.
+So you can play chess comfortably in the car, train, bus, or same room on separate devices.
+Ideal for anyone who just wants to play chess with two players.
+GAME HISTORY:
+The app saves the current game's history and lets you review previous moves anytime.
+You can analyze the game during or after playing.
+The current game is always saved, even if you close the app, and can be resumed later.
+FAQ:
+Q: Is the app suitable for children?
+A: Yes, the app is suitable for children.
+Q: Can you play against computer opponents (AI, robots)?
+A: No.
+Q: Do I need an internet connection to use the app?
+A: No, "My Chessboard" works fully offline and does not require internet.
+Q: Is there advertising in the app?
+A: No, the app is ad-free.
+Q: Do I need to register to use the app?
+A: No, registration is not required.

@@ -1,0 +1,27 @@
+Juega ajedrez en cualquier lugar – sin conexión, sin anuncios, sin registro.
+"Mi tablero de ajedrez" es un tablero digital que te permite jugar partidas sin un tablero físico ni piezas.
+La app solo permite movimientos legales y soporta movimientos especiales como enroque, captura al paso y promoción (transformar un peón).
+Funciona completamente offline, para que puedas jugar ajedrez en cualquier momento y lugar sin internet ni anuncios.
+Puedes jugar dos personas en un dispositivo iOS o conectar dos dispositivos.
+MODO UN DISPOSITIVO:
+Dos jugadores pueden jugar cómodamente en un solo dispositivo iOS, ideal para jugar juntos en cualquier lugar.
+MODO DOS DISPOSITIVOS:
+Se pueden conectar dos dispositivos.
+Esto es fácil mediante Bluetooth o Wi-Fi.
+Así puedes jugar ajedrez cómodamente en el auto, tren, bus o en la misma habitación con dispositivos separados.
+Ideal para quienes solo quieren jugar ajedrez para dos.
+HISTORIAL DE PARTIDAS:
+La app guarda el historial de la partida actual y permite revisar movimientos anteriores en cualquier momento.
+Puedes analizar la partida durante o después de jugar.
+La partida actual siempre se guarda, incluso si cierras la app, y puedes continuarla más tarde.
+FAQ:
+P: ¿La app es adecuada para niños?
+R: Sí, la app es adecuada para niños.
+P: ¿Se puede jugar contra oponentes de computadora (IA, robots)?
+R: No.
+P: ¿Necesito conexión a internet para usar la app?
+R: No, "Mi tablero de ajedrez" funciona completamente offline y no requiere internet.
+P: ¿Hay publicidad en la app?
+R: No, la app está libre de anuncios.
+P: ¿Necesito registrarme para usar la app?
+R: No, no se requiere registro.

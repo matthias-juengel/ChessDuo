@@ -1,0 +1,1 @@
+chess,brettspiel,strategie,mehrspieler,freunde,2spieler,spielzuzweit,rochade,enpassant,ohnewerbung

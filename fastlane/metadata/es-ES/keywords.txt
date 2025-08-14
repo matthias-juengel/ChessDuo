@@ -1,0 +1,1 @@
+chess,ajedrez,juego de mesa,estrategia,multijugador,amigos,2jugadores,dosjugadores,enroque,enpassant,sin anuncios

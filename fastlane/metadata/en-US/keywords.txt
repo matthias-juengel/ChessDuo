@@ -1,0 +1,1 @@
+chess,boardgame,strategy,multiplayer,friends,2players,twoplayer,castling,enpassant,adfree
