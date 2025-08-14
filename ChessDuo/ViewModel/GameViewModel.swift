@@ -123,6 +123,8 @@ final class GameViewModel: ObservableObject {
   enum GameOutcome: Equatable { case ongoing, win, loss, draw }
 
   init() {
+  // Attempt to load persisted game before starting networking so board state is restored.
+  loadGameIfAvailable()
     peers.onMessage = { [weak self] msg in
       self?.handle(msg)
     }
@@ -262,6 +264,7 @@ final class GameViewModel: ObservableObject {
         }
         movesMade += 1
         lastMove = move
+  saveGame()
       }
       return true
     }
@@ -299,6 +302,7 @@ final class GameViewModel: ObservableObject {
         }
         movesMade += 1
         lastMove = move
+  saveGame()
       }
       return true
     }
@@ -338,6 +342,7 @@ final class GameViewModel: ObservableObject {
             }
             movesMade += 1
             lastMove = m
+            saveGame()
           }
         }
       }
@@ -424,6 +429,7 @@ final class GameViewModel: ObservableObject {
     lastCapturedPieceID = nil
     lastCaptureByMe = nil
     if send { peers.send(.init(kind: .reset)) }
+  saveGame()
   }
 
   func respondToResetRequest(accept: Bool) {
@@ -519,6 +525,7 @@ final class GameViewModel: ObservableObject {
         movesMade += 1
         lastMove = base
         if peers.isConnected { peers.send(.init(kind: .move, move: base)) }
+  saveGame()
       }
     }
     pendingPromotionMove = nil
@@ -528,6 +535,73 @@ final class GameViewModel: ObservableObject {
   func cancelPromotion() {
     pendingPromotionMove = nil
     showingPromotionPicker = false
+  }
+}
+
+// MARK: - Persistence
+private extension GameViewModel {
+  struct GamePersistedV1: Codable {
+    let version: Int
+    let engine: ChessEngine
+    let myColor: PieceColor?
+    let capturedByMe: [Piece]
+    let capturedByOpponent: [Piece]
+    let movesMade: Int
+    let lastMove: Move?
+    let lastCapturedPieceID: UUID?
+    let lastCaptureByMe: Bool?
+  }
+
+  var saveURL: URL {
+    let fm = FileManager.default
+    let base = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+    let dir = base.appendingPathComponent("ChessDuo", isDirectory: true)
+    if !fm.fileExists(atPath: dir.path) {
+      try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+    }
+    return dir.appendingPathComponent("game.json")
+  }
+
+  func saveGame() {
+    let snapshot = GamePersistedV1(version: 1,
+                                   engine: engine,
+                                   myColor: myColor,
+                                   capturedByMe: capturedByMe,
+                                   capturedByOpponent: capturedByOpponent,
+                                   movesMade: movesMade,
+                                   lastMove: lastMove,
+                                   lastCapturedPieceID: lastCapturedPieceID,
+                                   lastCaptureByMe: lastCaptureByMe)
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.withoutEscapingSlashes]
+    do {
+      let data = try encoder.encode(snapshot)
+      let tmp = saveURL.appendingPathExtension("tmp")
+      try data.write(to: tmp, options: .atomic)
+      // Atomic replace
+      try? FileManager.default.removeItem(at: saveURL)
+      try FileManager.default.moveItem(at: tmp, to: saveURL)
+    } catch {
+      // Silent fail; could add logging
+      print("Save failed", error)
+    }
+  }
+
+  func loadGameIfAvailable() {
+    let url = saveURL
+    guard let data = try? Data(contentsOf: url) else { return }
+    let decoder = JSONDecoder()
+    if let v1 = try? decoder.decode(GamePersistedV1.self, from: data) {
+      // Future: switch on v1.version for migrations
+      engine = v1.engine
+      myColor = v1.myColor
+      capturedByMe = v1.capturedByMe
+      capturedByOpponent = v1.capturedByOpponent
+      movesMade = v1.movesMade
+      lastMove = v1.lastMove
+      lastCapturedPieceID = v1.lastCapturedPieceID
+      lastCaptureByMe = v1.lastCaptureByMe
+    }
   }
 }
 
