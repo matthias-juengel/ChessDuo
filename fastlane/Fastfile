@@ -86,7 +86,7 @@ platform :ios do
     # Build changelog from commit subjects since the previous bump (exclude bump commits)
     range = prev_bump.empty? ? "" : "#{prev_bump}..HEAD"
     computed_changelog = sh(
-      "git log #{range} --pretty=format:%s --no-merges --grep='^ci: bump build to ' --invert-grep || true"
+      "git log #{range} --pretty=format:'- %s' --no-merges --grep='^ci: bump build to ' --invert-grep --grep='^Refactor' --invert-grep --grep='^refactor' --invert-grep --grep='^intern:' --invert-grep || true"
     ).strip
     computed_changelog = "Bug fixes and improvements" if computed_changelog.empty?
 
