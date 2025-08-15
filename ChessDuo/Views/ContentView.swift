@@ -223,9 +223,9 @@ struct ContentView: View {
       Spacer(minLength: 0)
       capturedRow(for: topSide, pieces: topPieces, ctx: ctx, whiteLead: whiteLead, blackLead: blackLead, rotate: !vm.peers.isConnected)
         .padding(.horizontal, 10).padding(.top, 6)
-      Color.black.frame(height: 2)
+      Color.black.frame(height: 1)
       chessBoard
-      Color.black.frame(height: 2)
+      Color.black.frame(height: 1)
       capturedRow(for: bottomSide, pieces: bottomPieces, ctx: ctx, whiteLead: whiteLead, blackLead: blackLead, rotate: false)
         .padding(.horizontal, 10).padding(.bottom, 6)
       Spacer(minLength: 0)
