@@ -134,8 +134,8 @@ final class GameViewModel: ObservableObject {
   init() {
   // Attempt to load persisted game before starting networking so board state is restored.
   loadGameIfAvailable()
-    // Initialize snapshots sequence (for loaded games we only have current board; future moves will extend)
-    boardSnapshots = [engine.board]
+  // Falls beim Laden (z.B. V1 ohne History) keine Snapshots erzeugt wurden, initialisieren wir minimal.
+  if boardSnapshots.isEmpty { boardSnapshots = [engine.board] }
     peers.onMessage = { [weak self] msg in
       self?.handle(msg)
     }
@@ -640,7 +640,8 @@ extension GameViewModel {
       lastCapturedPieceID = v2.lastCapturedPieceID
       lastCaptureByMe = v2.lastCaptureByMe
       moveHistory = v2.moveHistory
-  boardSnapshots = [engine.board]
+      // We'll rebuild snapshots below (including initial) to preserve stable piece identity for animations
+      boardSnapshots = []
     } else if let v1 = try? decoder.decode(GamePersistedV1.self, from: data) {
       engine = v1.engine
       myColor = v1.myColor
@@ -651,15 +652,18 @@ extension GameViewModel {
       lastCapturedPieceID = v1.lastCapturedPieceID
       lastCaptureByMe = v1.lastCaptureByMe
       moveHistory = []
-  boardSnapshots = [engine.board]
+      // Rebuild snapshots from engine current board only (no move history available in V1)
+      boardSnapshots = []
     }
+    // After loading any version, rebuild snapshots to enable history animations.
+    rebuildSnapshotsFromHistory()
   }
 
   // Reconstruct a board state after n moves from history (n in 0...moveHistory.count)
   func boardAfterMoves(_ n: Int) -> Board {
   if n < boardSnapshots.count { return boardSnapshots[n] }
   if n == moveHistory.count { return engine.board }
-  // Fallback reconstruction for legacy states (e.g., loaded history before snapshots existed)
+  // Sollte nicht vorkommen: Snapshots unvollständig. Rekonstruiere flüchtig ohne zu publishen (vermeidet Warning in View).
   var e = ChessEngine()
   for i in 0..<min(n, moveHistory.count) { _ = e.tryMakeMove(moveHistory[i]) }
   return e.board
@@ -833,5 +837,35 @@ extension GameViewModel {
       return capturedByWhite
     }()
     return (cap.id, byMe)
+  }
+}
+
+// MARK: - Snapshot Rebuild
+private extension GameViewModel {
+  /// Rebuild `boardSnapshots` from `moveHistory` ensuring stable Piece.id continuity between successive boards.
+  /// This should be called after loading persisted state or if snapshots are detected incomplete.
+  func rebuildSnapshotsFromHistory() {
+    // If we already have a full snapshot sequence (count == moveHistory.count + 1) and first snapshot matches current initial board piece set, skip.
+    if boardSnapshots.count == moveHistory.count + 1 {
+      return
+    }
+    var e = ChessEngine()
+    var newSnapshots: [Board] = [e.board] // initial position
+    for mv in moveHistory {
+      _ = e.tryMakeMove(mv)
+      newSnapshots.append(e.board)
+    }
+    // Replace engine only if our current engine position mismatches last reconstructed (safety for loaded V1/V2)
+    if let last = newSnapshots.last, !boardsEqual(last, engine.board) {
+      // Adopt reconstructed engine snapshot to align identities for future moves
+      engine = ChessEngine.fromSnapshot(board: last, sideToMove: (moveHistory.count % 2 == 0) ? .white : .black)
+    }
+    boardSnapshots = newSnapshots
+  }
+
+  /// Lightweight board equality (piece type & color at each square)
+  private func boardsEqual(_ a: Board, _ b: Board) -> Bool {
+    for rank in 0..<8 { for file in 0..<8 { let sq = Square(file: file, rank: rank); let pa = a.piece(at: sq); let pb = b.piece(at: sq); if pa?.type != pb?.type || pa?.color != pb?.color { return false } } }
+    return true
   }
 }
