@@ -260,12 +260,26 @@ struct ContentView: View {
       Spacer() // neded to align center with background
       // Vorbereitete Capture-/Highlight-Daten (ausgelagert, damit ViewBuilder sauber bleibt)
       let ctx = captureContext()
-      let whiteCaptures = ctx.whiteCaptures
-      let blackCaptures = ctx.blackCaptures
-      let whitePoints = whiteCaptures.reduce(0) { $0 + pieceValue($1) }
-      let blackPoints = blackCaptures.reduce(0) { $0 + pieceValue($1) }
-      let whiteLead = max(whitePoints - blackPoints, 0)
-      let blackLead = max(blackPoints - whitePoints, 0)
+  let whiteCaptures = ctx.whiteCaptures
+  let blackCaptures = ctx.blackCaptures
+  // Material lead includes promotions: compute from board (historical or live)
+  let board = vm.displayedBoard
+  let diff: Int = {
+    var w = 0
+    var b = 0
+    for rank in 0..<8 {
+      for file in 0..<8 {
+        let sq = Square(file: file, rank: rank)
+        if let p = board.piece(at: sq) {
+          let v = pieceValue(p)
+            if p.color == .white { w += v } else { b += v }
+        }
+      }
+    }
+    return w - b
+  }()
+  let whiteLead = max(diff, 0)
+  let blackLead = max(-diff, 0)
       let topSide: PieceColor = vm.peers.isConnected ? ( (vm.myColor == .white) ? .black : .white ) : .black
       let bottomSide: PieceColor = vm.peers.isConnected ? (vm.myColor ?? .white) : .white
       let topPieces = topSide == .black ? blackCaptures : whiteCaptures
