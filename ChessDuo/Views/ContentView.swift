@@ -8,14 +8,6 @@
 
 import SwiftUI
 
-// Helper data container for historical capture reconstruction (must be outside ViewBuilder closures)
-private struct HistData {
-  let whiteCaps: [Piece]   // pieces captured by White (i.e., black pieces removed)
-  let blackCaps: [Piece]   // pieces captured by Black (i.e., white pieces removed)
-  let lastCapturePieceID: UUID? // id of the last piece captured up to a history index
-  let capturingSide: PieceColor? // which side made that last capture
-}
-
 // Aggregated capture context used by the UI (live or historical)
 private struct CaptureContext {
   let whiteCaptures: [Piece]
@@ -125,39 +117,6 @@ struct ContentView: View {
     }
   }
 
-  // Historical captured computation
-  private func capturedAtHistory(byMe: Bool) -> [Piece] {
-    guard let idx = vm.historyIndex else { return byMe ? vm.capturedByMe : vm.capturedByOpponent }
-    // Reconstruct engine up to idx moves and collect missing pieces compared to starting position attributed by capturer.
-    var engine = ChessEngine()
-    var capsByWhite: [Piece] = []
-    var capsByBlack: [Piece] = []
-    for i in 0..<min(idx, vm.moveHistory.count) {
-      let move = vm.moveHistory[i]
-      // Detect capture before making move
-      if let piece = engine.board.piece(at: move.to) { // normal capture
-        if piece.color == .white { capsByBlack.append(piece) } else { capsByWhite.append(piece) }
-      } else {
-        // Possible en passant
-        if let moving = engine.board.piece(at: move.from), moving.type == .pawn, move.from.file != move.to.file, engine.board.piece(at: move.to) == nil {
-          // en passant target square is behind destination
-            let dir = moving.color == .white ? 1 : -1
-            let capturedSq = Square(file: move.to.file, rank: move.to.rank - dir)
-            if let epPawn = engine.board.piece(at: capturedSq), epPawn.color != moving.color, epPawn.type == .pawn {
-              if epPawn.color == .white { capsByBlack.append(epPawn) } else { capsByWhite.append(epPawn) }
-            }
-        }
-      }
-      _ = engine.tryMakeMove(move)
-    }
-    // Determine whose perspective 'capturedByMe' refers to.
-    if let my = vm.myColor { // connected mode
-      return byMe ? (my == .white ? capsByWhite : capsByBlack) : (my == .white ? capsByBlack : capsByWhite)
-    } else { // single device: capturedByMe shows white's captures at bottom
-      return byMe ? capsByWhite : capsByBlack
-    }
-  }
-
   // Compute status text for a specific overlay perspective (overlayColor).
    private func turnStatus(for overlayColor: PieceColor?) -> (text: String, color: Color)? {
     // Don't show turn status when viewing historic positions
@@ -255,107 +214,84 @@ struct ContentView: View {
     }
   }
 
-  var boardWithCapturedPieces: some View {
-    VStack(spacing: 0) {
-      Spacer() // neded to align center with background
-      // Vorbereitete Capture-/Highlight-Daten (ausgelagert, damit ViewBuilder sauber bleibt)
-      let ctx = captureContext()
-  let whiteCaptures = ctx.whiteCaptures
-  let blackCaptures = ctx.blackCaptures
-  // Material lead includes promotions: compute from board (historical or live)
-  let board = vm.displayedBoard
-  let diff: Int = {
-    var w = 0
-    var b = 0
-    for rank in 0..<8 {
-      for file in 0..<8 {
-        let sq = Square(file: file, rank: rank)
-        if let p = board.piece(at: sq) {
-          let v = pieceValue(p)
-            if p.color == .white { w += v } else { b += v }
+  // MARK: - Board & Captured Rows
+  private var boardSection: some View {
+    let ctx = captureContext()
+    let material = materialDiff(on: vm.displayedBoard)
+    let whiteLead = max(material, 0)
+    let blackLead = max(-material, 0)
+    let topSide: PieceColor = vm.peers.isConnected ? ((vm.myColor == .white) ? .black : .white) : .black
+    let bottomSide: PieceColor = vm.peers.isConnected ? (vm.myColor ?? .white) : .white
+    let whiteCaps = ctx.whiteCaptures
+    let blackCaps = ctx.blackCaptures
+    let topPieces = topSide == .black ? blackCaps : whiteCaps
+    let bottomPieces = bottomSide == .white ? whiteCaps : blackCaps
+    return VStack(spacing: 0) {
+      Spacer(minLength: 0)
+      capturedRow(for: topSide, pieces: topPieces, ctx: ctx, whiteLead: whiteLead, blackLead: blackLead, rotate: !vm.peers.isConnected)
+        .padding(.horizontal, 10).padding(.top, 6)
+      Color.black.frame(height: 2)
+      chessBoard
+      Color.black.frame(height: 2)
+      capturedRow(for: bottomSide, pieces: bottomPieces, ctx: ctx, whiteLead: whiteLead, blackLead: blackLead, rotate: false)
+        .padding(.horizontal, 10).padding(.bottom, 6)
+      Spacer(minLength: 0)
+    }
+  }
+
+  private func capturedRow(for side: PieceColor, pieces: [Piece], ctx: CaptureContext, whiteLead: Int, blackLead: Int, rotate: Bool) -> some View {
+    let highlight: UUID? = {
+      if vm.historyIndex != nil, let pid = ctx.lastCapturePieceID, let captSide = ctx.lastCapturingSide, captSide == side { return pid }
+      if vm.historyIndex == nil {
+        if (vm.lastCaptureByMe == true && side == (vm.myColor ?? .white)) || (vm.lastCaptureByMe == false && side == (vm.myColor?.opposite ?? .black)) {
+          return vm.lastCapturedPieceID
         }
       }
+      return nil
+    }()
+    let advantage = side == .white ? whiteLead : blackLead
+    return CapturedRow(pieces: pieces, rotatePieces: rotate, highlightPieceID: highlight, pointAdvantage: advantage)
+  }
+
+  private var chessBoard: some View {
+    let inCheck = vm.isDisplayedSideInCheck()
+    let isMate = inCheck && vm.isDisplayedSideCheckmated()
+    let displayedLastMove: Move? = {
+      if let idx = vm.historyIndex { return (idx > 0 && idx <= vm.moveHistory.count) ? vm.moveHistory[idx - 1] : nil }
+      return vm.lastMove
+    }()
+    return BoardView(
+      board: vm.displayedBoard,
+      perspective: vm.myColor ?? .white,
+      myColor: vm.myColor ?? .white,
+      sideToMove: vm.displayedSideToMove,
+      inCheckCurrentSide: inCheck,
+      isCheckmatePosition: isMate,
+      singleDevice: !vm.peers.isConnected,
+      lastMove: displayedLastMove,
+      historyIndex: vm.historyIndex,
+      disableInteraction: showHistorySlider || vm.historyIndex != nil,
+      onAttemptInteraction: { hideHistory() },
+      selected: $selected
+    ) { from, to, single in
+      if vm.historyIndex != nil { stepHistoryToward(targetIndex: nil, animated: true); return false }
+      let success = single ? vm.makeLocalMove(from: from, to: to) : vm.makeMove(from: from, to: to)
+      if success { hideHistory() }
+      return success
     }
+    .onChange(of: vm.engine.sideToMove) { newValue in
+      if let mine = vm.myColor, mine != newValue { selected = nil }
+    }
+    .onChange(of: vm.historyIndex) { newVal in
+      if newVal != nil { withAnimation(.easeInOut(duration: 0.15)) { selected = nil } }
+    }
+    .aspectRatio(1, contentMode: .fit)
+  }
+
+  private func materialDiff(on board: Board) -> Int {
+    var w = 0, b = 0
+    for rank in 0..<8 { for file in 0..<8 { let sq = Square(file: file, rank: rank); if let p = board.piece(at: sq) { let v = pieceValue(p); if p.color == .white { w += v } else { b += v } } } }
     return w - b
-  }()
-  let whiteLead = max(diff, 0)
-  let blackLead = max(-diff, 0)
-      let topSide: PieceColor = vm.peers.isConnected ? ( (vm.myColor == .white) ? .black : .white ) : .black
-      let bottomSide: PieceColor = vm.peers.isConnected ? (vm.myColor ?? .white) : .white
-      let topPieces = topSide == .black ? blackCaptures : whiteCaptures
-      let bottomPieces = bottomSide == .white ? whiteCaptures : blackCaptures
-      CapturedRow(
-        pieces: topPieces,
-        rotatePieces: !vm.peers.isConnected,
-        highlightPieceID: {
-          if vm.historyIndex != nil, let pid = ctx.lastCapturePieceID, let side = ctx.lastCapturingSide, side == topSide { return pid }
-          if vm.historyIndex == nil, vm.lastCaptureByMe == false { return vm.lastCapturedPieceID }
-          return nil
-        }(),
-        pointAdvantage: {
-          topSide == .black ? blackLead : whiteLead
-        }()
-      )
-      .padding(.horizontal, 10)
-      .padding(.top, 6)
-      Color.black.frame(height: 2)
-      ZStack {
-        Group {
-          let inCheck = vm.isDisplayedSideInCheck()
-          let isMate = inCheck && vm.isDisplayedSideCheckmated()
-          let displayedLastMove: Move? = {
-            if let idx = vm.historyIndex {
-              if idx > 0 && idx <= vm.moveHistory.count { return vm.moveHistory[idx - 1] } else { return nil }
-            }
-            return vm.lastMove
-          }()
-          BoardView(
-            board: vm.displayedBoard,
-            perspective: vm.myColor ?? .white,
-            myColor: vm.myColor ?? .white,
-            sideToMove: vm.displayedSideToMove,
-            inCheckCurrentSide: inCheck,
-            isCheckmatePosition: isMate,
-            singleDevice: !vm.peers.isConnected,
-            lastMove: displayedLastMove,
-            historyIndex: vm.historyIndex,
-            disableInteraction: showHistorySlider || vm.historyIndex != nil,
-            onAttemptInteraction: { hideHistory() },
-            selected: $selected
-          ) { from, to, single in
-            if vm.historyIndex != nil { stepHistoryToward(targetIndex: nil, animated: true); return false }
-            let success: Bool = (single ? vm.makeLocalMove(from: from, to: to) : vm.makeMove(from: from, to: to))
-            if success { hideHistory() }
-            return success
-          }
-          .onChange(of: vm.engine.sideToMove) { newValue in
-            if let mine = vm.myColor, mine != newValue { selected = nil }
-          }
-          .onChange(of: vm.historyIndex) { newVal in
-            if newVal != nil { // entering history view -> clear selection
-              withAnimation(.easeInOut(duration: 0.15)) { selected = nil }
-            }
-          }
-        }
-      }
-      .aspectRatio(1, contentMode: .fit)
-      Color.black.frame(height: 2)
-      CapturedRow(
-        pieces: bottomPieces,
-        rotatePieces: false,
-        highlightPieceID: {
-          if vm.historyIndex != nil, let pid = ctx.lastCapturePieceID, let side = ctx.lastCapturingSide, side == bottomSide { return pid }
-          if vm.historyIndex == nil, vm.lastCaptureByMe == true { return vm.lastCapturedPieceID }
-          return nil
-        }(),
-        pointAdvantage: {
-          bottomSide == .white ? whiteLead : blackLead
-        }()
-      )
-      .padding(.horizontal, 10)
-      .padding(.bottom, 6)
-      Spacer() // neded to align center with background
-    }
   }
 
   //        // Connected devices footer
@@ -386,7 +322,7 @@ struct ContentView: View {
         }
       )
 
-      boardWithCapturedPieces.ignoresSafeArea()//.padding([.leading, .trailing], 10)
+  boardSection.ignoresSafeArea()
         .contentShape(Rectangle())
         // Removed board tap gesture; handled inside BoardView gesture
       if vm.peers.isConnected {
@@ -401,14 +337,10 @@ struct ContentView: View {
       if vm.showingPromotionPicker, let pending = vm.pendingPromotionMove {
         let promoColor = vm.engine.board.piece(at: pending.from)?.color ?? vm.engine.sideToMove.opposite
         let rotate = !vm.peers.isConnected && promoColor == .black
-        PromotionPickerView(color: promoColor, rotate180: rotate) { choice in
-          vm.promote(to: choice)
-        } onCancel: {
-          vm.cancelPromotion()
-        }
-        .transition(.scale.combined(with: .opacity))
-        .zIndex(500)
-        .ignoresSafeArea()
+        PromotionPickerView(color: promoColor, rotate180: rotate, onSelect: { vm.promote(to: $0) }, onCancel: { vm.cancelPromotion() })
+          .transition(.scale.combined(with: .opacity))
+          .zIndex(500)
+          .ignoresSafeArea()
       }
   if exportFlash { Text("Copied state")
           .padding(8)
@@ -482,59 +414,6 @@ struct ContentView: View {
       Text(String.loc("incoming_join_message", vm.incomingJoinRequestPeer ?? ""))
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
-  }
-}
-
-// Promotion picker overlay
-private struct PromotionPickerView: View {
-  let color: PieceColor
-  var rotate180: Bool = false
-  let onSelect: (PieceType) -> Void
-  let onCancel: () -> Void
-  private let choices: [PieceType] = [.queen, .rook, .bishop, .knight]
-  var body: some View {
-    ZStack {
-      Color.black.opacity(0.55).ignoresSafeArea().onTapGesture { onCancel() }
-      VStack(spacing: 16) {
-        Text(String.loc("promote_choose"))
-          .font(.title2).bold()
-          .foregroundColor(.white)
-        HStack(spacing: 20) {
-          ForEach(choices, id: \.self) { pt in
-            Button(action: { onSelect(pt) }) {
-              Text(symbol(for: pt, color: color))
-                .font(.system(size: 48))
-                .frame(width: 64, height: 64)
-                .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.15)))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.6), lineWidth: 1))
-            }
-            .buttonStyle(.plain)
-          }
-        }
-        Button(String.loc("cancel")) { onCancel() }
-          .font(.title3)
-          .padding(.horizontal, 20)
-          .padding(.vertical, 8)
-          .background(Color.white.opacity(0.85))
-          .foregroundColor(.black)
-          .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-      }
-      .padding(30)
-      .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-      .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 8)
-      .padding(40)
-    }
-    .rotationEffect(rotate180 ? .degrees(180) : .degrees(0))
-  }
-  private func symbol(for t: PieceType, color: PieceColor) -> String {
-    switch t {
-    case .queen: return color == .white ? "♕" : "♛"
-    case .rook: return color == .white ? "♖" : "♜"
-    case .bishop: return color == .white ? "♗" : "♝"
-    case .knight: return color == .white ? "♘" : "♞"
-    case .king: return color == .white ? "♔" : "♚"
-    case .pawn: return color == .white ? "♙" : "♟︎"
-    }
   }
 }
 
@@ -643,67 +522,6 @@ private extension ContentView {
   }
 }
 
-struct CapturedRow: View {
-  let pieces: [Piece]
-  var rotatePieces: Bool = false
-  var highlightPieceID: UUID? = nil
-  var pointAdvantage: Int = 0 // New parameter for point advantage
-  private let maxBaseSize: CGFloat = 32
-  private let minSize: CGFloat = 14
-  var body: some View {
-    GeometryReader { geo in
-      let sorted = sortedPieces()
-      // Desired total width with base size & spacing
-      let spacing: CGFloat = 4
-      let count = CGFloat(sorted.count)
-      let available = max(geo.size.width - (count - 1) * spacing, 10)
-      let idealSize = min(maxBaseSize, available / max(count, 1))
-      let size = max(minSize, idealSize)
-      HStack(spacing: spacing) {
-        ForEach(sorted.indices, id: \.self) { idx in
-          let p = sorted[idx]
-          Text(symbol(for: p))
-            .font(.system(size: size))
-            .foregroundStyle(p.color == .white ? .white : .black)
-            .rotationEffect(rotatePieces ? .degrees(180) : .degrees(0))
-            .frame(width: size, height: size)
-            .background(
-              RoundedRectangle(cornerRadius: 4)
-                .fill(Color.green.opacity(0.45))
-                .opacity(highlightPieceID == p.id ? 1 : 0)
-            )
-            .animation(.easeInOut(duration: 0.25), value: highlightPieceID)
-        }
-        // Display lead only if positive
-        if pointAdvantage > 0 {
-          Text("+\(pointAdvantage)")
-            .font(.system(size: size * 0.8, weight: .semibold))
-            .foregroundColor(.white)
-            .rotationEffect(rotatePieces ? .degrees(180) : .degrees(0))
-            .padding(.leading, 4)
-        }
-        Spacer(minLength: 0)
-      }
-      .frame(width: geo.size.width, height: geo.size.height, alignment: .leading)
-    }
-    .frame(height: 44)
-  }
-
-  private func sortedPieces() -> [Piece] {
-    pieces.sorted { pieceValue($0) > pieceValue($1) }
-  }
-
-  private func pieceValue(_ p: Piece) -> Int {
-    switch p.type {
-    case .queen: return 9
-    case .rook: return 5
-    case .bishop, .knight: return 3
-    case .pawn: return 1
-    case .king: return 100 // should not normally appear, but ensure it sorts first if present
-    }
-  }
-}
-
 // Local helper (UI-only) mirroring GameViewModel piece values for captured material computation above
 private func pieceValue(_ p: Piece) -> Int {
   switch p.type {
@@ -726,505 +544,4 @@ private func symbol(for p: Piece) -> String {
   }
 }
 
-struct BoardView: View {
-  let board: Board
-  let perspective: PieceColor
-  let myColor: PieceColor
-  let sideToMove: PieceColor
-  let inCheckCurrentSide: Bool
-  let isCheckmatePosition: Bool
-  let singleDevice: Bool
-  let lastMove: Move?
-  // Current history index (nil when live). Used to prevent drags that start on historical states.
-  let historyIndex: Int?
-  var disableInteraction: Bool = false
-  var onAttemptInteraction: () -> Void = {}
-  @Binding var selected: Square?
-  let onMove: (Square, Square, Bool) -> Bool
-  @Namespace private var pieceNamespace
-  // Drag state
-  @State private var draggingFrom: Square? = nil
-  @State private var dragLocation: CGPoint? = nil // local board coords
-  @State private var dragTarget: Square? = nil
-  @State private var dragOffsetFromCenter: CGSize? = nil
-  // Delayed activation state
-  @State private var pendingDragFrom: Square? = nil
-  @State private var dragStartPoint: CGPoint? = nil
-  @State private var dragActivated: Bool = false
-  @State private var dragHoldWorkItem: DispatchWorkItem? = nil
-  // Track selection state at gesture start to distinguish first tap selection vs. deselect
-  @State private var gestureInitialSelected: Square? = nil
-  // History / gesture gating state
-  @State private var gestureHistoryIndexAtStart: Int? = nil
-  @State private var blockedGesture: Bool = false
-
-  var bodyx: some View {
-    VStack {
-      Color.red
-      Color.blue
-    }
-  }
-
-  var body: some View {
-    GeometryReader { geo in
-      let boardSide = min(geo.size.width, geo.size.height)
-      let rowArray = rows()
-      let colArray = cols()
-      let squareSize = boardSide / 8.0
-      ZStack(alignment: .topLeading) {
-        // Base squares
-        ForEach(Array(rowArray.enumerated()), id: \.offset) { rowIdx, rank in
-          ForEach(Array(colArray.enumerated()), id: \.offset) { colIdx, file in
-            let sq = Square(file: file, rank: rank)
-            let piece = board.piece(at: sq)
-            let kingInCheckHighlight = inCheckCurrentSide && piece?.type == .king && piece?.color == sideToMove
-            let dragHighlight: Bool = {
-              // Highlight only when an owned piece is being dragged
-              guard let from = draggingFrom else { return false }
-              if from == sq { return true }
-              if let target = dragTarget, target == sq { return true }
-              return false
-            }()
-            SquareView(square: sq,
-                       piece: nil,
-                       isSelected: selected == sq,
-                       isKingInCheck: kingInCheckHighlight,
-                       isKingCheckmated: isCheckmatePosition && kingInCheckHighlight,
-                       rotateForOpponent: false,
-                       lastMoveHighlight: isLastMoveSquare(sq) || dragHighlight)
-            .frame(width: squareSize, height: squareSize)
-            .position(x: CGFloat(colIdx) * squareSize + squareSize / 2,
-                      y: CGFloat(rowIdx) * squareSize + squareSize / 2)
-            .contentShape(Rectangle())
-          }
-        }
-        // Pieces layer (animated)
-        ForEach(piecesOnBoard(), id: \.piece.id) { item in
-          let rowIdx = rowArray.firstIndex(of: item.square.rank) ?? 0
-          let colIdx = colArray.firstIndex(of: item.square.file) ?? 0
-          ZStack {
-            let showSelectionRing = selected == item.square && !(dragActivated && draggingFrom == item.square)
-            if showSelectionRing {
-              RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .stroke(Color.white, lineWidth: 2)
-                .padding(2)
-                .shadow(color: .white.opacity(0.6), radius: 4)
-            }
-            Text(symbol(for: item.piece))
-              .font(.system(size: squareSize * 0.75))
-              .foregroundColor(item.piece.color == .white ? .white : .black)
-              .rotationEffect(singleDevice && item.piece.color == .black ? .degrees(180) : .degrees(0))
-              .scaleEffect(dragActivated && draggingFrom == item.square ? 3.0 : 1.0)
-              // Visual lift while dragging: white (or any non-rotated) pieces lift upward, black in single-device mode lifts downward
-              // Logical center for targeting remains the unlifted square center (offset applied only visually here)
-              .offset(y: {
-                guard dragActivated && draggingFrom == item.square else { return 0 }
-                let magnitude = 50.0 //squareSize * 0.4 // proportional so it scales with board size / device
-                if singleDevice && item.piece.color == .black { return magnitude } // downlift for black side on shared device
-                return -magnitude // uplift otherwise
-              }())
-              .shadow(color: dragActivated && draggingFrom == item.square ? Color.black.opacity(0.4) : Color.clear, radius: 8, x: 0, y: 4)
-          }
-          .frame(width: squareSize, height: squareSize)
-          .position(
-            x: positionForPiece(item.square,
-                                 defaultPos: CGFloat(colIdx) * squareSize + squareSize / 2,
-                                 squareSize: squareSize,
-                                 axis: .x),
-            y: positionForPiece(item.square,
-                                 defaultPos: CGFloat(rowIdx) * squareSize + squareSize / 2,
-                                 squareSize: squareSize,
-                                 axis: .y)
-          )
-          .matchedGeometryEffect(id: item.piece.id, in: pieceNamespace)
-          .zIndex(zIndexForPiece(item.square))
-          .contentShape(Rectangle())
-        }
-
-  // Yellow overlay removed; drag highlights handled per-square via lastMoveHighlight flag.
-      }
-      .frame(width: boardSide, height: boardSide, alignment: .topLeading)
-      .contentShape(Rectangle())
-      .animation(.easeInOut(duration: 0.35), value: board)
-      .gesture(
-        DragGesture(minimumDistance: 0)
-          .onChanged { value in
-            onAttemptInteraction()
-            // Establish gesture start snapshot
-            if dragStartPoint == nil {
-              dragStartPoint = value.location
-              gestureInitialSelected = selected
-              gestureHistoryIndexAtStart = historyIndex
-              // Block entire gesture if interaction disabled OR not on live board at start
-              blockedGesture = disableInteraction || historyIndex != nil
-            }
-            // If gesture was blocked at start, ignore until it ends
-            if blockedGesture { return }
-            // If historyIndex changed during the gesture (e.g., animating out of history), cancel further processing
-            if gestureHistoryIndexAtStart != historyIndex {
-              blockedGesture = true
-              cancelCurrentDrag()
-              return
-            }
-            if disableInteraction { return }
-            let point = value.location
-            // Establish pending drag square on first touch
-            if pendingDragFrom == nil && !dragActivated {
-              if let sq = square(at: point, boardSide: boardSide, rowArray: rowArray, colArray: colArray, squareSize: squareSize), canPickUp(square: sq) {
-                pendingDragFrom = sq
-                selected = sq
-                // Schedule hold activation
-                let wi = DispatchWorkItem { activateDrag(at: point, boardSide: boardSide, rowArray: rowArray, colArray: colArray, squareSize: squareSize) }
-                dragHoldWorkItem?.cancel()
-                dragHoldWorkItem = wi
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.18, execute: wi) // hold delay
-              }
-            }
-            dragLocation = point
-            // If not yet activated, check movement threshold
-            if !dragActivated, let start = dragStartPoint, let _ = pendingDragFrom {
-              let dx = point.x - start.x
-              let dy = point.y - start.y
-              let dist = sqrt(dx*dx + dy*dy)
-              let movementThreshold = max(8, squareSize * 0.08) // device adaptive
-              if dist > movementThreshold {
-                activateDrag(at: point, boardSide: boardSide, rowArray: rowArray, colArray: colArray, squareSize: squareSize)
-              }
-            }
-            // Update target only when active
-            if dragActivated {
-              let pieceCenter = adjustedDragCenter(rawPoint: point, squareSize: squareSize)
-              dragTarget = square(at: pieceCenter, boardSide: boardSide, rowArray: rowArray, colArray: colArray, squareSize: squareSize)
-            } else {
-              dragTarget = nil
-            }
-          }
-          .onEnded { value in guard !disableInteraction else { return } ;
-            // If whole gesture was blocked (started in history), just clear state & exit
-            if blockedGesture {
-              resetGestureState()
-              return
-            }
-            let point = value.location
-            let pieceCenter = adjustedDragCenter(rawPoint: point, squareSize: squareSize)
-            let releasedSquare = square(at: pieceCenter, boardSide: boardSide, rowArray: rowArray, colArray: colArray, squareSize: squareSize)
-            dragHoldWorkItem?.cancel(); dragHoldWorkItem = nil
-            // Case 1: Pure tap without initiating drag (drag not activated)
-            if !dragActivated {
-              if let target = releasedSquare {
-                if let sel = selected {
-                  if sel == target {
-                    // Deselect only if it was already selected before this gesture started
-                    if let initial = gestureInitialSelected, initial == sel {
-                      withAnimation(.easeInOut(duration: 0.18)) { selected = nil }
-                    }
-                  } else {
-                    // If tapping own piece: change selection, else attempt move
-                    let ownershipColor = singleDevice ? sideToMove : myColor
-                    if let p = board.piece(at: target), p.color == ownershipColor {
-                      withAnimation(.easeInOut(duration: 0.18)) { selected = target }
-                    } else {
-                      // Attempt move from selected to target
-                      _ = onMove(sel, target, singleDevice)
-                      withAnimation(.easeInOut(duration: 0.18)) { selected = nil }
-                    }
-                  }
-                } else {
-                  // No selection yet: select if own piece
-                  let ownershipColor = singleDevice ? sideToMove : myColor
-                  if let p = board.piece(at: target), p.color == ownershipColor {
-                    withAnimation(.easeInOut(duration: 0.18)) { selected = target }
-                  }
-                }
-              }
-              // Cleanup and return
-              pendingDragFrom = nil
-              draggingFrom = nil
-              dragLocation = nil
-              dragTarget = nil
-              dragOffsetFromCenter = nil
-              dragActivated = false
-              dragStartPoint = nil
-              gestureInitialSelected = nil
-              return
-            }
-            guard let origin = draggingFrom, dragActivated else { return }
-            var performedMove = false
-            if let release = releasedSquare {
-              if origin == release {
-                // Dropped back on origin: ensure selection retained (or applied)
-                if selected != origin { withAnimation(.easeInOut(duration: 0.18)) { selected = origin } }
-              } else {
-                let ownershipColor = singleDevice ? sideToMove : myColor
-                if let p = board.piece(at: release), p.color == ownershipColor {
-                  // Switch selection to another own piece (revert origin visually)
-                  withAnimation(.easeInOut(duration: 0.18)) { selected = release }
-                } else if selected == origin {
-                  // Perform move (legal attempt handled upstream in engine)
-                  let success = onMove(origin, release, singleDevice)
-                  if success {
-                    withAnimation(.easeInOut(duration: 0.18)) { selected = nil }
-                    performedMove = true
-                  }
-                } else {
-                  // If origin not currently selected, select origin first
-                  withAnimation(.easeInOut(duration: 0.18)) { selected = origin }
-                }
-              }
-            }
-            // Animate piece returning if no move executed
-            if !performedMove {
-              // Animate piece back to its origin center first, then clear drag state after animation completes.
-              if let originFrame = squareFrame(for: origin, rowArray: rowArray, colArray: colArray, squareSize: squareSize) {
-                let center = CGPoint(x: originFrame.midX, y: originFrame.midY)
-                withAnimation(.spring(response: 0.45, dampingFraction: 0.72)) {
-                  dragActivated = false // scale down during return
-                  // Move the finger anchor point so that (anchor + offset) animates toward center
-                  if let off = dragOffsetFromCenter {
-                    dragLocation = CGPoint(x: center.x - off.width, y: center.y - off.height)
-                  } else {
-                    dragLocation = center
-                  }
-                }
-                // After animation completes, clear state (delay slightly longer than spring response)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.46) {
-                  if draggingFrom == origin { // ensure still same drag (user not started new one)
-                    draggingFrom = nil
-                    dragLocation = nil
-                    dragTarget = nil
-                    dragOffsetFromCenter = nil
-                  }
-                }
-              } else {
-                // Fallback: no frame => immediate clear
-                draggingFrom = nil
-                dragLocation = nil
-                dragTarget = nil
-                dragOffsetFromCenter = nil
-                dragActivated = false
-              }
-            } else {
-              // Move performed: just clear drag state without extra animation (board animation handles new position)
-              draggingFrom = nil
-              dragLocation = nil
-              dragTarget = nil
-              dragOffsetFromCenter = nil
-              dragActivated = false
-            }
-            pendingDragFrom = nil
-            dragStartPoint = nil
-            gestureInitialSelected = nil
-            gestureHistoryIndexAtStart = nil
-            blockedGesture = false
-          }
-      )
-    }
-  }
-
-  // MARK: - Drag helpers
-  private enum Axis { case x, y }
-  private func positionForPiece(_ sq: Square, defaultPos: CGFloat, squareSize: CGFloat, axis: Axis) -> CGFloat {
-    guard let from = draggingFrom, from == sq, let dragLocation else { return defaultPos }
-    var pos: CGFloat = (axis == .x ? dragLocation.x : dragLocation.y)
-    if let off = dragOffsetFromCenter {
-      pos += (axis == .x ? off.width : off.height)
-    }
-    // Clamp inside board
-    let limit = squareSize * 8
-    return min(max(pos, 0), limit)
-  }
-  // Compute current piece center based on raw finger point + stored offset
-  private func adjustedDragCenter(rawPoint: CGPoint, squareSize: CGFloat) -> CGPoint {
-    var x = rawPoint.x
-    var y = rawPoint.y
-    if let off = dragOffsetFromCenter {
-      x += off.width
-      y += off.height
-    }
-    let limit = squareSize * 8
-    x = min(max(x, 0), limit)
-    y = min(max(y, 0), limit)
-    return CGPoint(x: x, y: y)
-  }
-  private func zIndexForPiece(_ sq: Square) -> Double {
-    if draggingFrom == sq { return 500 }
-    if selected == sq { return 100 }
-    return 10
-  }
-  private func squareFrame(for sq: Square, rowArray: [Int], colArray: [Int], squareSize: CGFloat) -> CGRect? {
-    guard let rowIdx = rowArray.firstIndex(of: sq.rank), let colIdx = colArray.firstIndex(of: sq.file) else { return nil }
-    let origin = CGPoint(x: CGFloat(colIdx) * squareSize, y: CGFloat(rowIdx) * squareSize)
-    return CGRect(origin: origin, size: CGSize(width: squareSize, height: squareSize))
-  }
-  private func canPickUp(square: Square) -> Bool {
-    if singleDevice {
-      if let p = board.piece(at: square), p.color == sideToMove { return true }
-      return false
-    } else {
-      if let p = board.piece(at: square), p.color == myColor, myColor == sideToMove { return true }
-      return false
-    }
-  }
-
-  private func rows() -> [Int] {
-    perspective == .white ? Array((0..<8).reversed()) : Array(0..<8)
-  }
-  private func cols() -> [Int] {
-    perspective == .white ? Array(0..<8) : Array((0..<8).reversed())
-  }
-
-  private func tap(_ sq: Square) {
-    // In single-device mode allow either side to move; otherwise restrict to this player's color & turn
-    if !singleDevice {
-      guard myColor == sideToMove else { return }
-    }
-    withAnimation(.easeInOut(duration: 0.18)) {
-      if let sel = selected {
-        if sel == sq {
-          // Deselect if tapping the same square
-          selected = nil
-          return
-        }
-        // If tapping another own piece, switch selection; otherwise attempt move
-        let ownershipColor = singleDevice ? sideToMove : myColor
-        if let p = board.piece(at: sq), p.color == ownershipColor {
-          selected = sq
-        } else {
-          _ = onMove(sel, sq, singleDevice)
-          selected = nil
-        }
-      } else {
-        // Only allow selecting a square that has a piece of the side to move
-        let ownershipColor = singleDevice ? sideToMove : myColor
-        if let p = board.piece(at: sq), p.color == ownershipColor {
-          selected = sq
-        }
-      }
-    }
-  }
-  private func piecesOnBoard() -> [(square: Square, piece: Piece)] {
-    var list: [(Square, Piece)] = []
-    for rank in 0..<8 { for file in 0..<8 { let sq = Square(file: file, rank: rank); if let p = board.piece(at: sq) { list.append((sq,p)) } } }
-    return list
-  }
-  private func symbol(for p: Piece) -> String {
-    switch p.type {
-    case .king: return "♚"
-    case .queen: return "♛"
-    case .rook: return "♜"
-    case .bishop: return "♝"
-    case .knight: return "♞"
-    case .pawn: return "♟︎"
-    }
-  }
-
-  // Rotation logic now handled inline per piece (rotate black pieces only in single-device mode)
-
-  private func square(at point: CGPoint, boardSide: CGFloat, rowArray: [Int], colArray: [Int], squareSize: CGFloat) -> Square? {
-    guard point.x >= 0, point.y >= 0, point.x < boardSide, point.y < boardSide else { return nil }
-    let colIdx = Int(point.x / squareSize)
-    let rowIdx = Int(point.y / squareSize)
-    guard rowIdx >= 0 && rowIdx < rowArray.count && colIdx >= 0 && colIdx < colArray.count else { return nil }
-    let rank = rowArray[rowIdx]
-    let file = colArray[colIdx]
-    return Square(file: file, rank: rank)
-  }
-
-  // Activate drag: promote pendingDragFrom to draggingFrom, compute initial offset and set dragActivated
-  private func activateDrag(at point: CGPoint, boardSide: CGFloat, rowArray: [Int], colArray: [Int], squareSize: CGFloat) {
-    guard !dragActivated, let sq = pendingDragFrom else { return }
-    draggingFrom = sq
-    dragActivated = true
-    // Initial offset from touch to piece center
-    if let frame = squareFrame(for: sq, rowArray: rowArray, colArray: colArray, squareSize: squareSize) {
-      let center = CGPoint(x: frame.midX, y: frame.midY)
-      dragOffsetFromCenter = CGSize(width: center.x - point.x, height: center.y - point.y)
-    }
-  }
-
-  // Cancel current drag and clear drag-related state (selection left untouched)
-  private func cancelCurrentDrag() {
-    dragHoldWorkItem?.cancel(); dragHoldWorkItem = nil
-    pendingDragFrom = nil
-    draggingFrom = nil
-    dragLocation = nil
-    dragTarget = nil
-    dragOffsetFromCenter = nil
-    dragActivated = false
-  }
-
-  private func resetGestureState() {
-    cancelCurrentDrag()
-    dragStartPoint = nil
-    gestureInitialSelected = nil
-    gestureHistoryIndexAtStart = nil
-  }
-}
-
-struct SquareView: View {
-  let square: Square
-  let piece: Piece?
-  let isSelected: Bool
-  let isKingInCheck: Bool
-  let isKingCheckmated: Bool
-  let rotateForOpponent: Bool
-  var lastMoveHighlight: Bool = false
-
-  var body: some View {
-    ZStack {
-      Rectangle()
-        .fill(baseColor())
-      // if isSelected {
-      //   Rectangle().stroke(Color.white, lineWidth: 1).padding(1)
-      // }
-      if lastMoveHighlight {
-        Rectangle()
-          .fill(Color.green.opacity(0.45))
-      }
-      if isKingInCheck {
-        RoundedRectangle(cornerRadius: 6, style: .continuous)
-          .fill(isKingCheckmated ? Color.red.opacity(0.9) : Color.orange.opacity(0.7))
-          .padding(4)
-      }
-      if let p = piece {
-        GeometryReader { geo in
-          Text(symbol(for: p))
-            .font(.system(size: min(geo.size.width, geo.size.height) * 0.75))
-            .foregroundColor(p.color == .white ? .white : .black)
-            .opacity(1)
-            .rotationEffect(rotateForOpponent ? .degrees(180) : .degrees(0))
-            .frame(width: geo.size.width, height: geo.size.height)
-        }
-      }
-    }
-    .frame(maxWidth: .infinity, maxHeight: .infinity)
-  }
-
-  private func baseColor() -> Color {
-    let s = square
-    let grayBlack = Color(red: 0.4, green: 0.4, blue: 0.4)
-    let grayWhite = Color(red: 0.6, green: 0.6, blue: 0.6)
-    return ((s.file + s.rank) % 2 == 0) ? grayBlack : grayWhite
-
-    //    return ((s.file + s.rank) % 2 == 0) ? Color(red: 0.93, green: 0.86, blue: 0.75)
-    //    : Color(red: 0.52, green: 0.37, blue: 0.26)
-  }
-
-  private func symbol(for p: Piece) -> String {
-    switch p.type {
-    case .king:   return "♚"
-    case .queen:  return "♛"
-    case .rook:   return "♜"
-    case .bishop: return "♝"
-    case .knight: return "♞"
-    case .pawn:   return "♟︎"
-    }
-  }
-}
-
-private extension BoardView {
-  func isLastMoveSquare(_ sq: Square) -> Bool {
-    guard let mv = lastMove else { return false }
-    return mv.from == sq || mv.to == sq
-  }
-}
+// Subviews moved to dedicated files: BoardView, SquareView, CapturedRow, PromotionPickerView
