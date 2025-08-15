@@ -188,7 +188,8 @@ struct ContentView: View {
       Spacer() // neded to align center with background
   CapturedRow(pieces: vm.historyIndex == nil ? vm.capturedByOpponent : capturedAtHistory(byMe: false),
                   rotatePieces: !vm.peers.isConnected,
-                  highlightPieceID: vm.lastCaptureByMe == false ? vm.lastCapturedPieceID : nil)
+                  highlightPieceID: vm.lastCaptureByMe == false ? vm.lastCapturedPieceID : nil,
+                  pointAdvantage: vm.historyIndex == nil ? vm.pointAdvantage(forMe: false) : vm.historicalPointAdvantage(forMe: false))
       .padding(.horizontal, 10)
       .padding(.top, 6)
       Color.black.frame(height: 2)
@@ -226,7 +227,8 @@ struct ContentView: View {
       Color.black.frame(height: 2)
   CapturedRow(pieces: vm.historyIndex == nil ? vm.capturedByMe : capturedAtHistory(byMe: true),
                   rotatePieces: false,
-                  highlightPieceID: vm.lastCaptureByMe == true ? vm.lastCapturedPieceID : nil)
+                  highlightPieceID: vm.lastCaptureByMe == true ? vm.lastCapturedPieceID : nil,
+                  pointAdvantage: vm.historyIndex == nil ? vm.pointAdvantage(forMe: true) : vm.historicalPointAdvantage(forMe: true))
       .padding(.horizontal, 10)
       .padding(.bottom, 6)
       Spacer() // neded to align center with background
@@ -522,6 +524,7 @@ struct CapturedRow: View {
   let pieces: [Piece]
   var rotatePieces: Bool = false
   var highlightPieceID: UUID? = nil
+  var pointAdvantage: Int = 0 // New parameter for point advantage
   private let maxBaseSize: CGFloat = 32
   private let minSize: CGFloat = 14
   var body: some View {
@@ -547,6 +550,14 @@ struct CapturedRow: View {
                 .opacity(highlightPieceID == p.id ? 1 : 0)
             )
             .animation(.easeInOut(duration: 0.25), value: highlightPieceID)
+        }
+        // Display point advantage if positive
+        if pointAdvantage > 0 {
+          Text("+\(pointAdvantage)")
+            .font(.system(size: size * 0.8, weight: .semibold))
+            .foregroundColor(.white)
+            .rotationEffect(rotatePieces ? .degrees(180) : .degrees(0))
+            .padding(.leading, 4)
         }
         Spacer(minLength: 0)
       }

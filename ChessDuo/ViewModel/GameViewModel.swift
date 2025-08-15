@@ -667,6 +667,73 @@ extension GameViewModel {
 
   var displayedBoard: Board { historyIndex.map { boardAfterMoves($0) } ?? engine.board }
   var inHistoryView: Bool { historyIndex != nil }
+
+  // Calculate point advantage based on captured pieces
+  func pointAdvantage(forMe: Bool) -> Int {
+    let myPieces = capturedByMe
+    let opponentPieces = capturedByOpponent
+
+    let myPoints = myPieces.reduce(0) { $0 + pieceValue($1) }
+    let opponentPoints = opponentPieces.reduce(0) { $0 + pieceValue($1) }
+
+    return forMe ? (myPoints - opponentPoints) : (opponentPoints - myPoints)
+  }
+
+  // Calculate point advantage for historical positions
+  func historicalPointAdvantage(forMe: Bool) -> Int {
+    guard let idx = historyIndex else { return pointAdvantage(forMe: forMe) }
+
+    // Reconstruct captured pieces up to idx moves
+    var engine = ChessEngine()
+    var capsByWhite: [Piece] = []
+    var capsByBlack: [Piece] = []
+
+    for i in 0..<min(idx, moveHistory.count) {
+      let move = moveHistory[i]
+      // Detect capture before making move
+      if let piece = engine.board.piece(at: move.to) { // normal capture
+        if piece.color == .white { capsByBlack.append(piece) } else { capsByWhite.append(piece) }
+      } else {
+        // Possible en passant
+        if let moving = engine.board.piece(at: move.from), moving.type == .pawn, move.from.file != move.to.file, engine.board.piece(at: move.to) == nil {
+          // en passant target square is behind destination
+          let dir = moving.color == .white ? 1 : -1
+          let capturedSq = Square(file: move.to.file, rank: move.to.rank - dir)
+          if let epPawn = engine.board.piece(at: capturedSq), epPawn.color != moving.color, epPawn.type == .pawn {
+            if epPawn.color == .white { capsByBlack.append(epPawn) } else { capsByWhite.append(epPawn) }
+          }
+        }
+      }
+      _ = engine.tryMakeMove(move)
+    }
+
+    let myHistoricalPieces: [Piece]
+    let opponentHistoricalPieces: [Piece]
+
+    // Determine whose perspective 'forMe' refers to
+    if let my = myColor { // connected mode
+      myHistoricalPieces = my == .white ? capsByWhite : capsByBlack
+      opponentHistoricalPieces = my == .white ? capsByBlack : capsByWhite
+    } else { // single device: 'forMe' shows white's captures at bottom
+      myHistoricalPieces = forMe ? capsByWhite : capsByBlack
+      opponentHistoricalPieces = forMe ? capsByBlack : capsByWhite
+    }
+
+    let myPoints = myHistoricalPieces.reduce(0) { $0 + pieceValue($1) }
+    let opponentPoints = opponentHistoricalPieces.reduce(0) { $0 + pieceValue($1) }
+
+    return forMe ? (myPoints - opponentPoints) : (opponentPoints - myPoints)
+  }
+
+  private func pieceValue(_ piece: Piece) -> Int {
+    switch piece.type {
+    case .queen: return 9
+    case .rook: return 5
+    case .bishop, .knight: return 3
+    case .pawn: return 1
+    case .king: return 0 // should not normally appear
+    }
+  }
 }
 
 private extension GameViewModel {
