@@ -800,3 +800,38 @@ private extension GameViewModel {
     return composite
   }
 }
+
+extension GameViewModel {
+  // For a given historyIndex (non-nil, 1...moveHistory.count) return the piece id captured on the PREVIOUS move (the move that produced this position),
+  // and whether it was captured by me (from myColor perspective / or white in single-device when myColor == nil).
+  func historicalCaptureHighlight(at historyIndex: Int) -> (pieceID: UUID, byMe: Bool)? {
+    // historyIndex represents board AFTER that many moves. So the last applied move is moveHistory[historyIndex-1].
+    guard historyIndex > 0, historyIndex <= moveHistory.count else { return nil }
+    var engine = ChessEngine()
+    // Play moves up to before the last one to inspect capture result.
+    for i in 0..<(historyIndex - 1) { _ = engine.tryMakeMove(moveHistory[i]) }
+    let move = moveHistory[historyIndex - 1]
+    // Determine captured piece of that move similar to live logic (includes en passant)
+    let captured: Piece? = {
+      // Normal capture: piece on destination in pre-move board
+      if let piece = engine.board.piece(at: move.to) { return piece }
+      // En passant possibility
+      if let moving = engine.board.piece(at: move.from), moving.type == .pawn, move.from.file != move.to.file, engine.board.piece(at: move.to) == nil {
+        let dir = moving.color == .white ? 1 : -1
+        let capturedSq = Square(file: move.to.file, rank: move.to.rank - dir)
+        if let epPawn = engine.board.piece(at: capturedSq), epPawn.color != moving.color, epPawn.type == .pawn { return epPawn }
+      }
+      return nil
+    }()
+    // Apply the move to advance engine (not strictly needed for highlight decision)
+    _ = engine.tryMakeMove(move)
+    guard let cap = captured else { return nil }
+    let capturedByWhite = cap.color == .black // if black piece captured -> by white
+    let byMe: Bool = {
+      if let my = myColor { return (my == .white) == capturedByWhite } // if my color white and capture by white -> byMe
+      // single-device: bottom (capturedByMe list) corresponds to white's captures
+      return capturedByWhite
+    }()
+    return (cap.id, byMe)
+  }
+}

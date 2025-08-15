@@ -191,10 +191,51 @@ struct ContentView: View {
   var boardWithCapturedPieces: some View {
     VStack(spacing: 0) {
       Spacer() // neded to align center with background
-  CapturedRow(pieces: vm.historyIndex == nil ? vm.capturedByOpponent : capturedAtHistory(byMe: false),
-                  rotatePieces: !vm.peers.isConnected,
-                  highlightPieceID: vm.lastCaptureByMe == false ? vm.lastCapturedPieceID : nil,
-                  pointAdvantage: vm.historyIndex == nil ? vm.pointAdvantage(forMe: false) : vm.historicalPointAdvantage(forMe: false))
+      let historicalHighlight = vm.historyIndex.flatMap { vm.historicalCaptureHighlight(at: $0) }
+      // Compute per-color captured material and leads (always show both sides' leads, even if 0)
+      let (whiteCaptures, blackCaptures): ([Piece],[Piece]) = {
+        if let my = vm.myColor { // connected mode: map perspective lists to absolute colors
+          if vm.historyIndex == nil {
+            let whiteCaps = (my == .white) ? vm.capturedByMe : vm.capturedByOpponent
+            let blackCaps = (my == .black) ? vm.capturedByMe : vm.capturedByOpponent
+            return (whiteCaps, blackCaps)
+          } else { // historical reconstruction
+            let myHistWhite = capturedAtHistory(byMe: my == .white)
+            let myHistBlack = capturedAtHistory(byMe: my == .black)
+            // We produced two reconstructions; map again
+            let whiteCaps = (my == .white) ? myHistWhite : myHistBlack
+            let blackCaps = (my == .black) ? myHistBlack : myHistWhite
+            return (whiteCaps, blackCaps)
+          }
+        } else { // single-device mode: byMe == white
+          if vm.historyIndex == nil {
+            return (vm.capturedByMe, vm.capturedByOpponent) // capturedByMe == white, capturedByOpponent == black
+          } else {
+            return (capturedAtHistory(byMe: true), capturedAtHistory(byMe: false))
+          }
+        }
+      }()
+      let whitePoints = whiteCaptures.reduce(0) { $0 + pieceValue($1) }
+      let blackPoints = blackCaptures.reduce(0) { $0 + pieceValue($1) }
+      let whiteLead = max(whitePoints - blackPoints, 0)
+      let blackLead = max(blackPoints - whitePoints, 0)
+      CapturedRow(
+        pieces: vm.historyIndex == nil ? vm.capturedByOpponent : capturedAtHistory(byMe: false),
+        rotatePieces: !vm.peers.isConnected,
+        highlightPieceID: {
+          if let h = historicalHighlight, !h.byMe { return h.pieceID }
+          if vm.historyIndex == nil, vm.lastCaptureByMe == false { return vm.lastCapturedPieceID }
+          return nil
+        }(),
+        pointAdvantage: {
+          // Opponent row shows black lead (single-device) or opponent's lead (connected)
+          if let my = vm.myColor { // connected
+            if my == .white { return blackLead } else { return whiteLead }
+          } else { // single device top row is black
+            return blackLead
+          }
+        }()
+      )
       .padding(.horizontal, 10)
       .padding(.top, 6)
       Color.black.frame(height: 2)
@@ -208,32 +249,47 @@ struct ContentView: View {
             }
             return vm.lastMove
           }()
-          BoardView(board: vm.displayedBoard,
-                    perspective: vm.myColor ?? .white,
-                    myColor: vm.myColor ?? .white,
-                    sideToMove: vm.displayedSideToMove,
-                    inCheckCurrentSide: inCheck,
-                    isCheckmatePosition: isMate,
-                    singleDevice: !vm.peers.isConnected,
-                    lastMove: displayedLastMove,
-                    disableInteraction: showHistorySlider,
-        onAttemptInteraction: { hideHistory() },
-                    selected: $selected) { from, to, single in
-            // If in history view, first tap/drag exits to live view instead of making a move
+          BoardView(
+            board: vm.displayedBoard,
+            perspective: vm.myColor ?? .white,
+            myColor: vm.myColor ?? .white,
+            sideToMove: vm.displayedSideToMove,
+            inCheckCurrentSide: inCheck,
+            isCheckmatePosition: isMate,
+            singleDevice: !vm.peers.isConnected,
+            lastMove: displayedLastMove,
+            disableInteraction: showHistorySlider,
+            onAttemptInteraction: { hideHistory() },
+            selected: $selected
+          ) { from, to, single in
             if vm.historyIndex != nil { stepHistoryToward(targetIndex: nil, animated: true); return false }
             let success: Bool = (single ? vm.makeLocalMove(from: from, to: to) : vm.makeMove(from: from, to: to))
-  if success { hideHistory() }
+            if success { hideHistory() }
             return success
-          }.onChange(of: vm.engine.sideToMove) { newValue in
+          }
+          .onChange(of: vm.engine.sideToMove) { newValue in
             if let mine = vm.myColor, mine != newValue { selected = nil }
           }
         }
-      }.aspectRatio(1, contentMode: .fit)
+      }
+      .aspectRatio(1, contentMode: .fit)
       Color.black.frame(height: 2)
-  CapturedRow(pieces: vm.historyIndex == nil ? vm.capturedByMe : capturedAtHistory(byMe: true),
-                  rotatePieces: false,
-                  highlightPieceID: vm.lastCaptureByMe == true ? vm.lastCapturedPieceID : nil,
-                  pointAdvantage: vm.historyIndex == nil ? vm.pointAdvantage(forMe: true) : vm.historicalPointAdvantage(forMe: true))
+      CapturedRow(
+        pieces: vm.historyIndex == nil ? vm.capturedByMe : capturedAtHistory(byMe: true),
+        rotatePieces: false,
+        highlightPieceID: {
+          if let h = historicalHighlight, h.byMe { return h.pieceID }
+            if vm.historyIndex == nil, vm.lastCaptureByMe == true { return vm.lastCapturedPieceID }
+            return nil
+        }(),
+        pointAdvantage: {
+          if let my = vm.myColor { // connected bottom row is me
+            if my == .white { return whiteLead } else { return blackLead }
+          } else { // single device bottom row is white
+            return whiteLead
+          }
+        }()
+      )
       .padding(.horizontal, 10)
       .padding(.bottom, 6)
       Spacer() // neded to align center with background
@@ -556,7 +612,7 @@ struct CapturedRow: View {
             )
             .animation(.easeInOut(duration: 0.25), value: highlightPieceID)
         }
-        // Display point advantage if positive
+        // Display lead only if positive
         if pointAdvantage > 0 {
           Text("+\(pointAdvantage)")
             .font(.system(size: size * 0.8, weight: .semibold))
@@ -583,6 +639,17 @@ struct CapturedRow: View {
     case .pawn: return 1
     case .king: return 100 // should not normally appear, but ensure it sorts first if present
     }
+  }
+}
+
+// Local helper (UI-only) mirroring GameViewModel piece values for captured material computation above
+private func pieceValue(_ p: Piece) -> Int {
+  switch p.type {
+  case .queen: return 9
+  case .rook: return 5
+  case .bishop, .knight: return 3
+  case .pawn: return 1
+  case .king: return 0
   }
 }
 
