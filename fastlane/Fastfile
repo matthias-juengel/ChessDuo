@@ -67,6 +67,29 @@ platform :ios do
       in_house: false
     )
 
+    # --- Bump build number & prepare changelog ---
+    xcodeproj_path = Dir["*.xcodeproj"].first || "ChessDuo.xcodeproj"
+
+    # Find the most recent previous build-bump commit (before we create a new one)
+    prev_bump = sh("git log -n 1 --grep='^ci: bump build to ' --pretty=format:%H || true").strip
+
+    # Read current build, bump, then commit the change
+    current_build = get_build_number(xcodeproj: xcodeproj_path)
+    increment_build_number(xcodeproj: xcodeproj_path)
+    new_build = get_build_number(xcodeproj: xcodeproj_path)
+
+    commit_version_bump(
+      xcodeproj: xcodeproj_path,
+      message: "ci: bump build to #{new_build}"
+    )
+
+    # Build changelog from commit subjects since the previous bump (exclude bump commits)
+    range = prev_bump.empty? ? "" : "#{prev_bump}..HEAD"
+    computed_changelog = sh(
+      "git log #{range} --pretty=format:%s --no-merges --grep='^ci: bump build to ' --invert-grep || true"
+    ).strip
+    computed_changelog = "Bug fixes and improvements" if computed_changelog.empty?
+
     # --- Build (gym) ---
     scheme_name = (options[:scheme] || "ChessDuo")
     build_ios_app(
@@ -83,7 +106,7 @@ platform :ios do
       groups: [ (options[:group] || "Public Beta") ],
       notify_external_testers: true,
       wait_for_uploaded_build: true,
-      changelog: (options[:changelog] || "Bug fixes and improvements"),
+      changelog: (options[:changelog] || computed_changelog),
       beta_app_description: "Simple two-player offline chessboard.",
       beta_app_feedback_email: "itunes@matthias-juengel.de",
       beta_app_review_info: {
