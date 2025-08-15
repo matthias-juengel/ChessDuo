@@ -318,7 +318,8 @@ struct ContentView: View {
             isCheckmatePosition: isMate,
             singleDevice: !vm.peers.isConnected,
             lastMove: displayedLastMove,
-            disableInteraction: showHistorySlider,
+            historyIndex: vm.historyIndex,
+            disableInteraction: showHistorySlider || vm.historyIndex != nil,
             onAttemptInteraction: { hideHistory() },
             selected: $selected
           ) { from, to, single in
@@ -329,6 +330,11 @@ struct ContentView: View {
           }
           .onChange(of: vm.engine.sideToMove) { newValue in
             if let mine = vm.myColor, mine != newValue { selected = nil }
+          }
+          .onChange(of: vm.historyIndex) { newVal in
+            if newVal != nil { // entering history view -> clear selection
+              withAnimation(.easeInOut(duration: 0.15)) { selected = nil }
+            }
           }
         }
       }
@@ -729,6 +735,8 @@ struct BoardView: View {
   let isCheckmatePosition: Bool
   let singleDevice: Bool
   let lastMove: Move?
+  // Current history index (nil when live). Used to prevent drags that start on historical states.
+  let historyIndex: Int?
   var disableInteraction: Bool = false
   var onAttemptInteraction: () -> Void = {}
   @Binding var selected: Square?
@@ -746,6 +754,9 @@ struct BoardView: View {
   @State private var dragHoldWorkItem: DispatchWorkItem? = nil
   // Track selection state at gesture start to distinguish first tap selection vs. deselect
   @State private var gestureInitialSelected: Square? = nil
+  // History / gesture gating state
+  @State private var gestureHistoryIndexAtStart: Int? = nil
+  @State private var blockedGesture: Bool = false
 
   var bodyx: some View {
     VStack {
@@ -839,13 +850,24 @@ struct BoardView: View {
         DragGesture(minimumDistance: 0)
           .onChanged { value in
             onAttemptInteraction()
+            // Establish gesture start snapshot
+            if dragStartPoint == nil {
+              dragStartPoint = value.location
+              gestureInitialSelected = selected
+              gestureHistoryIndexAtStart = historyIndex
+              // Block entire gesture if interaction disabled OR not on live board at start
+              blockedGesture = disableInteraction || historyIndex != nil
+            }
+            // If gesture was blocked at start, ignore until it ends
+            if blockedGesture { return }
+            // If historyIndex changed during the gesture (e.g., animating out of history), cancel further processing
+            if gestureHistoryIndexAtStart != historyIndex {
+              blockedGesture = true
+              cancelCurrentDrag()
+              return
+            }
             if disableInteraction { return }
             let point = value.location
-            if dragStartPoint == nil {
-              dragStartPoint = point
-              // Capture selection at gesture start
-              gestureInitialSelected = selected
-            }
             // Establish pending drag square on first touch
             if pendingDragFrom == nil && !dragActivated {
               if let sq = square(at: point, boardSide: boardSide, rowArray: rowArray, colArray: colArray, squareSize: squareSize), canPickUp(square: sq) {
@@ -878,6 +900,11 @@ struct BoardView: View {
             }
           }
           .onEnded { value in guard !disableInteraction else { return } ;
+            // If whole gesture was blocked (started in history), just clear state & exit
+            if blockedGesture {
+              resetGestureState()
+              return
+            }
             let point = value.location
             let pieceCenter = adjustedDragCenter(rawPoint: point, squareSize: squareSize)
             let releasedSquare = square(at: pieceCenter, boardSide: boardSide, rowArray: rowArray, colArray: colArray, squareSize: squareSize)
@@ -987,6 +1014,8 @@ struct BoardView: View {
             pendingDragFrom = nil
             dragStartPoint = nil
             gestureInitialSelected = nil
+            gestureHistoryIndexAtStart = nil
+            blockedGesture = false
           }
       )
     }
@@ -1111,6 +1140,24 @@ struct BoardView: View {
       let center = CGPoint(x: frame.midX, y: frame.midY)
       dragOffsetFromCenter = CGSize(width: center.x - point.x, height: center.y - point.y)
     }
+  }
+
+  // Cancel current drag and clear drag-related state (selection left untouched)
+  private func cancelCurrentDrag() {
+    dragHoldWorkItem?.cancel(); dragHoldWorkItem = nil
+    pendingDragFrom = nil
+    draggingFrom = nil
+    dragLocation = nil
+    dragTarget = nil
+    dragOffsetFromCenter = nil
+    dragActivated = false
+  }
+
+  private func resetGestureState() {
+    cancelCurrentDrag()
+    dragStartPoint = nil
+    gestureInitialSelected = nil
+    gestureHistoryIndexAtStart = nil
   }
 }
 
