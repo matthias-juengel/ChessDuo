@@ -93,15 +93,54 @@ struct BoardView: View {
   if let target = gesture.dragTarget, target == sq { return true }
       return false
     }()
-    return SquareView(
-      square: sq,
-      piece: nil,
-      isSelected: selected == sq,
-      isKingInCheck: kingInCheckHighlight,
-      isKingCheckmated: isCheckmatePosition && kingInCheckHighlight,
-      rotateForOpponent: false,
-      lastMoveHighlight: isLastMoveSquare(sq) || dragHighlight
-    )
+    // Determine coordinate labels
+  // Rank numbers should appear on the visually leftmost column.
+  // For white perspective, that's file == 0 (column a). For black perspective (connected mode), that's file == 7.
+  let blackPerspective = (perspective == .black && !singleDevice)
+  let rankLabelFile = blackPerspective ? 7 : 0
+  let showRankLabel = file == rankLabelFile
+  // File letters: normally on white's home rank (rank == 0). If viewing from black perspective in connected mode (not single-device), place on black's home rank (rank == 7).
+  // File letters adapt similarly (already defined blackPerspective above)
+  let fileLabelRank = blackPerspective ? 7 : 0
+  let showFileLabel = rank == fileLabelRank
+    let rankNumber = rank + 1
+    let fileLetter = String(UnicodeScalar("a".unicodeScalars.first!.value + UInt32(file))!)
+    return ZStack {
+      SquareView(
+        square: sq,
+        piece: nil,
+        isSelected: selected == sq,
+        isKingInCheck: kingInCheckHighlight,
+        isKingCheckmated: isCheckmatePosition && kingInCheckHighlight,
+        rotateForOpponent: false,
+        lastMoveHighlight: isLastMoveSquare(sq) || dragHighlight
+      )
+      // Overlay coordinate labels
+      GeometryReader { g in
+        let labelFont = Font.system(size: squareSize * 0.18, weight: .semibold, design: .rounded)
+        let lightGray = Color(red: 0.75, green: 0.75, blue: 0.75)
+        let darkGray = Color(red: 0.25, green: 0.25, blue: 0.25)
+        let isDarkSquare = ((sq.file + sq.rank) % 2 == 0)
+        // Contrast: use opposite tone
+        let labelColor = isDarkSquare ? lightGray : darkGray
+        ZStack {
+          if showRankLabel {
+            Text("\(rankNumber)")
+              .font(labelFont)
+              .foregroundColor(labelColor)
+              .position(x: g.size.width * 0.15, y: g.size.height * 0.18)
+              .accessibilityHidden(true)
+          }
+          if showFileLabel {
+            Text(fileLetter)
+              .font(labelFont)
+              .foregroundColor(labelColor)
+              .position(x: g.size.width * 0.82, y: g.size.height * 0.82)
+              .accessibilityHidden(true)
+          }
+        }
+      }
+    }
     .frame(width: squareSize, height: squareSize)
     .position(x: CGFloat(colIdx) * squareSize + squareSize / 2,
               y: CGFloat(rowIdx) * squareSize + squareSize / 2)
