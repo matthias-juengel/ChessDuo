@@ -14,7 +14,7 @@
 "no" = "Non";
 "opponent_requests_reset" = "L'adversaire veut réinitialiser la partie.";
 "awaiting_confirmation_title" = "En attente de confirmation";
-"reset_request_sent" = "Demande de reset envoyée.";
+"reset_request_sent" = "On attend l'autre joueur...";
 "cancel" = "Annuler";
 "found_devices_section" = "Appareils trouvés";
 "join_title" = "Rejoindre ?";

@@ -14,7 +14,7 @@
 "no" = "No";
 "opponent_requests_reset" = "El oponente quiere reiniciar la partida.";
 "awaiting_confirmation_title" = "Esperando confirmación";
-"reset_request_sent" = "Solicitud de reinicio enviada.";
+"reset_request_sent" = "Esperando al otro jugador...";
 "cancel" = "Cancelar";
 "found_devices_section" = "Dispositivos encontrados";
 "join_title" = "¿Unirse?";

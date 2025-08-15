@@ -8,20 +8,17 @@ struct PeerJoinOverlayView: View {
 
   var body: some View {
     ZStack {
-      Color.black.opacity(0.55)
-        .ignoresSafeArea()
-        .onTapGesture { onCancel() }
-        .accessibilityHidden(true)
-
-      VStack(spacing: 16) {
-        Text(String.loc("found_devices_section"))
-          .font(.title2).bold()
-          .foregroundColor(.white)
-        Text(String.loc("peer_join_subtitle"))
-          .font(.callout)
-          .foregroundColor(.white.opacity(0.85))
-          .multilineTextAlignment(.center)
-          .padding(.horizontal, 4)
+      OverlayBackdrop(onTap: onCancel)
+      ModalCard {
+        VStack(spacing: 16) {
+          Text(String.loc("found_devices_section"))
+            .font(.title2).bold()
+            .foregroundColor(.white)
+          Text(String.loc("peer_join_subtitle"))
+            .font(.callout)
+            .foregroundColor(.white.opacity(0.85))
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 4)
 
         if peers.isEmpty {
           Text(String.loc("no_devices_found"))
@@ -53,24 +50,14 @@ struct PeerJoinOverlayView: View {
           .frame(maxHeight: 260)
         }
 
-        HStack(spacing: 12) {
-          Button(String.loc("cancel")) { onCancel() }
-            .font(.title3)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 8)
-            .background(Color.white.opacity(0.85))
-            .foregroundColor(.black)
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .accessibilityLabel(String.loc("cancel"))
+          HStack(spacing: 12) {
+            Button(String.loc("cancel")) { onCancel() }
+              .buttonStyle(.modal(role: .primary))
+              .accessibilityLabel(String.loc("cancel"))
+          }
         }
       }
-      .padding(24)
-      .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-      .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 8)
-  .frame(maxWidth: 420)
-  .padding(.horizontal, 28) // horizontal inset so it doesn't hug screen edges
-      .transition(.scale(scale: 0.9).combined(with: .opacity))
-      .animation(.spring(response: 0.35, dampingFraction: 0.82), value: peers.count)
+      .modalTransition(animatedWith: (peers.count != 0))
     }
   }
 }

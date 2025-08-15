@@ -332,17 +332,19 @@ struct ContentView: View {
         overlayControls(for: .white)
         overlayControls(for: .black)
           .rotationEffect(.degrees(180))
-          .zIndex(400)
+          .zIndex(OverlayZIndex.peerChooser - 50) // below overlays
       }
   promotionLayer
+  newGameConfirmLayer
   peerChooserLayer
+  connectedResetLayers
   if exportFlash { Text("Copied state")
           .padding(8)
           .background(Color.black.opacity(0.7))
           .foregroundColor(.white)
           .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
           .transition(.opacity)
-          .zIndex(900)
+          .zIndex(OverlayZIndex.exportFlash)
       }
     }
     .onChange(of: vm.discoveredPeerNames) { new in
@@ -365,24 +367,7 @@ struct ContentView: View {
         }
       }
     }
-    // Incoming reset request alert
-    .alert(String.loc("reset_accept_title"), isPresented: $vm.incomingResetRequest, actions: {
-      Button(String.loc("reset_accept_yes")) { vm.respondToResetRequest(accept: true) }
-      Button(String.loc("reset_accept_no"), role: .cancel) { vm.respondToResetRequest(accept: false) }
-    }, message: { Text(String.loc("opponent_requests_reset")) })
-    // Awaiting confirmation info (outgoing) - single neutral button to cancel request
-    .alert(isPresented: $vm.awaitingResetConfirmation) {
-      Alert(title: Text(String.loc("awaiting_confirmation_title")),
-            message: Text(String.loc("reset_request_sent")),
-            dismissButton: .cancel(Text(String.loc("reset_cancel_request"))) {
-        vm.respondToResetRequest(accept: false)
-      })
-    }
-    // Offline new game confirmation
-    .alert(String.loc("offline_new_game_title"), isPresented: $vm.offlineResetPrompt, actions: {
-      Button(String.loc("offline_new_game_keep"), role: .cancel) { vm.offlineResetPrompt = false }
-      Button(String.loc("offline_new_game_confirm"), role: .destructive) { vm.performLocalReset(send: false) }
-    }, message: { Text(String.loc("offline_new_game_message")) })
+  // Connected reset alerts replaced by custom overlays (see connectedResetLayers)
   // Custom peer chooser overlay replaces sheet
     .alert(String.loc("incoming_join_title"), isPresented: Binding<Bool>(get: { vm.incomingJoinRequestPeer != nil }, set: { if !$0 { vm.incomingJoinRequestPeer = nil } })) {
       Button(String.loc("yes")) { vm.respondToIncomingInvitation(true) }
@@ -401,11 +386,38 @@ private extension ContentView {
       if vm.showingPromotionPicker, let pending = vm.pendingPromotionMove {
         let promoColor = vm.engine.board.piece(at: pending.from)?.color ?? vm.engine.sideToMove.opposite
         let rotate = !vm.peers.isConnected && promoColor == .black
-        PromotionPickerView(color: promoColor, rotate180: rotate, onSelect: { vm.promote(to: $0) }, onCancel: { vm.cancelPromotion() })
-          .transition(.scale(scale: 0.9).combined(with: .opacity))
-          .zIndex(500)
-          .ignoresSafeArea()
-          .animation(.spring(response: 0.35, dampingFraction: 0.82), value: vm.showingPromotionPicker)
+        ZStack {
+          OverlayBackdrop(onTap: { vm.cancelPromotion() })
+          ModalCard() {
+            PromotionPickerView(color: promoColor, rotate180: rotate, onSelect: { vm.promote(to: $0) }, onCancel: { vm.cancelPromotion() })
+          }
+        }
+        .modalTransition(animatedWith: vm.showingPromotionPicker)
+  .zIndex(OverlayZIndex.promotion)
+      }
+    }
+  }
+
+  // Connected-mode reset overlays (incoming & awaiting) replacing system alerts.
+  var connectedResetLayers: some View {
+    ZStack {
+      if vm.peers.isConnected { // Only relevant in connected mode
+        if vm.incomingResetRequest {
+          IncomingResetRequestOverlay(
+            message: String.loc("opponent_requests_reset"),
+            acceptTitle: String.loc("reset_accept_yes"),
+            declineTitle: String.loc("reset_accept_no"),
+            onAccept: { vm.respondToResetRequest(accept: true) },
+            onDecline: { vm.respondToResetRequest(accept: false) }
+          )
+        }
+        if vm.awaitingResetConfirmation {
+          AwaitingResetOverlay(
+            cancelTitle: String.loc("reset_cancel_request"),
+            message: String.loc("reset_request_sent"),
+            onCancel: { vm.respondToResetRequest(accept: false) }
+          )
+        }
       }
     }
   }
@@ -413,21 +425,38 @@ private extension ContentView {
   var peerChooserLayer: some View {
     ZStack {
       if showPeerChooser {
-        PeerJoinOverlayView(
-          peers: vm.discoveredPeerNames,
-          selected: selectedPeerToJoin,
-          onSelect: { name in
-            selectedPeerToJoin = name
-            vm.confirmJoin(peerName: name)
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) { showPeerChooser = false }
-          },
-          onCancel: {
-            withAnimation(.easeInOut(duration: 0.25)) { showPeerChooser = false }
-          }
+        ZStack {
+          PeerJoinOverlayView(
+            peers: vm.discoveredPeerNames,
+            selected: selectedPeerToJoin,
+            onSelect: { name in
+              selectedPeerToJoin = name
+              vm.confirmJoin(peerName: name)
+              withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) { showPeerChooser = false }
+            },
+            onCancel: {
+              withAnimation(.easeInOut(duration: 0.25)) { showPeerChooser = false }
+            }
+          )
+        }
+  .zIndex(OverlayZIndex.peerChooser)
+        .modalTransition(animatedWith: showPeerChooser)
+      }
+    }
+  }
+
+  var newGameConfirmLayer: some View {
+    ZStack {
+      if vm.offlineResetPrompt { // Re-use existing state flag
+        NewGameConfirmOverlay(
+          message: String.loc("offline_new_game_message"),
+          destructiveTitle: String.loc("offline_new_game_confirm"),
+          keepTitle: String.loc("offline_new_game_keep"),
+          onConfirm: { vm.performLocalReset(send: false) },
+          onCancel: { vm.offlineResetPrompt = false }
         )
-        .zIndex(450)
-        .transition(.scale(scale: 0.9).combined(with: .opacity))
-        .animation(.spring(response: 0.35, dampingFraction: 0.82), value: showPeerChooser)
+  .zIndex(OverlayZIndex.newGameConfirm)
+        .modalTransition(animatedWith: vm.offlineResetPrompt)
       }
     }
   }

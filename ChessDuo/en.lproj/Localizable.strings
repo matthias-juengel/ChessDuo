@@ -14,7 +14,7 @@
 "no" = "No";
 "opponent_requests_reset" = "Opponent wants to reset the game.";
 "awaiting_confirmation_title" = "Waiting for confirmation";
-"reset_request_sent" = "Reset request sent.";
+"reset_request_sent" = "Waiting for other player...";
 "cancel" = "Cancel";
 "found_devices_section" = "Found Devices";
 "join_title" = "Join?";

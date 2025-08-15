@@ -7,16 +7,11 @@ struct PromotionPickerView: View {
   let onCancel: () -> Void
   private let choices: [PieceType] = [.queen, .rook, .bishop, .knight]
   var body: some View {
-    ZStack {
-      Color.black.opacity(0.55)
-        .ignoresSafeArea()
-        .onTapGesture { onCancel() }
-        .accessibilityHidden(true)
-      VStack(spacing: 16) {
+  VStack(spacing: 16) {
         Text(String.loc("promote_choose"))
           .font(.title2).bold()
           .foregroundColor(.white)
-        HStack(spacing: 20) {
+        HStack(spacing: 14) { // tighter spacing to fit small widths
           ForEach(choices, id: \.self) { pt in
             Button(action: {
 #if canImport(UIKit)
@@ -24,11 +19,12 @@ struct PromotionPickerView: View {
 #endif
               onSelect(pt)
             }) {
+              // Slightly smaller to ensure the row fits on iPhone SE width with card padding
               Text(symbol(for: pt, color: color))
-                .font(.system(size: 48))
-                .frame(width: 64, height: 64)
-                .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.15)))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.6), lineWidth: 1))
+                .font(.system(size: 44))
+                .frame(width: 56, height: 56)
+                .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.18)))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.35), lineWidth: 1))
             }
             .buttonStyle(.plain)
             .accessibilityLabel(accessibilityLabel(for: pt))
@@ -36,17 +32,10 @@ struct PromotionPickerView: View {
           }
         }
         Button(String.loc("cancel")) { onCancel() }
-          .font(.title3)
-          .padding(.horizontal, 20)
-          .padding(.vertical, 8)
-          .background(Color.white.opacity(0.85))
-          .foregroundColor(.black)
-          .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-      }
-      .padding(30)
-      .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-      .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 8)
-    }
+          .buttonStyle(.modal(role: .primary))
+  }
+  // Remove large outer padding; ModalCard already provides internal padding
+  .padding(.top, 6)
     .rotationEffect(rotate180 ? .degrees(180) : .degrees(0))
   }
   private func symbol(for t: PieceType, color: PieceColor) -> String {

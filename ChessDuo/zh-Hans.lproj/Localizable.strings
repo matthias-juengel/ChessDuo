@@ -14,7 +14,7 @@
 "no" = "否";
 "opponent_requests_reset" = "对手想要重新开始。";
 "awaiting_confirmation_title" = "等待确认";
-"reset_request_sent" = "已发送重开请求。";
+"reset_request_sent" = "等待对手...";
 "cancel" = "取消";
 "found_devices_section" = "发现的设备";
 "join_title" = "加入？";
