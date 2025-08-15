@@ -15,17 +15,7 @@ struct BoardView: View {
   @Binding var selected: Square?
   let onMove: (Square, Square, Bool) -> Bool
   @Namespace private var pieceNamespace
-  @State private var draggingFrom: Square? = nil
-  @State private var dragLocation: CGPoint? = nil
-  @State private var dragTarget: Square? = nil
-  @State private var dragOffsetFromCenter: CGSize? = nil
-  @State private var pendingDragFrom: Square? = nil
-  @State private var dragStartPoint: CGPoint? = nil
-  @State private var dragActivated: Bool = false
-  @State private var dragHoldWorkItem: DispatchWorkItem? = nil
-  @State private var gestureInitialSelected: Square? = nil
-  @State private var gestureHistoryIndexAtStart: Int? = nil
-  @State private var blockedGesture: Bool = false
+  @StateObject private var gesture = BoardGestureController()
 
   var body: some View {
     GeometryReader { geo in
@@ -78,9 +68,9 @@ struct BoardView: View {
     let piece = board.piece(at: sq)
     let kingInCheckHighlight = inCheckCurrentSide && piece?.type == .king && piece?.color == sideToMove
     let dragHighlight: Bool = {
-      guard let from = draggingFrom else { return false }
+  guard let from = gesture.draggingFrom else { return false }
       if from == sq { return true }
-      if let target = dragTarget, target == sq { return true }
+  if let target = gesture.dragTarget, target == sq { return true }
       return false
     }()
     return SquareView(
@@ -105,7 +95,7 @@ struct BoardView: View {
     let rowIdx = rowArray.firstIndex(of: item.square.rank) ?? 0
     let colIdx = colArray.firstIndex(of: item.square.file) ?? 0
     return ZStack {
-      let showSelectionRing = selected == item.square && !(dragActivated && draggingFrom == item.square)
+  let showSelectionRing = selected == item.square && !(gesture.dragActivated && gesture.draggingFrom == item.square)
       if showSelectionRing {
         RoundedRectangle(cornerRadius: 6)
           .stroke(Color.white, lineWidth: 2)
@@ -116,29 +106,29 @@ struct BoardView: View {
         .font(.system(size: squareSize * 0.75))
         .foregroundColor(item.piece.color == .white ? .white : .black)
         .rotationEffect(singleDevice && item.piece.color == .black ? .degrees(180) : .degrees(0))
-        .scaleEffect(dragActivated && draggingFrom == item.square ? 3.0 : 1.0)
+  .scaleEffect(gesture.dragActivated && gesture.draggingFrom == item.square ? 3.0 : 1.0)
         .offset(y: pieceLiftOffset(for: item))
-        .shadow(color: dragActivated && draggingFrom == item.square ? Color.black.opacity(0.4) : Color.clear,
+  .shadow(color: gesture.dragActivated && gesture.draggingFrom == item.square ? Color.black.opacity(0.4) : Color.clear,
                 radius: 8, x: 0, y: 4)
     }
     .frame(width: squareSize, height: squareSize)
     .position(
-      x: positionForPiece(item.square,
+  x: gesture.positionForPiece(item.square,
                            defaultPos: CGFloat(colIdx) * squareSize + squareSize / 2,
                            squareSize: squareSize,
-                           axis: .x),
-      y: positionForPiece(item.square,
+           axis: .x),
+  y: gesture.positionForPiece(item.square,
                            defaultPos: CGFloat(rowIdx) * squareSize + squareSize / 2,
                            squareSize: squareSize,
                            axis: .y)
     )
     .matchedGeometryEffect(id: item.piece.id, in: pieceNamespace)
-    .zIndex(zIndexForPiece(item.square))
+  .zIndex(gesture.zIndexForPiece(item.square, selected: selected))
     .contentShape(Rectangle())
   }
 
   private func pieceLiftOffset(for item: (square: Square, piece: Piece)) -> CGFloat {
-    guard dragActivated && draggingFrom == item.square else { return 0 }
+  guard gesture.dragActivated && gesture.draggingFrom == item.square else { return 0 }
     let magnitude = 50.0
     if singleDevice && item.piece.color == .black { return magnitude }
     return -magnitude
@@ -154,41 +144,41 @@ struct BoardView: View {
         onAttemptInteraction()
 
         // Establish gesture baseline on first change
-        if dragStartPoint == nil {
-          dragStartPoint = value.location
-          gestureInitialSelected = selected
-          gestureHistoryIndexAtStart = historyIndex
-          blockedGesture = disableInteraction || historyIndex != nil
+        if gesture.dragStartPoint == nil {
+          gesture.dragStartPoint = value.location
+          gesture.gestureInitialSelected = selected
+          gesture.gestureHistoryIndexAtStart = historyIndex
+          gesture.blockedGesture = disableInteraction || historyIndex != nil
         }
-        guard !blockedGesture else { return }
-        if gestureHistoryIndexAtStart != historyIndex { blockedGesture = true; cancelCurrentDrag(); return }
+        guard !gesture.blockedGesture else { return }
+        if gesture.gestureHistoryIndexAtStart != historyIndex { gesture.blockedGesture = true; gesture.cancelCurrentDrag(); return }
         guard !disableInteraction else { return }
 
         let point = value.location
 
         // Lazy pick-up scheduling (hold or slight move)
-        if pendingDragFrom == nil && !dragActivated, let sq = square(at: point,
+        if gesture.pendingDragFrom == nil && !gesture.dragActivated, let sq = square(at: point,
                                                                     boardSide: boardSide,
                                                                     rowArray: rowArray,
                                                                     colArray: colArray,
                                                                     squareSize: squareSize),
            canPickUp(square: sq) {
-          pendingDragFrom = sq
+          gesture.pendingDragFrom = sq
           selected = sq
           let wi = DispatchWorkItem { activateDrag(at: point,
                                                    boardSide: boardSide,
                                                    rowArray: rowArray,
                                                    colArray: colArray,
                                                    squareSize: squareSize) }
-          dragHoldWorkItem?.cancel()
-          dragHoldWorkItem = wi
+          gesture.dragHoldWorkItem?.cancel()
+          gesture.dragHoldWorkItem = wi
           DispatchQueue.main.asyncAfter(deadline: .now() + 0.18, execute: wi)
         }
 
-        dragLocation = point
+        gesture.dragLocation = point
 
         // Movement threshold promotes to active drag early
-        if !dragActivated, let start = dragStartPoint, pendingDragFrom != nil {
+  if !gesture.dragActivated, let start = gesture.dragStartPoint, gesture.pendingDragFrom != nil {
           let dx = point.x - start.x
           let dy = point.y - start.y
           let dist = sqrt(dx*dx + dy*dy)
@@ -203,38 +193,38 @@ struct BoardView: View {
         }
 
         // Update target square while dragging
-        if dragActivated {
-          let pieceCenter = adjustedDragCenter(rawPoint: point, squareSize: squareSize)
-          dragTarget = square(at: pieceCenter,
+        if gesture.dragActivated {
+          let pieceCenter = gesture.adjustedDragCenter(rawPoint: point, squareSize: squareSize)
+          gesture.dragTarget = square(at: pieceCenter,
                                boardSide: boardSide,
                                rowArray: rowArray,
                                colArray: colArray,
                                squareSize: squareSize)
         } else {
-          dragTarget = nil
+          gesture.dragTarget = nil
         }
       }
       .onEnded { value in
         guard !disableInteraction else { return }
-        if blockedGesture { resetGestureState(); return }
+        if gesture.blockedGesture { gesture.resetGestureState(); return }
 
         let point = value.location
-        let pieceCenter = adjustedDragCenter(rawPoint: point, squareSize: squareSize)
+        let pieceCenter = gesture.adjustedDragCenter(rawPoint: point, squareSize: squareSize)
         let releasedSquare = square(at: pieceCenter,
                                      boardSide: boardSide,
                                      rowArray: rowArray,
                                      colArray: colArray,
                                      squareSize: squareSize)
-        dragHoldWorkItem?.cancel(); dragHoldWorkItem = nil
+        gesture.dragHoldWorkItem?.cancel(); gesture.dragHoldWorkItem = nil
 
         // Tap without drag activation
-        if !dragActivated {
+        if !gesture.dragActivated {
           if let target = releasedSquare { handleTap(target: target) }
-          clearAfterTap()
+          gesture.clearAfterTap()
           return
         }
 
-        guard let origin = draggingFrom else { return }
+        guard let origin = gesture.draggingFrom else { return }
         let performedMove = releasedSquare.map { release in
           handleDragRelease(origin: origin,
                             release: release,
@@ -242,11 +232,9 @@ struct BoardView: View {
                             rowArray: rowArray,
                             colArray: colArray)
         } ?? false
-        finalizeDrag(performedMove: performedMove,
-                     origin: origin,
-                     squareSize: squareSize,
-                     rowArray: rowArray,
-                     colArray: colArray)
+        gesture.finalizeDrag(performedMove: performedMove,
+                             origin: origin,
+                             frameProvider: { sq in squareFrame(for: sq, rowArray: rowArray, colArray: colArray, squareSize: squareSize) })
       }
   }
 
@@ -254,7 +242,7 @@ struct BoardView: View {
   private func handleTap(target: Square) {
     if let sel = selected {
       if sel == target {
-        if let initial = gestureInitialSelected, initial == sel {
+  if let initial = gesture.gestureInitialSelected, initial == sel {
           withAnimation(.easeInOut(duration: 0.18)) { selected = nil }
         }
         return
@@ -298,96 +286,11 @@ struct BoardView: View {
     }
     return performedMove
   }
-  private func finalizeDrag(performedMove: Bool,
-                            origin: Square,
-                            squareSize: CGFloat,
-                            rowArray: [Int],
-                            colArray: [Int]) {
-    if !performedMove {
-      if let originFrame = squareFrame(for: origin,
-                                       rowArray: rowArray,
-                                       colArray: colArray,
-                                       squareSize: squareSize) {
-        let center = CGPoint(x: originFrame.midX, y: originFrame.midY)
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.72)) {
-          dragActivated = false
-          if let off = dragOffsetFromCenter {
-            dragLocation = CGPoint(x: center.x - off.width, y: center.y - off.height)
-          } else {
-            dragLocation = center
-          }
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.46) {
-          if draggingFrom == origin {
-            draggingFrom = nil
-            dragLocation = nil
-            dragTarget = nil
-            dragOffsetFromCenter = nil
-          }
-        }
-      } else {
-        draggingFrom = nil
-        dragLocation = nil
-        dragTarget = nil
-        dragOffsetFromCenter = nil
-        dragActivated = false
-      }
-    } else {
-      draggingFrom = nil
-      dragLocation = nil
-      dragTarget = nil
-      dragOffsetFromCenter = nil
-      dragActivated = false
-    }
-    pendingDragFrom = nil
-    dragStartPoint = nil
-    gestureInitialSelected = nil
-    gestureHistoryIndexAtStart = nil
-    blockedGesture = false
-  }
-
-  private func clearAfterTap() {
-    pendingDragFrom = nil
-    draggingFrom = nil
-    dragLocation = nil
-    dragTarget = nil
-    dragOffsetFromCenter = nil
-    dragActivated = false
-    dragStartPoint = nil
-    gestureInitialSelected = nil
-  }
+  // finalizeDrag & clearAfterTap moved into BoardGestureController
 
   // Drag helpers
   // MARK: - Computation Helpers
-  private enum Axis { case x, y }
-
-  private func positionForPiece(_ sq: Square,
-                                defaultPos: CGFloat,
-                                squareSize: CGFloat,
-                                axis: Axis) -> CGFloat {
-    guard let from = draggingFrom, from == sq, let dragLocation else { return defaultPos }
-    var pos: CGFloat = (axis == .x ? dragLocation.x : dragLocation.y)
-    if let off = dragOffsetFromCenter { pos += (axis == .x ? off.width : off.height) }
-    let limit = squareSize * 8
-    return min(max(pos, 0), limit)
-  }
-
-  private func adjustedDragCenter(rawPoint: CGPoint,
-                                  squareSize: CGFloat) -> CGPoint {
-    var x = rawPoint.x
-    var y = rawPoint.y
-    if let off = dragOffsetFromCenter { x += off.width; y += off.height }
-    let limit = squareSize * 8
-    x = min(max(x, 0), limit)
-    y = min(max(y, 0), limit)
-    return CGPoint(x: x, y: y)
-  }
-
-  private func zIndexForPiece(_ sq: Square) -> Double {
-    if draggingFrom == sq { return 500 }
-    if selected == sq { return 100 }
-    return 10
-  }
+  // Axis, position, adjusted center & z-index helpers now live in BoardGestureController
 
   private func squareFrame(for sq: Square,
                            rowArray: [Int],
@@ -460,34 +363,15 @@ struct BoardView: View {
                              rowArray: [Int],
                              colArray: [Int],
                              squareSize: CGFloat) {
-    guard !dragActivated, let sq = pendingDragFrom else { return }
-    draggingFrom = sq
-    dragActivated = true
-    if let frame = squareFrame(for: sq,
-                               rowArray: rowArray,
-                               colArray: colArray,
-                               squareSize: squareSize) {
-      let center = CGPoint(x: frame.midX, y: frame.midY)
-      dragOffsetFromCenter = CGSize(width: center.x - point.x,
-                                    height: center.y - point.y)
-    }
+  gesture.activateDrag(at: point) { sq in squareFrame(for: sq, rowArray: rowArray, colArray: colArray, squareSize: squareSize) }
   }
 
   private func cancelCurrentDrag() {
-    dragHoldWorkItem?.cancel(); dragHoldWorkItem = nil
-    pendingDragFrom = nil
-    draggingFrom = nil
-    dragLocation = nil
-    dragTarget = nil
-    dragOffsetFromCenter = nil
-    dragActivated = false
+  gesture.cancelCurrentDrag()
   }
 
   private func resetGestureState() {
-    cancelCurrentDrag()
-    dragStartPoint = nil
-    gestureInitialSelected = nil
-    gestureHistoryIndexAtStart = nil
+  gesture.resetGestureState()
   }
 
   private func isLastMoveSquare(_ sq: Square) -> Bool {
