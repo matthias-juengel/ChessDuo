@@ -32,3 +32,16 @@
 "offline_new_game_confirm" = "Nouvelle partie";
 
 "promote_choose" = "Choisir la pièce";
+
+/* Noms des pièces */
+"piece_queen" = "Dame";
+"piece_rook" = "Tour";
+"piece_bishop" = "Fou";
+"piece_knight" = "Cavalier";
+"piece_king" = "Roi";
+"piece_pawn" = "Pion";
+/* Couleurs */
+"color_white" = "Blanc";
+"color_black" = "Noir";
+/* Accessibilité: Promouvoir en <pièce> (<couleur>) */
+"promote_accessibility" = "Promouvoir en %@ (%@)";

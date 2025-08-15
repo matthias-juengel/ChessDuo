@@ -32,3 +32,16 @@
 "offline_new_game_confirm" = "新游戏";
 
 "promote_choose" = "选择升变";
+
+/* 棋子名称 */
+"piece_queen" = "后";
+"piece_rook" = "车";
+"piece_bishop" = "象";
+"piece_knight" = "马";
+"piece_king" = "王";
+"piece_pawn" = "兵";
+/* 颜色 */
+"color_white" = "白";
+"color_black" = "黑";
+/* 辅助功能：升变为 <棋子> (<颜色>) */
+"promote_accessibility" = "升变为 %@ (%@)";

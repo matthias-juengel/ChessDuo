@@ -32,3 +32,16 @@
 "offline_new_game_confirm" = "Neues Spiel";
 
 "promote_choose" = "Umwandlung wählen";
+
+/* Schachfiguren */
+"piece_queen" = "Dame";
+"piece_rook" = "Turm";
+"piece_bishop" = "Läufer";
+"piece_knight" = "Springer";
+"piece_king" = "König";
+"piece_pawn" = "Bauer";
+/* Farben */
+"color_white" = "Weiß";
+"color_black" = "Schwarz";
+/* Accessibility: Umwandeln in <piece> (<color>) */
+"promote_accessibility" = "Umwandeln in %@ (%@)";

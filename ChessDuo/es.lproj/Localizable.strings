@@ -32,3 +32,16 @@
 "offline_new_game_confirm" = "Nueva partida";
 
 "promote_choose" = "Elegir pieza";
+
+/* Piezas de ajedrez */
+"piece_queen" = "Dama";
+"piece_rook" = "Torre";
+"piece_bishop" = "Alfil";
+"piece_knight" = "Caballo";
+"piece_king" = "Rey";
+"piece_pawn" = "Peón";
+/* Colores */
+"color_white" = "Blancas";
+"color_black" = "Negras";
+/* Accesibilidad: Coronar a <pieza> (<color>) */
+"promote_accessibility" = "Coronar a %@ (%@)";

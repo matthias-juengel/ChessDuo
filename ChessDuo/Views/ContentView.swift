@@ -334,14 +334,7 @@ struct ContentView: View {
           .rotationEffect(.degrees(180))
           .zIndex(400)
       }
-      if vm.showingPromotionPicker, let pending = vm.pendingPromotionMove {
-        let promoColor = vm.engine.board.piece(at: pending.from)?.color ?? vm.engine.sideToMove.opposite
-        let rotate = !vm.peers.isConnected && promoColor == .black
-        PromotionPickerView(color: promoColor, rotate180: rotate, onSelect: { vm.promote(to: $0) }, onCancel: { vm.cancelPromotion() })
-          .transition(.scale.combined(with: .opacity))
-          .zIndex(500)
-          .ignoresSafeArea()
-      }
+  promotionLayer
   if exportFlash { Text("Copied state")
           .padding(8)
           .background(Color.black.opacity(0.7))
@@ -414,6 +407,23 @@ struct ContentView: View {
       Text(String.loc("incoming_join_message", vm.incomingJoinRequestPeer ?? ""))
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+}
+
+private extension ContentView {
+  // Dedicated overlay layer to isolate promotion picker transitions from the board layout.
+  var promotionLayer: some View {
+    ZStack { // Always present layer to avoid parent ZStack layout changes.
+      if vm.showingPromotionPicker, let pending = vm.pendingPromotionMove {
+        let promoColor = vm.engine.board.piece(at: pending.from)?.color ?? vm.engine.sideToMove.opposite
+        let rotate = !vm.peers.isConnected && promoColor == .black
+        PromotionPickerView(color: promoColor, rotate180: rotate, onSelect: { vm.promote(to: $0) }, onCancel: { vm.cancelPromotion() })
+          .transition(.scale(scale: 0.9).combined(with: .opacity))
+          .zIndex(500)
+          .ignoresSafeArea()
+          .animation(.spring(response: 0.35, dampingFraction: 0.82), value: vm.showingPromotionPicker)
+      }
+    }
   }
 }
 

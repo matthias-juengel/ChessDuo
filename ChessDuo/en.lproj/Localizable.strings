@@ -32,3 +32,16 @@
 "offline_new_game_confirm" = "New game";
 
 "promote_choose" = "Choose promotion";
+
+/* Chess piece names */
+"piece_queen" = "Queen";
+"piece_rook" = "Rook";
+"piece_bishop" = "Bishop";
+"piece_knight" = "Knight";
+"piece_king" = "King";
+"piece_pawn" = "Pawn";
+/* Color names */
+"color_white" = "White";
+"color_black" = "Black";
+/* Accessibility: Promote to <piece> (<color>) */
+"promote_accessibility" = "Promote to %@ (%@)";
