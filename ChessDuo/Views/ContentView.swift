@@ -8,6 +8,74 @@
 
 import SwiftUI
 
+// Helper data container for historical capture reconstruction (must be outside ViewBuilder closures)
+private struct HistData {
+  let whiteCaps: [Piece]   // pieces captured by White (i.e., black pieces removed)
+  let blackCaps: [Piece]   // pieces captured by Black (i.e., white pieces removed)
+  let lastCapturePieceID: UUID? // id of the last piece captured up to a history index
+  let capturingSide: PieceColor? // which side made that last capture
+}
+
+// Aggregated capture context used by the UI (live or historical)
+private struct CaptureContext {
+  let whiteCaptures: [Piece]
+  let blackCaptures: [Piece]
+  let lastCapturePieceID: UUID?
+  let lastCapturingSide: PieceColor?
+}
+
+private extension ContentView {
+  func captureContext() -> CaptureContext {
+    // Historical reconstruction if needed
+    if let idx = vm.historyIndex {
+      var engine = ChessEngine()
+      var capsByWhite: [Piece] = []
+      var capsByBlack: [Piece] = []
+      var lastCapID: UUID? = nil
+      var capturingSide: PieceColor? = nil
+      let upto = min(idx, vm.moveHistory.count)
+      for i in 0..<upto {
+        let move = vm.moveHistory[i]
+        var capturedPiece: Piece? = nil
+        if let piece = engine.board.piece(at: move.to) {
+          capturedPiece = piece
+        } else if let moving = engine.board.piece(at: move.from), moving.type == .pawn, move.from.file != move.to.file, engine.board.piece(at: move.to) == nil {
+          let dir = moving.color == .white ? 1 : -1
+            let capturedSq = Square(file: move.to.file, rank: move.to.rank - dir)
+            if let epPawn = engine.board.piece(at: capturedSq), epPawn.color != moving.color, epPawn.type == .pawn { capturedPiece = epPawn }
+        }
+        if let cap = capturedPiece {
+          if cap.color == .white { // black captured white piece
+            capsByBlack.append(cap)
+            lastCapID = cap.id
+            capturingSide = .black
+          } else {
+            capsByWhite.append(cap)
+            lastCapID = cap.id
+            capturingSide = .white
+          }
+        }
+        _ = engine.tryMakeMove(move)
+      }
+      return CaptureContext(whiteCaptures: capsByWhite, blackCaptures: capsByBlack, lastCapturePieceID: lastCapID, lastCapturingSide: capturingSide)
+    }
+    // Live context
+    if let my = vm.myColor { // connected: adapt perspective lists to absolute colors
+      let whiteCaps = (my == .white) ? vm.capturedByMe : vm.capturedByOpponent
+      let blackCaps = (my == .black) ? vm.capturedByMe : vm.capturedByOpponent
+  return CaptureContext(whiteCaptures: whiteCaps, blackCaptures: blackCaps, lastCapturePieceID: vm.lastCapturedPieceID, lastCapturingSide: (vm.lastCaptureByMe == true ? my : my.opposite))
+    } else { // single device
+      let whiteCaps = vm.capturedByMe
+      let blackCaps = vm.capturedByOpponent
+      let lastSide: PieceColor? = {
+        guard vm.lastCapturedPieceID != nil else { return nil }
+        return (vm.lastCaptureByMe == true ? .white : .black)
+      }()
+      return CaptureContext(whiteCaptures: whiteCaps, blackCaptures: blackCaps, lastCapturePieceID: vm.lastCapturedPieceID, lastCapturingSide: lastSide)
+    }
+  }
+}
+
 struct ContentView: View {
   @StateObject private var vm = GameViewModel()
   @State private var selected: Square? = nil
@@ -94,8 +162,7 @@ struct ContentView: View {
    private func turnStatus(for overlayColor: PieceColor?) -> (text: String, color: Color)? {
     // Don't show turn status when viewing historic positions
     guard !vm.inHistoryView else { return nil }
-
-    print("overlayColor", overlayColor)
+  // Debug print removed
     let currentSideToMove = vm.displayedSideToMove
     switch vm.displayedOutcomeForSide(overlayColor ?? currentSideToMove) {
     case .ongoing:
@@ -191,49 +258,28 @@ struct ContentView: View {
   var boardWithCapturedPieces: some View {
     VStack(spacing: 0) {
       Spacer() // neded to align center with background
-      let historicalHighlight = vm.historyIndex.flatMap { vm.historicalCaptureHighlight(at: $0) }
-      // Compute per-color captured material and leads (always show both sides' leads, even if 0)
-      let (whiteCaptures, blackCaptures): ([Piece],[Piece]) = {
-        if let my = vm.myColor { // connected mode: map perspective lists to absolute colors
-          if vm.historyIndex == nil {
-            let whiteCaps = (my == .white) ? vm.capturedByMe : vm.capturedByOpponent
-            let blackCaps = (my == .black) ? vm.capturedByMe : vm.capturedByOpponent
-            return (whiteCaps, blackCaps)
-          } else { // historical reconstruction
-            let myHistWhite = capturedAtHistory(byMe: my == .white)
-            let myHistBlack = capturedAtHistory(byMe: my == .black)
-            // We produced two reconstructions; map again
-            let whiteCaps = (my == .white) ? myHistWhite : myHistBlack
-            let blackCaps = (my == .black) ? myHistBlack : myHistWhite
-            return (whiteCaps, blackCaps)
-          }
-        } else { // single-device mode: byMe == white
-          if vm.historyIndex == nil {
-            return (vm.capturedByMe, vm.capturedByOpponent) // capturedByMe == white, capturedByOpponent == black
-          } else {
-            return (capturedAtHistory(byMe: true), capturedAtHistory(byMe: false))
-          }
-        }
-      }()
+      // Vorbereitete Capture-/Highlight-Daten (ausgelagert, damit ViewBuilder sauber bleibt)
+      let ctx = captureContext()
+      let whiteCaptures = ctx.whiteCaptures
+      let blackCaptures = ctx.blackCaptures
       let whitePoints = whiteCaptures.reduce(0) { $0 + pieceValue($1) }
       let blackPoints = blackCaptures.reduce(0) { $0 + pieceValue($1) }
       let whiteLead = max(whitePoints - blackPoints, 0)
       let blackLead = max(blackPoints - whitePoints, 0)
+      let topSide: PieceColor = vm.peers.isConnected ? ( (vm.myColor == .white) ? .black : .white ) : .black
+      let bottomSide: PieceColor = vm.peers.isConnected ? (vm.myColor ?? .white) : .white
+      let topPieces = topSide == .black ? blackCaptures : whiteCaptures
+      let bottomPieces = bottomSide == .white ? whiteCaptures : blackCaptures
       CapturedRow(
-        pieces: vm.historyIndex == nil ? vm.capturedByOpponent : capturedAtHistory(byMe: false),
+        pieces: topPieces,
         rotatePieces: !vm.peers.isConnected,
         highlightPieceID: {
-          if let h = historicalHighlight, !h.byMe { return h.pieceID }
+          if vm.historyIndex != nil, let pid = ctx.lastCapturePieceID, let side = ctx.lastCapturingSide, side == topSide { return pid }
           if vm.historyIndex == nil, vm.lastCaptureByMe == false { return vm.lastCapturedPieceID }
           return nil
         }(),
         pointAdvantage: {
-          // Opponent row shows black lead (single-device) or opponent's lead (connected)
-          if let my = vm.myColor { // connected
-            if my == .white { return blackLead } else { return whiteLead }
-          } else { // single device top row is black
-            return blackLead
-          }
+          topSide == .black ? blackLead : whiteLead
         }()
       )
       .padding(.horizontal, 10)
@@ -275,19 +321,15 @@ struct ContentView: View {
       .aspectRatio(1, contentMode: .fit)
       Color.black.frame(height: 2)
       CapturedRow(
-        pieces: vm.historyIndex == nil ? vm.capturedByMe : capturedAtHistory(byMe: true),
+        pieces: bottomPieces,
         rotatePieces: false,
         highlightPieceID: {
-          if let h = historicalHighlight, h.byMe { return h.pieceID }
-            if vm.historyIndex == nil, vm.lastCaptureByMe == true { return vm.lastCapturedPieceID }
-            return nil
+          if vm.historyIndex != nil, let pid = ctx.lastCapturePieceID, let side = ctx.lastCapturingSide, side == bottomSide { return pid }
+          if vm.historyIndex == nil, vm.lastCaptureByMe == true { return vm.lastCapturedPieceID }
+          return nil
         }(),
         pointAdvantage: {
-          if let my = vm.myColor { // connected bottom row is me
-            if my == .white { return whiteLead } else { return blackLead }
-          } else { // single device bottom row is white
-            return whiteLead
-          }
+          bottomSide == .white ? whiteLead : blackLead
         }()
       )
       .padding(.horizontal, 10)
