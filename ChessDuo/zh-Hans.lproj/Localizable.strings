@@ -45,3 +45,6 @@
 "color_black" = "黑";
 /* 辅助功能：升变为 <棋子> (<颜色>) */
 "promote_accessibility" = "升变为 %@ (%@)";
+
+/* 连接提示副标题 */
+"peer_join_subtitle" = "点按设备名称以连接";

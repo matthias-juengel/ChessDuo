@@ -45,3 +45,6 @@
 "color_black" = "Schwarz";
 /* Accessibility: Umwandeln in <piece> (<color>) */
 "promote_accessibility" = "Umwandeln in %@ (%@)";
+
+/* Peer join overlay Untertitel */
+"peer_join_subtitle" = "Tippe auf ein Gerät zum Verbinden";

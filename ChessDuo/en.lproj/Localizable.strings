@@ -45,3 +45,6 @@
 "color_black" = "Black";
 /* Accessibility: Promote to <piece> (<color>) */
 "promote_accessibility" = "Promote to %@ (%@)";
+
+/* Peer join overlay subtitle */
+"peer_join_subtitle" = "Tap a device name to connect";

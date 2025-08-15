@@ -45,3 +45,6 @@
 "color_black" = "Negras";
 /* Accesibilidad: Coronar a <pieza> (<color>) */
 "promote_accessibility" = "Coronar a %@ (%@)";
+
+/* Subtítulo para conexión */
+"peer_join_subtitle" = "Toca un dispositivo para conectar";

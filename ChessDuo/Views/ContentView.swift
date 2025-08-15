@@ -335,6 +335,7 @@ struct ContentView: View {
           .zIndex(400)
       }
   promotionLayer
+  peerChooserLayer
   if exportFlash { Text("Copied state")
           .padding(8)
           .background(Color.black.opacity(0.7))
@@ -382,24 +383,7 @@ struct ContentView: View {
       Button(String.loc("offline_new_game_keep"), role: .cancel) { vm.offlineResetPrompt = false }
       Button(String.loc("offline_new_game_confirm"), role: .destructive) { vm.performLocalReset(send: false) }
     }, message: { Text(String.loc("offline_new_game_message")) })
-    .sheet(isPresented: $showPeerChooser) {
-      NavigationView {
-        List {
-          Section(String.loc("found_devices_section")) {
-            ForEach(vm.discoveredPeerNames, id: \.self) { name in
-              Button(action: { selectedPeerToJoin = name; vm.confirmJoin(peerName: name); showPeerChooser = false }) {
-                HStack { Text(name); Spacer(); if selectedPeerToJoin == name { Image(systemName: "checkmark") } }
-              }
-            }
-          }
-          if vm.discoveredPeerNames.isEmpty {
-            Text(String.loc("no_devices_found"))
-          }
-        }
-        .navigationTitle(String.loc("join_title"))
-        .toolbar { ToolbarItem(placement: .cancellationAction) { Button(String.loc("cancel")) { showPeerChooser = false } } }
-      }
-    }
+  // Custom peer chooser overlay replaces sheet
     .alert(String.loc("incoming_join_title"), isPresented: Binding<Bool>(get: { vm.incomingJoinRequestPeer != nil }, set: { if !$0 { vm.incomingJoinRequestPeer = nil } })) {
       Button(String.loc("yes")) { vm.respondToIncomingInvitation(true) }
       Button(String.loc("no"), role: .cancel) { vm.respondToIncomingInvitation(false) }
@@ -422,6 +406,28 @@ private extension ContentView {
           .zIndex(500)
           .ignoresSafeArea()
           .animation(.spring(response: 0.35, dampingFraction: 0.82), value: vm.showingPromotionPicker)
+      }
+    }
+  }
+
+  var peerChooserLayer: some View {
+    ZStack {
+      if showPeerChooser {
+        PeerJoinOverlayView(
+          peers: vm.discoveredPeerNames,
+          selected: selectedPeerToJoin,
+          onSelect: { name in
+            selectedPeerToJoin = name
+            vm.confirmJoin(peerName: name)
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) { showPeerChooser = false }
+          },
+          onCancel: {
+            withAnimation(.easeInOut(duration: 0.25)) { showPeerChooser = false }
+          }
+        )
+        .zIndex(450)
+        .transition(.scale(scale: 0.9).combined(with: .opacity))
+        .animation(.spring(response: 0.35, dampingFraction: 0.82), value: showPeerChooser)
       }
     }
   }

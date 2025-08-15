@@ -45,3 +45,6 @@
 "color_black" = "Noir";
 /* Accessibilité: Promouvoir en <pièce> (<couleur>) */
 "promote_accessibility" = "Promouvoir en %@ (%@)";
+
+/* Sous-titre de connexion pair */
+"peer_join_subtitle" = "Touchez un appareil pour vous connecter";
