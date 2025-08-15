@@ -164,24 +164,17 @@ struct ContentView: View {
           hideHistory()
           vm.resetGame()
         }) {
-          Text(vm.peers.isConnected && vm.awaitingResetConfirmation ? String.loc("new_game_confirm") : String.loc("new_game"))
-            .font(.title3)
-            .fontWeight(.semibold)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(Color.white.opacity(vm.peers.isConnected && vm.awaitingResetConfirmation ? 0.7 : 0.9))
-            .foregroundColor(.black)
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.black.opacity(0.8), lineWidth: 1))
+            Text(vm.peers.isConnected && vm.awaitingResetConfirmation ? String.loc("new_game_confirm") : String.loc("new_game"))
+              .fontWeight(.semibold)
         }
+          .buttonStyle(.modal(role: .primary, size: .compact))
         .transition(.opacity)
       } else {
-        Text(String.loc("new_game"))
-          .font(.title3)
-          .fontWeight(.semibold)
-          .padding(.horizontal, 10)
-          .padding(.vertical, 5)
-          .opacity(0)
+          Text(String.loc("new_game"))
+            .font(.callout.weight(.semibold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .opacity(0) // maintain layout height
       }
     }
   }
@@ -557,13 +550,7 @@ private extension ContentView {
 
   var swapColorButton: some View {
     Button(String.loc("play_black")) { vm.swapColorsIfAllowed() }
-      .font(.title)
-      .padding(.horizontal, 10)
-      .padding(.vertical, 5)
-      .background(Color.white.opacity(0.9))
-      .foregroundColor(.black)
-      .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-      .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.black.opacity(0.8), lineWidth: 1))
+      .buttonStyle(.modal(role: .primary, size: .compact))
   }
 }
 

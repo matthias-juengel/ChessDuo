@@ -71,12 +71,13 @@ extension View {
 
 // MARK: - Modal Action Button Style
 
-enum ModalButtonRole {
-  case primary, secondary, destructive
-}
+enum ModalButtonRole { case primary, secondary, destructive }
+
+enum ModalButtonSize { case regular, compact }
 
 struct ModalActionButtonStyle: ButtonStyle {
   var role: ModalButtonRole
+  var size: ModalButtonSize = .regular
   func makeBody(configuration: Configuration) -> some View {
     let bg: Color
     let fg: Color
@@ -91,15 +92,19 @@ struct ModalActionButtonStyle: ButtonStyle {
       bg = Color.red.opacity(0.85)
       fg = .white
     }
+    let hPad: CGFloat = (size == .regular) ? 18 : 10
+    let vPad: CGFloat = (size == .regular) ? 10 : 6
+    let corner: CGFloat = (size == .regular) ? 14 : 10
+    let font: Font = (size == .regular) ? .title3 : .callout.weight(.semibold)
     return configuration.label
-      .font(.title3)
-      .padding(.horizontal, 18)
-      .padding(.vertical, 10)
+      .font(font)
+      .padding(.horizontal, hPad)
+      .padding(.vertical, vPad)
       .background(bg)
       .foregroundColor(fg)
-      .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+      .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
       .overlay(
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
+        RoundedRectangle(cornerRadius: corner, style: .continuous)
           .stroke(Color.white.opacity(role == .secondary ? 0.35 : 0.0), lineWidth: 1)
       )
   .fixedSize(horizontal: true, vertical: false) // avoid multi-line wrap
@@ -109,9 +114,7 @@ struct ModalActionButtonStyle: ButtonStyle {
 }
 
 extension ButtonStyle where Self == ModalActionButtonStyle {
-  static func modal(role: ModalButtonRole) -> ModalActionButtonStyle { ModalActionButtonStyle(role: role) }
+  static func modal(role: ModalButtonRole, size: ModalButtonSize = .regular) -> ModalActionButtonStyle { ModalActionButtonStyle(role: role, size: size) }
 }
 
-extension View {
-  func modalButton(role: ModalButtonRole) -> some View { buttonStyle(.modal(role: role)) }
-}
+extension View { func modalButton(role: ModalButtonRole, size: ModalButtonSize = .regular) -> some View { buttonStyle(.modal(role: role, size: size)) } }
