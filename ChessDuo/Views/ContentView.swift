@@ -93,22 +93,23 @@ struct ContentView: View {
   // Compute status text for a specific overlay perspective (overlayColor).
    private func turnStatus(for overlayColor: PieceColor?) -> (text: String, color: Color)? {
     print("overlayColor", overlayColor)
-    switch vm.outcomeForSide(overlayColor ?? vm.engine.sideToMove) {
+    let currentSideToMove = vm.displayedSideToMove
+    switch vm.displayedOutcomeForSide(overlayColor ?? currentSideToMove) {
     case .ongoing:
-      let baseColor = vm.engine.sideToMove == .white ? String.loc("turn_white") : String.loc("turn_black")
+      let baseColor = currentSideToMove == .white ? String.loc("turn_white") : String.loc("turn_black")
       let showYou: Bool = {
         if vm.peers.isConnected {
           // Only my own overlay and only if I'm the side to move
-          if let mine = vm.myColor, let ov = overlayColor, mine == ov, mine == vm.engine.sideToMove { return true }
+          if let mine = vm.myColor, let ov = overlayColor, mine == ov, mine == currentSideToMove { return true }
           return false
         } else {
           // Single-device: only the overlay whose color is the side to move shows (you)
-          if let ov = overlayColor, ov == vm.engine.sideToMove { return true }
+          if let ov = overlayColor, ov == currentSideToMove { return true }
           return false
         }
       }()
       let colorText = showYou ? baseColor + " " + String.loc("you_mark") : baseColor
-      let fg = vm.engine.sideToMove == .white ? Color.white : Color.black
+      let fg = currentSideToMove == .white ? Color.white : Color.black
       return (String.loc("turn_prefix", colorText), fg)
     case .win: return (String.loc("win_text"), .green)
     case .loss: return (String.loc("loss_text"), .red)
@@ -160,15 +161,16 @@ struct ContentView: View {
     // Full-screen background indicating turn status
     ZStack {
       Color(red: 0.5, green: 0.5, blue: 0.5)
-      if vm.outcomeForSide(vm.engine.sideToMove) == .ongoing { // show turn background only while game running
+      let currentSideToMove = vm.displayedSideToMove
+      if vm.displayedOutcomeForSide(currentSideToMove) == .ongoing { // show turn background only while game running
         if vm.peers.isConnected {
-          if let my = vm.myColor, vm.engine.sideToMove == my {
+          if let my = vm.myColor, currentSideToMove == my {
             Color.green.opacity(0.4)
           }
         } else {
           // Single-device: highlight only the half belonging to the side to move
           VStack(spacing: 0) {
-            if vm.engine.sideToMove == .black {
+            if currentSideToMove == .black {
               Color.green.opacity(0.38)
               Color.clear
             } else {
@@ -195,8 +197,8 @@ struct ContentView: View {
       Color.black.frame(height: 2)
       ZStack {
         Group {
-          let inCheck = vm.engine.isInCheck(vm.engine.sideToMove)
-          let isMate = inCheck && vm.engine.isCheckmate(for: vm.engine.sideToMove)
+          let inCheck = vm.isDisplayedSideInCheck()
+          let isMate = inCheck && vm.isDisplayedSideCheckmated()
           let displayedLastMove: Move? = {
             if let idx = vm.historyIndex {
               if idx > 0 && idx <= vm.moveHistory.count { return vm.moveHistory[idx - 1] } else { return nil }
@@ -206,7 +208,7 @@ struct ContentView: View {
           BoardView(board: vm.displayedBoard,
                     perspective: vm.myColor ?? .white,
                     myColor: vm.myColor ?? .white,
-                    sideToMove: vm.engine.sideToMove,
+                    sideToMove: vm.displayedSideToMove,
                     inCheckCurrentSide: inCheck,
                     isCheckmatePosition: isMate,
                     singleDevice: !vm.peers.isConnected,

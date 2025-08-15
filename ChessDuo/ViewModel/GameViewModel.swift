@@ -668,6 +668,60 @@ extension GameViewModel {
   var displayedBoard: Board { historyIndex.map { boardAfterMoves($0) } ?? engine.board }
   var inHistoryView: Bool { historyIndex != nil }
 
+  // Get the side to move for the displayed board (historical or current)
+  var displayedSideToMove: PieceColor {
+    guard let idx = historyIndex else { return engine.sideToMove }
+    // Side to move alternates with each move, starting with white
+    return (idx % 2 == 0) ? .white : .black
+  }
+
+  // Check if the current side is in check on the displayed board
+  func isDisplayedSideInCheck() -> Bool {
+    let board = displayedBoard
+    let sideToMove = displayedSideToMove
+
+    // Create a temporary engine to use the check detection methods
+    let tempEngine = ChessEngine.fromSnapshot(board: board, sideToMove: sideToMove)
+    return tempEngine.isInCheck(sideToMove)
+  }
+
+  // Check if the current side is checkmated on the displayed board
+  func isDisplayedSideCheckmated() -> Bool {
+    let board = displayedBoard
+    let sideToMove = displayedSideToMove
+
+    // Create a temporary engine to use the checkmate detection methods
+    let tempEngine = ChessEngine.fromSnapshot(board: board, sideToMove: sideToMove)
+    return tempEngine.isCheckmate(for: sideToMove)
+  }
+
+  // Get the game outcome for the displayed board (historical or current)
+  func displayedOutcomeForSide(_ side: PieceColor) -> GameOutcome {
+    // If we're not in history view, use the current outcome
+    guard historyIndex != nil else { return outcomeForSide(side) }
+
+    let board = displayedBoard
+    let sideToMove = displayedSideToMove
+
+    // Create a temporary engine to use the outcome detection methods
+    let tempEngine = ChessEngine.fromSnapshot(board: board, sideToMove: sideToMove)
+
+    let isMate = tempEngine.isCheckmate(for: side)
+    let isStale = tempEngine.isStalemate(for: side)
+    // Note: threefold repetition is complex for historical positions, so we skip it in history view
+
+    if isMate { return .loss }
+    else if isStale { return .draw }
+
+    let otherSide = side == .white ? PieceColor.black : PieceColor.white
+
+    if tempEngine.isCheckmate(for: otherSide) {
+      return .win
+    } else {
+      return .ongoing
+    }
+  }
+
   // Calculate point advantage based on captured pieces
   func pointAdvantage(forMe: Bool) -> Int {
     let myPieces = capturedByMe
