@@ -92,6 +92,9 @@ struct ContentView: View {
 
   // Compute status text for a specific overlay perspective (overlayColor).
    private func turnStatus(for overlayColor: PieceColor?) -> (text: String, color: Color)? {
+    // Don't show turn status when viewing historic positions
+    guard !vm.inHistoryView else { return nil }
+
     print("overlayColor", overlayColor)
     let currentSideToMove = vm.displayedSideToMove
     switch vm.displayedOutcomeForSide(overlayColor ?? currentSideToMove) {
