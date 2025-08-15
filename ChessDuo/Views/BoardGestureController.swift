@@ -136,4 +136,169 @@ final class BoardGestureController: ObservableObject {
     if selected == sq { return 100 }
     return 10
   }
+
+  // MARK: - High-level Interaction Helpers
+  /// Handles a tap (or tap-like release) on a target square, updating selection or attempting a move via closure.
+  /// - Parameters:
+  ///   - target: Square tapped.
+  ///   - selected: Binding to currently selected square.
+  ///   - boardPiece: closure returning piece at a square.
+  ///   - sideToMove: current side to move.
+  ///   - myColor: local player's color when multiplayer.
+  ///   - singleDevice: whether playing single-device (both sides local).
+  ///   - performMove: closure to attempt a move when appropriate.
+  func handleTap(target: Square,
+                 selected: inout Square?,
+                 boardPiece: (Square) -> Piece?,
+                 sideToMove: PieceColor,
+                 myColor: PieceColor,
+                 singleDevice: Bool,
+                 performMove: (Square, Square, Bool) -> Bool) {
+    if let sel = selected {
+      if sel == target {
+        if let initial = gestureInitialSelected, initial == sel {
+          withAnimation(.easeInOut(duration: 0.18)) { selected = nil }
+        }
+        return
+      }
+      let ownershipColor = singleDevice ? sideToMove : myColor
+      if let p = boardPiece(target), p.color == ownershipColor {
+        withAnimation(.easeInOut(duration: 0.18)) { selected = target }
+      } else {
+        _ = performMove(sel, target, singleDevice)
+        withAnimation(.easeInOut(duration: 0.18)) { selected = nil }
+      }
+      return
+    }
+    // No selection yet
+    let ownershipColor = singleDevice ? sideToMove : myColor
+    if let p = boardPiece(target), p.color == ownershipColor {
+      withAnimation(.easeInOut(duration: 0.18)) { selected = target }
+    }
+  }
+
+  /// Handles releasing a drag onto a target square.
+  func handleDragRelease(origin: Square,
+                         release: Square,
+                         selected: inout Square?,
+                         boardPiece: (Square) -> Piece?,
+                         sideToMove: PieceColor,
+                         myColor: PieceColor,
+                         singleDevice: Bool,
+                         performMove: (Square, Square, Bool) -> Bool) -> Bool {
+    var performedMove = false
+    if origin == release {
+      if selected != origin { withAnimation(.easeInOut(duration: 0.18)) { selected = origin } }
+    } else {
+      let ownershipColor = singleDevice ? sideToMove : myColor
+      if let p = boardPiece(release), p.color == ownershipColor {
+        withAnimation(.easeInOut(duration: 0.18)) { selected = release }
+      } else if selected == origin {
+        let success = performMove(origin, release, singleDevice)
+        if success {
+          withAnimation(.easeInOut(duration: 0.18)) { selected = nil }
+          performedMove = true
+        }
+      } else {
+        withAnimation(.easeInOut(duration: 0.18)) { selected = origin }
+      }
+    }
+    return performedMove
+  }
+
+  // MARK: - Gesture Factory
+  /// Builds the DragGesture used by the board, injecting required closures/data.
+  func makeDragGesture(boardSide: CGFloat,
+                       rowArray: [Int],
+                       colArray: [Int],
+                       squareSize: CGFloat,
+                       disableInteraction: Bool,
+                       historyIndex: Int?,
+                       selected: Binding<Square?>,
+                       sideToMove: PieceColor,
+                       myColor: PieceColor,
+                       singleDevice: Bool,
+                       onAttemptInteraction: @escaping () -> Void,
+                       boardPiece: @escaping (Square) -> Piece?,
+                       canPickUp: @escaping (Square) -> Bool,
+                       squareAtPoint: @escaping (CGPoint) -> Square?,
+                       squareFrame: @escaping (Square) -> CGRect?,
+                       performMove: @escaping (Square, Square, Bool) -> Bool) -> some Gesture {
+    DragGesture(minimumDistance: 0)
+      .onChanged { [weak self] value in
+        guard let self else { return }
+        onAttemptInteraction()
+        if self.dragStartPoint == nil {
+          self.dragStartPoint = value.location
+          self.gestureInitialSelected = selected.wrappedValue
+          self.gestureHistoryIndexAtStart = historyIndex
+          self.blockedGesture = disableInteraction || historyIndex != nil
+        }
+        guard !self.blockedGesture else { return }
+        if self.gestureHistoryIndexAtStart != historyIndex { self.blockedGesture = true; self.cancelCurrentDrag(); return }
+        guard !disableInteraction else { return }
+
+        let point = value.location
+        // Lazy pick-up scheduling
+        if self.pendingDragFrom == nil && !self.dragActivated, let sq = squareAtPoint(point), canPickUp(sq) {
+          self.pendingDragFrom = sq
+          selected.wrappedValue = sq
+          let wi = DispatchWorkItem { self.activateDrag(at: point, frameProvider: squareFrame) }
+          self.dragHoldWorkItem?.cancel()
+          self.dragHoldWorkItem = wi
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.18, execute: wi)
+        }
+        self.dragLocation = point
+        // Movement threshold
+        if !self.dragActivated, let start = self.dragStartPoint, self.pendingDragFrom != nil {
+          let dx = point.x - start.x
+          let dy = point.y - start.y
+          let dist = sqrt(dx*dx + dy*dy)
+          let movementThreshold = max(8, squareSize * 0.08)
+          if dist > movementThreshold {
+            self.activateDrag(at: point, frameProvider: squareFrame)
+          }
+        }
+        if self.dragActivated {
+          let pieceCenter = self.adjustedDragCenter(rawPoint: point, squareSize: squareSize)
+          self.dragTarget = squareAtPoint(pieceCenter)
+        } else {
+          self.dragTarget = nil
+        }
+      }
+      .onEnded { [weak self] value in
+        guard let self else { return }
+        guard !disableInteraction else { return }
+        if self.blockedGesture { self.resetGestureState(); return }
+        let point = value.location
+        let pieceCenter = self.adjustedDragCenter(rawPoint: point, squareSize: squareSize)
+        let releasedSquare = squareAtPoint(pieceCenter)
+        self.dragHoldWorkItem?.cancel(); self.dragHoldWorkItem = nil
+        if !self.dragActivated {
+          if let target = releasedSquare { self.handleTap(target: target,
+                                                          selected: &selected.wrappedValue,
+                                                          boardPiece: boardPiece,
+                                                          sideToMove: sideToMove,
+                                                          myColor: myColor,
+                                                          singleDevice: singleDevice,
+                                                          performMove: performMove) }
+          self.clearAfterTap()
+          return
+        }
+        guard let origin = self.draggingFrom else { return }
+        let performedMove = releasedSquare.map { release in
+          self.handleDragRelease(origin: origin,
+                                 release: release,
+                                 selected: &selected.wrappedValue,
+                                 boardPiece: boardPiece,
+                                 sideToMove: sideToMove,
+                                 myColor: myColor,
+                                 singleDevice: singleDevice,
+                                 performMove: performMove)
+        } ?? false
+        self.finalizeDrag(performedMove: performedMove,
+                          origin: origin,
+                          frameProvider: squareFrame)
+      }
+  }
 }
