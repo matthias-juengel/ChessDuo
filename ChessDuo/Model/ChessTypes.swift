@@ -65,4 +65,6 @@ struct NetMessage: Codable {
     var lastMoveTo: Square? = nil
     var lastCapturedPieceID: UUID? = nil
     var lastCaptureByMe: Bool? = nil
+    // Full move history (optional). Included for syncState to allow animation-ready reconstruction.
+    var moveHistory: [Move]? = nil
 }

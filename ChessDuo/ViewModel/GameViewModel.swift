@@ -412,6 +412,12 @@ final class GameViewModel: ObservableObject {
           lastCapturedPieceID = nil
           lastCaptureByMe = nil
         }
+        if let remoteHistory = msg.moveHistory {
+          moveHistory = remoteHistory
+          historyIndex = nil
+          boardSnapshots = []
+          rebuildSnapshotsFromHistory()
+        }
 //        recomputeOutcomeIfNeeded()
       } else if let remoteMoves = msg.movesMade, remoteMoves < movesMade {
         // We're ahead; send our snapshot back (echo) so peer can adopt.
@@ -497,7 +503,8 @@ final class GameViewModel: ObservableObject {
                          lastMoveFrom: lastMove?.from,
                          lastMoveTo: lastMove?.to,
                          lastCapturedPieceID: lastCapturedPieceID,
-                         lastCaptureByMe: lastCaptureByMe)
+                         lastCaptureByMe: lastCaptureByMe,
+                         moveHistory: moveHistory)
     peers.send(msg)
   }
 
