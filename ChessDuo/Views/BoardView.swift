@@ -243,9 +243,13 @@ struct BoardView: View {
 
   private func pieceLiftOffset(for item: (square: Square, piece: Piece)) -> CGFloat {
     guard gesture.dragActivated && gesture.draggingFrom == item.square else { return 0 }
-    let magnitude = 50.0
-  // In single-device mode the top side pieces (perspective.opposite) lift downward visually when picked up
-  if singleDevice && item.piece.color == perspective.opposite { return magnitude }
+    let magnitude: CGFloat = 60.0
+    // In single-device mode, the upper player's pieces (perspective.opposite) should move the other direction.
+    if singleDevice && item.piece.color == perspective.opposite {
+      // Upper player: push upward (negative) so piece appears above finger from their viewpoint.
+      return magnitude
+    }
+    // Lower (perspective) player: push upward (negative) in normal single-device, and also for connected mode.
     return -magnitude
   }
 

@@ -34,7 +34,9 @@ final class BoardGestureController: ObservableObject {
     dragActivated = true
     if let frame = frameProvider(sq) {
       let center = CGPoint(x: frame.midX, y: frame.midY)
-      dragOffsetFromCenter = CGSize(width: center.x - point.x, height: center.y - point.y)
+  let offsetX = center.x - point.x
+//  let offsetY = center.y - point.y
+  dragOffsetFromCenter = CGSize(width: offsetX, height: 0)
     }
   }
 
