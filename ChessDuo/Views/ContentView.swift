@@ -649,6 +649,8 @@ private extension ContentView {
       // Rotate board (single-device only)
       if !vm.peers.isConnected {
         Button(action: {
+          // First hide the menu (animated) then flip perspective without animating board state changes.
+          withAnimation(.easeInOut(duration: 0.25)) { showMenu = false }
           withAnimation(.none) { vm.preferredPerspective = vm.preferredPerspective.opposite }
   }) { labeledRow(system: "arrow.triangle.2.circlepath", text: String.loc("menu_rotate_board")) }
           .buttonStyle(.plain)
