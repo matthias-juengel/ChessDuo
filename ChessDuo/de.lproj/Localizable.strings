@@ -52,3 +52,12 @@
 /* Einzelgerät Ausrichtung drehen */
 "flip_black_bottom" = "Schwarz unten";
 "flip_white_bottom" = "Weiß unten";
+
+/* Menü */
+"menu_title" = "Menü";
+"menu_new_game" = "Neues Spiel";
+"menu_rotate_board" = "Brett drehen";
+"menu_play_black" = "Schwarz spielen";
+"menu_close" = "Schließen";
+"menu_accessibility_label" = "Menü öffnen";
+"menu_join_section" = "Verfügbare Spieler";

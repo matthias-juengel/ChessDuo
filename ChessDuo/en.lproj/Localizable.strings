@@ -66,3 +66,12 @@
 "announce_promotion_open" = "Choose promotion piece.";
 "announce_promotion_cancel" = "Promotion canceled.";
 "announce_promotion_chosen" = "Piece promoted.";
+
+/* Menu */
+"menu_title" = "Menu";
+"menu_new_game" = "New Game";
+"menu_rotate_board" = "Rotate Board";
+"menu_play_black" = "Play Black";
+"menu_close" = "Close";
+"menu_accessibility_label" = "Open menu";
+"menu_join_section" = "Nearby Players";

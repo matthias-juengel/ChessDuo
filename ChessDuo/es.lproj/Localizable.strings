@@ -52,3 +52,12 @@
 /* Botón invertir orientación (un solo dispositivo) */
 "flip_black_bottom" = "Negras abajo";
 "flip_white_bottom" = "Blancas abajo";
+
+/* Menú */
+"menu_title" = "Menú";
+"menu_new_game" = "Nueva partida";
+"menu_rotate_board" = "Girar tablero";
+"menu_play_black" = "Jugar con negras";
+"menu_close" = "Cerrar";
+"menu_accessibility_label" = "Abrir menú";
+"menu_join_section" = "Jugadores cercanos";

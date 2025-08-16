@@ -2,6 +2,7 @@ import SwiftUI
 
 // Central z-index constants (additional values can be added elsewhere as needed)
 struct OverlayZIndex {
+  static let menu: Double = 430 // below peer chooser (450) but above board content
   static let peerChooser: Double = 450
   static let promotion: Double = 500
   static let newGameConfirm: Double = 550

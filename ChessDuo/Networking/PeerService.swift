@@ -37,6 +37,8 @@ final class PeerService: NSObject, ObservableObject {
     @Published var peerFriendlyNames: [String:String] = [:]
     // Discovered (nearby) peers not yet connected
     @Published var discoveredPeers: [MCPeerID] = []
+    // Unfiltered list of all browsed peers (including those we intentionally keep passive for auto-handshake logic)
+    @Published var allBrowsedPeers: [MCPeerID] = []
 
     var localDisplayName: String { myPeer.displayName }
     var localFriendlyName: String { friendlyName }
@@ -150,9 +152,12 @@ extension PeerService: MCNearbyServiceBrowserDelegate {
         // Deterministic chooser: only the lexicographically smaller display name
         // will present a prompt to invite the other. The bigger-name peer stays passive
         // and will auto-accept the invitation.
-        if myPeer.displayName < peerID.displayName {
-            DispatchQueue.main.async {
-                // Remove stale entries with same displayName (device restarted -> new peerID)
+        DispatchQueue.main.async {
+            // Maintain unfiltered list (dedupe by display name)
+            self.allBrowsedPeers.removeAll { $0.displayName == peerID.displayName }
+            self.allBrowsedPeers.append(peerID)
+            if self.myPeer.displayName < peerID.displayName {
+                // Filtered prompt list
                 self.discoveredPeers.removeAll { $0.displayName == peerID.displayName }
                 if !self.connectedPeers.contains(where: { $0.displayName == peerID.displayName }) {
                     self.discoveredPeers.append(peerID)
@@ -164,6 +169,7 @@ extension PeerService: MCNearbyServiceBrowserDelegate {
         DispatchQueue.main.async {
             // Remove by peer identity or display name (in case restarted peer shows up anew)
             self.discoveredPeers.removeAll { $0 == peerID || $0.displayName == peerID.displayName }
+            self.allBrowsedPeers.removeAll { $0 == peerID || $0.displayName == peerID.displayName }
         }
     }
 }

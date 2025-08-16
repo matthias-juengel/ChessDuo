@@ -52,3 +52,12 @@
 /* Bouton inversion orientation appareil unique */
 "flip_black_bottom" = "Noir en bas";
 "flip_white_bottom" = "Blanc en bas";
+
+/* Menu */
+"menu_title" = "Menu";
+"menu_new_game" = "Nouvelle partie";
+"menu_rotate_board" = "Tourner le plateau";
+"menu_play_black" = "Jouer Noir";
+"menu_close" = "Fermer";
+"menu_accessibility_label" = "Ouvrir le menu";
+"menu_join_section" = "Joueurs proches";

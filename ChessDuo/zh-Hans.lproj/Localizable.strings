@@ -52,3 +52,12 @@
 /* 单设备旋转棋盘方向按钮 */
 "flip_black_bottom" = "黑方在下";
 "flip_white_bottom" = "白方在下";
+
+/* 菜单 */
+"menu_title" = "菜单";
+"menu_new_game" = "新游戏";
+"menu_rotate_board" = "旋转棋盘";
+"menu_play_black" = "执黑对弈";
+"menu_close" = "关闭";
+"menu_accessibility_label" = "打开菜单";
+"menu_join_section" = "附近玩家";

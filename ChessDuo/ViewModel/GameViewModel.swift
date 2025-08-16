@@ -38,6 +38,7 @@ final class GameViewModel: ObservableObject {
   private var suppressPersistMyColor = false
   @Published var otherDeviceNames: [String] = []
   @Published var discoveredPeerNames: [String] = [] // for UI prompt (friendly names without unique suffix)
+  @Published var allBrowsedPeerNames: [String] = [] // complete unfiltered list for menu display
   @Published var capturedByMe: [Piece] = []
   @Published var capturedByOpponent: [Piece] = []
   @Published var movesMade: Int = 0
@@ -229,15 +230,25 @@ final class GameViewModel: ObservableObject {
       .sink { [weak self] names in self?.discoveredPeerNames = names }
       .store(in: &cancellables)
 
+    // Mirror ALL browsed peers to names (unfiltered) for menu listing
+    peers.$allBrowsedPeers
+      .map { $0.map { Self.baseName(from: $0.displayName) }.sorted() }
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] names in self?.allBrowsedPeerNames = names }
+      .store(in: &cancellables)
+
     // Automatically start symmetric discovery
     peers.startAuto()
   }
 
   // User accepted to connect with a given peer name
   func confirmJoin(peerName: String) {
-    // Match by friendly base name (since UI lists stripped names); if multiple (same friendly name on different devices) pick lexicographically smallest full display name for determinism.
-    let candidates = peers.discoveredPeers.filter { Self.baseName(from: $0.displayName) == peerName }
-    if let target = candidates.sorted(by: { $0.displayName < $1.displayName }).first {
+    // Match by friendly base name (since UI lists stripped names). First search filtered discoveredPeers,
+    // then fall back to full unfiltered list so menu entries always work even on passive (lexicographically larger) devices.
+    let filtered = peers.discoveredPeers.filter { Self.baseName(from: $0.displayName) == peerName }
+    let unfiltered = peers.allBrowsedPeers.filter { Self.baseName(from: $0.displayName) == peerName }
+    let combined = (filtered + unfiltered).sorted { $0.displayName < $1.displayName }
+    if let target = combined.first {
       peers.invite(target)
     }
   }

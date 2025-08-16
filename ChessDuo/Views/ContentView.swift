@@ -77,6 +77,7 @@ struct ContentView: View {
   @State private var showHistorySlider: Bool = false
   @State private var historySliderOwner: PieceColor? = nil // which side opened the slider (single-device)
   @State private var historyAnimationToken: Int = 0 // used to cancel in-flight history step animations
+  @State private var showMenu: Bool = false
 
   // MARK: - Perspective Helpers
   // Current board orientation perspective (bottom side color). In connected mode this is my multiplayer color (if known) else white; in single-device it's the persisted preference.
@@ -151,39 +152,6 @@ struct ContentView: View {
     case .win: return (String.loc("win_text"), AppColors.highlightLight)
     case .loss: return (String.loc("loss_text"), AppColors.highlightLight)
     case .draw: return (String.loc("draw_text"), AppColors.highlightLight)
-    }
-  }
-
-  private func resetButtonArea(for overlayColor: PieceColor?) -> some View {
-    Group {
-      let canShow: Bool = {
-        if vm.movesMade == 0 { return false }
-        if vm.peers.isConnected {
-          guard let my = vm.myColor, let oc = overlayColor else { return false }
-          return oc == my && my == vm.engine.sideToMove
-        } else {
-          guard let oc = overlayColor else { return false }
-          return oc == vm.engine.sideToMove
-        }
-      }()
-      if canShow {
-        Button(action: {
-          // Exit history/slider to avoid interaction lock after reset
-          hideHistory()
-          vm.resetGame()
-        }) {
-            Text(vm.peers.isConnected && vm.awaitingResetConfirmation ? String.loc("new_game_confirm") : String.loc("new_game"))
-              .fontWeight(.semibold)
-        }
-          .buttonStyle(.modal(role: .primary, size: .compact))
-        .transition(.opacity)
-      } else {
-          Text(String.loc("new_game"))
-            .font(.callout.weight(.semibold))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .opacity(0) // maintain layout height
-      }
     }
   }
 
@@ -331,6 +299,9 @@ struct ContentView: View {
           .rotationEffect(.degrees(180))
           .zIndex(OverlayZIndex.peerChooser - 50) // below overlays
       }
+  // Hamburger button & menu layer
+  menuInvocationButtonLayer
+  if showMenu { menuOverlay }
   promotionLayer
   newGameConfirmLayer
   peerChooserLayer
@@ -383,6 +354,10 @@ struct ContentView: View {
           AccessibilityAnnouncer.announce(String.loc(key))
         }
       }
+    }
+    // Hide menu automatically if a connection becomes active (initiated from remote)
+    .onChange(of: vm.peers.isConnected) { connected in
+      if connected, showMenu { withAnimation(.easeInOut(duration: 0.25)) { showMenu = false } }
     }
     // Promotion picker open/close announcements
     .onChange(of: vm.showingPromotionPicker) { showing in
@@ -492,7 +467,6 @@ private extension ContentView {
     VStack {
       Spacer().allowsHitTesting(false)
       statusBar(for: color)
-      controlBar(for: color)
     }
   }
 
@@ -569,33 +543,167 @@ private extension ContentView {
       }
     }
   }
+}
 
-  func controlBar(for overlayColor: PieceColor?) -> some View {
-    ZStack {
-      Color.clear.frame(height: 30)
-      if vm.movesMade == 0, vm.myColor == .some(.white), vm.peers.isConnected { // swap only relevant connected pre-game
-        swapColorButton
-      }
-      if !vm.peers.isConnected, overlayColor == vm.preferredPerspective { // show flip on bottom bar only
-        HStack {
-          Spacer(minLength: 0)
-          Button(action: {
-            // Change orientation without animation so pieces reorient instantly.
-            withAnimation(.none) { vm.preferredPerspective = vm.preferredPerspective.opposite }
-          }) {
-            Text(vm.preferredPerspective == .white ? String.loc("flip_black_bottom") : String.loc("flip_white_bottom"))
-              .font(.caption.weight(.semibold))
+// MARK: - Menu Overlay & Hamburger
+private extension ContentView {
+  // Position hamburger: bottom-right normally; when single-device and it's top side's turn we flip orientation so top acts like bottom => put it top-left.
+  var menuInvocationButtonLayer: some View {
+    GeometryReader { geo in
+      // Determine if there is at least one actionable entry (excluding the Close entry)
+      let hasNewGame = vm.movesMade > 0
+      let canRotate = !vm.peers.isConnected
+      let canSwapPreGame = vm.peers.isConnected && vm.movesMade == 0 && vm.myColor == .some(.white)
+  // Single-device join candidates (when not connected but peers discovered)
+  let joinablePeers: [String] = (!vm.peers.isConnected ? vm.discoveredPeerNames : [])
+  let hasJoinables = !joinablePeers.isEmpty
+  let hasAction = hasNewGame || canRotate || canSwapPreGame || hasJoinables
+      let size: CGFloat = 46
+      let padding: CGFloat = 14
+      Group {
+        if hasAction {
+          Button(action: { withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) { showMenu.toggle() } }) {
+            Image(systemName: "line.3.horizontal")
+              .font(.system(size: 22, weight: .semibold))
+              .foregroundColor(.white)
+              .frame(width: size, height: size)
+              .background(AppColors.buttonSymbolBG, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+              .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(AppColors.buttonSymbolStroke, lineWidth: 1))
           }
           .buttonStyle(.plain)
+          .shadow(color: AppColors.shadowCard.opacity(0.6), radius: 8, x: 0, y: 4)
+          .position(x: geo.size.width - padding - size/2,
+                    y: geo.size.height - padding - size/2)
+          .zIndex(OverlayZIndex.menu)
+          .accessibilityLabel(String.loc("menu_accessibility_label"))
         }
       }
-      resetButtonArea(for: overlayColor)
+    }
+    .allowsHitTesting(true)
+  }
+
+  var menuOverlay: some View {
+    ZStack {
+      OverlayBackdrop(onTap: { withAnimation(.easeInOut(duration: 0.25)) { showMenu = false } })
+        .zIndex(OverlayZIndex.menu)
+      VStack(spacing: 0) {
+        ZStack {
+          // Title centered
+          Text(String.loc("menu_title"))
+            .appTitle()
+            .foregroundColor(AppColors.textPrimary)
+            .frame(maxWidth: .infinity)
+          HStack {
+            Spacer()
+            Button(action: { withAnimation(.easeInOut(duration: 0.25)) { showMenu = false } }) {
+              Image(systemName: "xmark")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.white)
+                .padding(10)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(String.loc("menu_close"))
+          }
+        }
+        .padding(.horizontal, 6)
+        .padding(.top, 14)
+        .padding(.bottom, 8)
+        ScrollView(showsIndicators: false) {
+          VStack(spacing: 10) {
+            menuEntries
+          }
+          .padding(.bottom, 8)
+        }
+        .frame(maxHeight: 420)
+        .padding(.horizontal, 4)
+        .padding(.bottom, 8)
+      }
+      .padding(.horizontal, 18)
+      .padding(.bottom, 18)
+      .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+      .shadow(color: AppColors.shadowCard, radius: 14, x: 0, y: 6)
+      .padding(.horizontal, 28)
+      .frame(maxWidth: 440)
+      .zIndex(OverlayZIndex.menu + 1)
+      .modalTransition(animatedWith: showMenu)
     }
   }
 
-  var swapColorButton: some View {
-    Button(String.loc("play_black")) { vm.swapColorsIfAllowed() }
-      .buttonStyle(.modal(role: .primary, size: .compact))
+  @ViewBuilder var menuEntries: some View {
+    VStack(spacing: 10) {
+      // New Game / Reset (single-device immediate, connected triggers existing logic)
+  if vm.movesMade > 0 { // show only after at least one move has been made
+        Button(action: {
+          withAnimation(.easeInOut(duration: 0.25)) { showMenu = false }
+          if vm.peers.isConnected {
+            // Mirror existing reset button logic
+            hideHistory()
+            vm.resetGame() // existing path triggers confirmation state machine
+          } else {
+            vm.offlineResetPrompt = true
+          }
+  }) { labeledRow(system: "flag.fill", text: String.loc("menu_new_game")) }
+        .buttonStyle(.plain)
+      }
+      // Rotate board (single-device only)
+      if !vm.peers.isConnected {
+        Button(action: {
+          withAnimation(.none) { vm.preferredPerspective = vm.preferredPerspective.opposite }
+  }) { labeledRow(system: "arrow.triangle.2.circlepath", text: String.loc("menu_rotate_board")) }
+          .buttonStyle(.plain)
+      }
+      // Swap sides pre-game (connected, only before first move and I'm white)
+      if vm.peers.isConnected, vm.movesMade == 0, vm.myColor == .some(.white) {
+        Button(action: {
+          withAnimation(.easeInOut(duration: 0.25)) { showMenu = false }
+          vm.swapColorsIfAllowed()
+  }) { labeledRow(system: "arrow.left.arrow.right", text: String.loc("menu_play_black")) }
+          .buttonStyle(.plain)
+      }
+      // Joinable peers section (single-device only, not connected) when peers are available
+  if !vm.peers.isConnected, !vm.allBrowsedPeerNames.isEmpty {
+        // visual separation
+        VStack(spacing: 6) {
+          // subtle divider with label
+          HStack {
+            Text(String.loc("menu_join_section"))
+              .font(.caption.weight(.semibold))
+              .foregroundColor(AppColors.textSecondary)
+            Spacer(minLength: 0)
+          }
+          ForEach(vm.allBrowsedPeerNames, id: \..self) { peer in
+            Button(action: {
+              withAnimation(.easeInOut(duration: 0.25)) { showMenu = false }
+              vm.confirmJoin(peerName: peer)
+            }) { labeledRow(system: "person.2", text: peer) }
+              .buttonStyle(.plain)
+          }
+        }
+        .padding(.top, 4)
+      }
+    }
+  }
+
+  func labeledRow(system: String, text: String) -> some View {
+    HStack(spacing: 14) {
+      Image(systemName: system)
+        .font(.system(size: 20, weight: .semibold))
+        .foregroundColor(.white)
+    .frame(width: 32, alignment: .center)
+      Text(text)
+        .font(.title3.weight(.semibold))
+        .foregroundColor(AppColors.textPrimary)
+      Spacer(minLength: 0)
+    }
+    .padding(.horizontal, 6)
+    .padding(.vertical, 4)
+  .frame(minHeight: 48)
+    .background(AppColors.buttonListBG, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    .overlay(
+      RoundedRectangle(cornerRadius: 16, style: .continuous)
+        .stroke(AppColors.buttonListStroke, lineWidth: 1)
+    )
   }
 }
 
