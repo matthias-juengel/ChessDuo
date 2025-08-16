@@ -48,3 +48,17 @@
 
 /* Peer join overlay subtitle */
 "peer_join_subtitle" = "Tap a device name to connect";
+
+/* Accessibility announcements */
+"announce_your_turn_white" = "Your turn. White to move.";
+"announce_your_turn_black" = "Your turn. Black to move.";
+"announce_opponent_turn_white" = "Opponent's turn. White to move.";
+"announce_opponent_turn_black" = "Opponent's turn. Black to move.";
+"announce_check_white" = "Check. White king is in check.";
+"announce_check_black" = "Check. Black king is in check.";
+"announce_checkmate_white" = "Checkmate. White is checkmated.";
+"announce_checkmate_black" = "Checkmate. Black is checkmated.";
+"announce_stalemate" = "Stalemate.";
+"announce_promotion_open" = "Choose promotion piece.";
+"announce_promotion_cancel" = "Promotion canceled.";
+"announce_promotion_chosen" = "Piece promoted.";

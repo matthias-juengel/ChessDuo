@@ -359,6 +359,35 @@ struct ContentView: View {
           if showHistorySlider { hideHistory() }
         }
       }
+      // Accessibility announcement for turn changes (live game only, ignore when viewing history)
+      if vm.historyIndex == nil {
+        AccessibilityAnnouncer.postTurnChange(for: newSide, myColor: vm.myColor, connected: vm.peers.isConnected)
+        // After announcing turn, also announce any check / end-of-game state for the side now to move or just moved.
+        // Determine board outcome from perspective of side now to move.
+        let side = newSide
+        // Use engine directly (live state) for status.
+        let inCheck = vm.engine.isInCheck(side)
+        let isMate = vm.engine.isCheckmate(for: side)
+        let isStale = vm.engine.isStalemate(for: side)
+        if isMate {
+          let key = (side == .white) ? "announce_checkmate_white" : "announce_checkmate_black"
+          AccessibilityAnnouncer.announce(String.loc(key))
+        } else if isStale {
+          AccessibilityAnnouncer.announce(String.loc("announce_stalemate"))
+        } else if inCheck {
+          let key = (side == .white) ? "announce_check_white" : "announce_check_black"
+          AccessibilityAnnouncer.announce(String.loc(key))
+        }
+      }
+    }
+    // Promotion picker open/close announcements
+    .onChange(of: vm.showingPromotionPicker) { showing in
+      guard vm.historyIndex == nil else { return } // ignore in history view
+      if showing {
+        AccessibilityAnnouncer.announce(String.loc("announce_promotion_open"))
+      } else if vm.pendingPromotionMove == nil { // closed without choosing or after completion
+        AccessibilityAnnouncer.announce(String.loc("announce_promotion_cancel"))
+      }
     }
   // Connected reset alerts replaced by custom overlays (see connectedResetLayers)
   // Custom peer chooser overlay replaces sheet
