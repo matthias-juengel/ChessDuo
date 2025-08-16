@@ -73,6 +73,12 @@ struct BoardView: View {
                                          colArray: colArray,
                                          squareSize: squareSize) },
         performMove: onMove))
+      // Auto-clear any lingering selection when it becomes opponent's turn in connected mode.
+      .onChange(of: sideToMove) { newSide in
+        if !singleDevice && myColor != newSide {
+          withAnimation(.easeInOut(duration: 0.18)) { selected = nil }
+        }
+      }
     }
   }
 

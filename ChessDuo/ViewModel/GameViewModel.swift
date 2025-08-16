@@ -183,6 +183,7 @@ final class GameViewModel: ObservableObject {
       }
       .store(in: &cancellables)
 
+
     // Mirror discovered peers to names for confirmation UI (strip suffix)
     peers.$discoveredPeers
       .map { $0.map { Self.baseName(from: $0.displayName) }.sorted() }
@@ -363,6 +364,10 @@ final class GameViewModel: ObservableObject {
             historyIndex = nil
             boardSnapshots.append(engine.board)
             saveGame()
+            // If it's now my turn after applying opponent's move, emit a subtle haptic.
+            if peers.isConnected, let mine = myColor, engine.sideToMove == mine {
+              Haptics.trigger(.moveNowMyTurn)
+            }
           }
         }
       }

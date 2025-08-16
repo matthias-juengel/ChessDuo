@@ -154,6 +154,14 @@ final class BoardGestureController: ObservableObject {
                  myColor: PieceColor,
                  singleDevice: Bool,
                  performMove: (Square, Square, Bool) -> Bool) {
+    // In connected (two-device) mode, block any new selections or move attempts when it's not our turn.
+    // Allow deselecting an already-selected piece (tapping it again) for UX cleanliness.
+    if !singleDevice && myColor != sideToMove {
+      if let sel = selected, sel == target {
+        withAnimation(.easeInOut(duration: 0.18)) { selected = nil }
+      }
+      return
+    }
     if let sel = selected {
       if sel == target {
         if let initial = gestureInitialSelected, initial == sel {
@@ -161,19 +169,22 @@ final class BoardGestureController: ObservableObject {
         }
         return
       }
-      let ownershipColor = singleDevice ? sideToMove : myColor
+      let ownershipColor = singleDevice ? sideToMove : myColor // (myColor == sideToMove ensured above for connected mode)
       if let p = boardPiece(target), p.color == ownershipColor {
-        withAnimation(.easeInOut(duration: 0.18)) { selected = target }
+  withAnimation(.easeInOut(duration: 0.18)) { selected = target }
+  Haptics.trigger(.pieceSelected)
       } else {
-        _ = performMove(sel, target, singleDevice)
+  let moved = performMove(sel, target, singleDevice)
+  if moved { Haptics.trigger(.moveSuccess) }
         withAnimation(.easeInOut(duration: 0.18)) { selected = nil }
       }
       return
     }
     // No selection yet
-    let ownershipColor = singleDevice ? sideToMove : myColor
+    let ownershipColor = singleDevice ? sideToMove : myColor // safe: for connected mode we already verified turn ownership
     if let p = boardPiece(target), p.color == ownershipColor {
-      withAnimation(.easeInOut(duration: 0.18)) { selected = target }
+  withAnimation(.easeInOut(duration: 0.18)) { selected = target }
+  Haptics.trigger(.pieceSelected)
     }
   }
 
@@ -188,19 +199,22 @@ final class BoardGestureController: ObservableObject {
                          performMove: (Square, Square, Bool) -> Bool) -> Bool {
     var performedMove = false
     if origin == release {
-      if selected != origin { withAnimation(.easeInOut(duration: 0.18)) { selected = origin } }
+  if selected != origin { withAnimation(.easeInOut(duration: 0.18)) { selected = origin }; Haptics.trigger(.pieceReSelected) }
     } else {
       let ownershipColor = singleDevice ? sideToMove : myColor
       if let p = boardPiece(release), p.color == ownershipColor {
-        withAnimation(.easeInOut(duration: 0.18)) { selected = release }
+  withAnimation(.easeInOut(duration: 0.18)) { selected = release }
+  Haptics.trigger(.pieceSelected)
       } else if selected == origin {
         let success = performMove(origin, release, singleDevice)
         if success {
           withAnimation(.easeInOut(duration: 0.18)) { selected = nil }
+          Haptics.trigger(.moveSuccess)
           performedMove = true
         }
       } else {
-        withAnimation(.easeInOut(duration: 0.18)) { selected = origin }
+  withAnimation(.easeInOut(duration: 0.18)) { selected = origin }
+  Haptics.trigger(.pieceReSelected)
       }
     }
     return performedMove
@@ -243,6 +257,8 @@ final class BoardGestureController: ObservableObject {
         if self.pendingDragFrom == nil && !self.dragActivated, let sq = squareAtPoint(point), canPickUp(sq) {
           self.pendingDragFrom = sq
           selected.wrappedValue = sq
+          // Fire haptic for selection initiated via drag (mirrors tap behavior)
+          Haptics.trigger(.pieceSelected)
           let wi = DispatchWorkItem { self.activateDrag(at: point, frameProvider: squareFrame) }
           self.dragHoldWorkItem?.cancel()
           self.dragHoldWorkItem = wi

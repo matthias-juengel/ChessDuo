@@ -22,12 +22,12 @@ struct NewGameConfirmOverlay: View {
             .multilineTextAlignment(.center)
           HStack(spacing: 14) {
             Button(keepTitle) {
-              Haptics.lightImpact()
+              Haptics.trigger(.newGameKeepPlaying)
               onCancel()
             }
               .buttonStyle(.modal(role: .secondary))
             Button(destructiveTitle) {
-              Haptics.success()
+              Haptics.trigger(.newGameConfirm)
               onConfirm()
             }
               .buttonStyle(.modal(role: .destructive))
