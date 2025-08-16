@@ -895,10 +895,8 @@ extension GameViewModel {
     // Do not show indicators in history mode (readonly replay)
     if historyIndex != nil { return [] }
     guard let piece = engine.board.piece(at: from) else { return [] }
-    // In connected mode restrict to myColor's moves only; in single-device allow current side to move only.
-    if let mine = myColor, engine.sideToMove != mine, myColor != nil { // connected but not my turn
-      return []
-    }
+    // Restrict by myColor only while connected; in single-device mode (not connected) allow whichever side is to move.
+    if peers.isConnected, let mine = myColor, engine.sideToMove != mine { return [] }
     if piece.color != engine.sideToMove { return [] }
     // Ask engine for all legal moves for sideToMove; filter origins
     let moves = engine.generateLegalMoves(for: engine.sideToMove)
