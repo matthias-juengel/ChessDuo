@@ -55,7 +55,7 @@ struct AppColors {
   // Modal button backgrounds
   static let buttonPrimaryBG = Color.white.opacity(0.92)
   static let buttonSecondaryBG = Color.white.opacity(0.18)
-  static let buttonDestructiveBG = Color.red.opacity(0.85)
+  static let buttonDestructiveBG = highlight.opacity(0.85)
   static let buttonListBG = Color.white.opacity(0.12)
   static let buttonListStroke = Color.white.opacity(0.25)
   static let buttonSymbolBG = Color.white.opacity(0.18)

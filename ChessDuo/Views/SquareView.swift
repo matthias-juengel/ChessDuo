@@ -3,7 +3,6 @@ import SwiftUI
 struct SquareView: View {
   let square: Square
   let piece: Piece?
-  let isSelected: Bool
   let isKingInCheck: Bool
   let isKingCheckmated: Bool
   let rotateForOpponent: Bool

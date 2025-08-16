@@ -96,21 +96,21 @@ struct BoardView: View {
     let piece = board.piece(at: sq)
     let kingInCheckHighlight = inCheckCurrentSide && piece?.type == .king && piece?.color == sideToMove
     let dragHighlight: Bool = {
-  guard let from = gesture.draggingFrom else { return false }
+      guard let from = gesture.draggingFrom else { return false }
       if from == sq { return true }
-  if let target = gesture.dragTarget, target == sq { return true }
+      if let target = gesture.dragTarget, target == sq { return true }
       return false
     }()
     // Determine coordinate labels
-  // Rank numbers should appear on the visually leftmost column.
-  // For white perspective, that's file == 0 (column a). For black perspective (connected mode), that's file == 7.
-  let blackPerspective = (perspective == .black && !singleDevice)
-  let rankLabelFile = blackPerspective ? 7 : 0
-  let showRankLabel = file == rankLabelFile
-  // File letters: normally on white's home rank (rank == 0). If viewing from black perspective in connected mode (not single-device), place on black's home rank (rank == 7).
-  // File letters adapt similarly (already defined blackPerspective above)
-  let fileLabelRank = blackPerspective ? 7 : 0
-  let showFileLabel = rank == fileLabelRank
+    // Rank numbers should appear on the visually leftmost column.
+    // For white perspective, that's file == 0 (column a). For black perspective (connected mode), that's file == 7.
+    let blackPerspective = (perspective == .black && !singleDevice)
+    let rankLabelFile = blackPerspective ? 7 : 0
+    let showRankLabel = file == rankLabelFile
+    // File letters: normally on white's home rank (rank == 0). If viewing from black perspective in connected mode (not single-device), place on black's home rank (rank == 7).
+    // File letters adapt similarly (already defined blackPerspective above)
+    let fileLabelRank = blackPerspective ? 7 : 0
+    let showFileLabel = rank == fileLabelRank
     let rankNumber = rank + 1
     let fileLetter = String(UnicodeScalar("a".unicodeScalars.first!.value + UInt32(file))!)
     // Determine if we should show a legal move indicator for this square
@@ -119,16 +119,15 @@ struct BoardView: View {
     let showIndicator = activeOrigin != nil && legalTargets.contains(sq)
     // Distinguish capture vs quiet move
     let isCaptureIndicator: Bool = showIndicator && board.piece(at: sq) != nil && board.piece(at: activeOrigin!)?.color != board.piece(at: sq)?.color
-  // Square brightness for color choice
-  let isDarkSquare = ((sq.file + sq.rank) % 2 == 0)
-  let quietColor = isDarkSquare ? AppColors.moveIndicatorQuietOnDark : AppColors.moveIndicatorQuietOnLight
-  let captureColor = isDarkSquare ? AppColors.moveIndicatorCaptureOnDark : AppColors.moveIndicatorCaptureOnLight
+    // Square brightness for color choice
+    let isDarkSquare = ((sq.file + sq.rank) % 2 == 0)
+    let quietColor = isDarkSquare ? AppColors.moveIndicatorQuietOnDark : AppColors.moveIndicatorQuietOnLight
+    let captureColor = isDarkSquare ? AppColors.moveIndicatorCaptureOnDark : AppColors.moveIndicatorCaptureOnLight
 
     return ZStack {
       SquareView(
         square: sq,
         piece: nil,
-        isSelected: selected == sq,
         isKingInCheck: kingInCheckHighlight,
         isKingCheckmated: isCheckmatePosition && kingInCheckHighlight,
         rotateForOpponent: false,
@@ -159,9 +158,8 @@ struct BoardView: View {
       }
       // Overlay coordinate labels
       GeometryReader { g in
-  let labelFont = Font.system(size: squareSize * 0.18, weight: .semibold, design: .rounded)
-  let lightGray = AppColors.coordLight
-  let darkGray = AppColors.coordDark
+        let lightGray = AppColors.coordLight
+        let darkGray = AppColors.coordDark
         let isDarkSquare = ((sq.file + sq.rank) % 2 == 0)
         // Contrast: use opposite tone
         let labelColor = isDarkSquare ? lightGray : darkGray
@@ -196,40 +194,39 @@ struct BoardView: View {
     let rowIdx = rowArray.firstIndex(of: item.square.rank) ?? 0
     let colIdx = colArray.firstIndex(of: item.square.file) ?? 0
     return ZStack {
-  let showSelectionRing = selected == item.square && !(gesture.dragActivated && gesture.draggingFrom == item.square)
+      let showSelectionRing = selected == item.square && !(gesture.dragActivated && gesture.draggingFrom == item.square)
       if showSelectionRing {
         RoundedRectangle(cornerRadius: 6)
-          .stroke(AppColors.pieceWhite, lineWidth: 2)
+          .stroke(AppColors.highlightLight, lineWidth: 2)
           .padding(2)
-          .shadow(color: AppColors.captureGlow, radius: 4)
       }
       Text(symbol(for: item.piece))
         .font(.system(size: squareSize * 0.75))
-  .foregroundColor(item.piece.color == .white ? AppColors.pieceWhite : AppColors.pieceBlack)
+        .foregroundColor(item.piece.color == .white ? AppColors.pieceWhite : AppColors.pieceBlack)
         .rotationEffect(singleDevice && item.piece.color == .black ? .degrees(180) : .degrees(0))
-  .scaleEffect(gesture.dragActivated && gesture.draggingFrom == item.square ? 3.0 : 1.0)
+        .scaleEffect(gesture.dragActivated && gesture.draggingFrom == item.square ? 3.0 : 1.0)
         .offset(y: pieceLiftOffset(for: item))
-  .shadow(color: gesture.dragActivated && gesture.draggingFrom == item.square ? Color.black.opacity(0.4) : Color.clear,
+        .shadow(color: gesture.dragActivated && gesture.draggingFrom == item.square ? Color.black.opacity(0.4) : Color.clear,
                 radius: 8, x: 0, y: 4)
     }
     .frame(width: squareSize, height: squareSize)
     .position(
-  x: gesture.positionForPiece(item.square,
-                           defaultPos: CGFloat(colIdx) * squareSize + squareSize / 2,
-                           squareSize: squareSize,
-           axis: .x),
-  y: gesture.positionForPiece(item.square,
-                           defaultPos: CGFloat(rowIdx) * squareSize + squareSize / 2,
-                           squareSize: squareSize,
-                           axis: .y)
+      x: gesture.positionForPiece(item.square,
+                                  defaultPos: CGFloat(colIdx) * squareSize + squareSize / 2,
+                                  squareSize: squareSize,
+                                  axis: .x),
+      y: gesture.positionForPiece(item.square,
+                                  defaultPos: CGFloat(rowIdx) * squareSize + squareSize / 2,
+                                  squareSize: squareSize,
+                                  axis: .y)
     )
     .matchedGeometryEffect(id: item.piece.id, in: pieceNamespace)
-  .zIndex(gesture.zIndexForPiece(item.square, selected: selected))
+    .zIndex(gesture.zIndexForPiece(item.square, selected: selected))
     .contentShape(Rectangle())
   }
 
   private func pieceLiftOffset(for item: (square: Square, piece: Piece)) -> CGFloat {
-  guard gesture.dragActivated && gesture.draggingFrom == item.square else { return 0 }
+    guard gesture.dragActivated && gesture.draggingFrom == item.square else { return 0 }
     let magnitude = 50.0
     if singleDevice && item.piece.color == .black { return magnitude }
     return -magnitude
@@ -311,19 +308,19 @@ struct BoardView: View {
   }
 
   private func activateDrag(at point: CGPoint,
-                             boardSide: CGFloat,
-                             rowArray: [Int],
-                             colArray: [Int],
-                             squareSize: CGFloat) {
-  gesture.activateDrag(at: point) { sq in squareFrame(for: sq, rowArray: rowArray, colArray: colArray, squareSize: squareSize) }
+                            boardSide: CGFloat,
+                            rowArray: [Int],
+                            colArray: [Int],
+                            squareSize: CGFloat) {
+    gesture.activateDrag(at: point) { sq in squareFrame(for: sq, rowArray: rowArray, colArray: colArray, squareSize: squareSize) }
   }
 
   private func cancelCurrentDrag() {
-  gesture.cancelCurrentDrag()
+    gesture.cancelCurrentDrag()
   }
 
   private func resetGestureState() {
-  gesture.resetGestureState()
+    gesture.resetGestureState()
   }
 
   private func isLastMoveSquare(_ sq: Square) -> Bool {
