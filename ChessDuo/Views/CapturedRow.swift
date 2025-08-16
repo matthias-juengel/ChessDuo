@@ -32,7 +32,7 @@ struct CapturedRow: View {
         if pointAdvantage > 0 {
           Text("+\(pointAdvantage)")
             .font(.system(size: size * 0.8, weight: .semibold))
-            .foregroundColor(.white)
+            .foregroundColor(sortedPieces().first?.color == .white ? .white : .black)
             .rotationEffect(rotatePieces ? .degrees(180) : .degrees(0))
             .padding(.leading, 4)
         }
@@ -42,8 +42,31 @@ struct CapturedRow: View {
     }
     .frame(height: 44)
   }
-
-  private func sortedPieces() -> [Piece] { pieces.sorted { pieceValue($0) > pieceValue($1) } }
+  private func sortedPieces() -> [Piece] {
+    pieces.sorted { a, b in
+      let va = pieceValue(a)
+      let vb = pieceValue(b)
+      if va != vb { return va > vb }
+      // Tie-breaker for same value (specifically bishop vs knight): bishops first
+      if va == 3 {
+        if a.type == b.type { return false }
+        if a.type == .bishop && b.type == .knight { return true }
+        if a.type == .knight && b.type == .bishop { return false }
+      }
+      // Stable-ish fallback: compare type raw ordering by defined priority
+      return typePriority(a.type) < typePriority(b.type)
+    }
+  }
+  private func typePriority(_ t: PieceType) -> Int {
+    switch t {
+    case .queen: return 0
+    case .rook: return 1
+    case .bishop: return 2
+    case .knight: return 3
+    case .pawn: return 4
+    case .king: return 5
+    }
+  }
   private func pieceValue(_ p: Piece) -> Int {
     switch p.type { case .queen: return 9; case .rook: return 5; case .bishop, .knight: return 3; case .pawn: return 1; case .king: return 100 }
   }
