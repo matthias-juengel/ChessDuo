@@ -48,3 +48,7 @@
 
 /* 连接提示副标题 */
 "peer_join_subtitle" = "点按设备名称以连接";
+
+/* 单设备旋转棋盘方向按钮 */
+"flip_black_bottom" = "黑方在下";
+"flip_white_bottom" = "白方在下";

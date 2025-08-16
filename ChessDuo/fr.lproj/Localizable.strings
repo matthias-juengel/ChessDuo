@@ -48,3 +48,7 @@
 
 /* Sous-titre de connexion pair */
 "peer_join_subtitle" = "Touchez un appareil pour vous connecter";
+
+/* Bouton inversion orientation appareil unique */
+"flip_black_bottom" = "Noir en bas";
+"flip_white_bottom" = "Blanc en bas";

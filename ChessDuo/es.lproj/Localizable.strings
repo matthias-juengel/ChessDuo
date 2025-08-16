@@ -48,3 +48,7 @@
 
 /* Subtítulo para conexión */
 "peer_join_subtitle" = "Toca un dispositivo para conectar";
+
+/* Botón invertir orientación (un solo dispositivo) */
+"flip_black_bottom" = "Negras abajo";
+"flip_white_bottom" = "Blancas abajo";

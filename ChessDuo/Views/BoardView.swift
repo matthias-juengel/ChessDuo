@@ -203,7 +203,9 @@ struct BoardView: View {
       Text(symbol(for: item.piece))
         .font(.system(size: squareSize * 0.75))
         .foregroundColor(item.piece.color == .white ? AppColors.pieceWhite : AppColors.pieceBlack)
-        .rotationEffect(singleDevice && item.piece.color == .black ? .degrees(180) : .degrees(0))
+        // In single-device (hot-seat) mode rotate the TOP side pieces so they face that player.
+        // Top side color is always the opposite of perspective.
+        .rotationEffect(singleDevice && item.piece.color == perspective.opposite ? .degrees(180) : .degrees(0))
         .scaleEffect(gesture.dragActivated && gesture.draggingFrom == item.square ? 3.0 : 1.0)
         .offset(y: pieceLiftOffset(for: item))
         .shadow(color: gesture.dragActivated && gesture.draggingFrom == item.square ? Color.black.opacity(0.4) : Color.clear,
@@ -228,7 +230,8 @@ struct BoardView: View {
   private func pieceLiftOffset(for item: (square: Square, piece: Piece)) -> CGFloat {
     guard gesture.dragActivated && gesture.draggingFrom == item.square else { return 0 }
     let magnitude = 50.0
-    if singleDevice && item.piece.color == .black { return magnitude }
+  // In single-device mode the top side pieces (perspective.opposite) lift downward visually when picked up
+  if singleDevice && item.piece.color == perspective.opposite { return magnitude }
     return -magnitude
   }
 

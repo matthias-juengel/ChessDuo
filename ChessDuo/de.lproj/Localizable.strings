@@ -48,3 +48,7 @@
 
 /* Peer join overlay Untertitel */
 "peer_join_subtitle" = "Tippe auf ein Gerät zum Verbinden";
+
+/* Einzelgerät Ausrichtung drehen */
+"flip_black_bottom" = "Schwarz unten";
+"flip_white_bottom" = "Weiß unten";

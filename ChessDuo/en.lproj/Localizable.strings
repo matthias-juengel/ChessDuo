@@ -49,6 +49,10 @@
 /* Peer join overlay subtitle */
 "peer_join_subtitle" = "Tap a device name to connect";
 
+/* Single-device orientation flip button */
+"flip_black_bottom" = "Black Bottom";
+"flip_white_bottom" = "White Bottom";
+
 /* Accessibility announcements */
 "announce_your_turn_white" = "Your turn. White to move.";
 "announce_your_turn_black" = "Your turn. Black to move.";

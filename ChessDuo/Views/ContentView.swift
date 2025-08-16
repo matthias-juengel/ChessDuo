@@ -78,6 +78,14 @@ struct ContentView: View {
   @State private var historySliderOwner: PieceColor? = nil // which side opened the slider (single-device)
   @State private var historyAnimationToken: Int = 0 // used to cancel in-flight history step animations
 
+  // MARK: - Perspective Helpers
+  // Current board orientation perspective (bottom side color). In connected mode this is my multiplayer color (if known) else white; in single-device it's the persisted preference.
+  private var currentPerspective: PieceColor { vm.peers.isConnected ? (vm.myColor ?? .white) : vm.preferredPerspective }
+  // Color shown at the bottom of the board for current orientation.
+  private var bottomSide: PieceColor { currentPerspective }
+  // Color shown at the top of the board (opposite of bottom; in connected mode always the other player's color). In single-device mode just the opposite of preferred orientation.
+  private var topSide: PieceColor { vm.peers.isConnected ? (currentPerspective == .white ? .black : .white) : currentPerspective.opposite }
+
   // Centralized helper: hide slider AND ensure we're on latest game state
   private func hideHistory() {
     if vm.historyIndex != nil {
@@ -190,13 +198,12 @@ struct ContentView: View {
             AppColors.turnHighlight
           }
         } else {
-          // Single-device: highlight only the half belonging to the side to move
+          // Single-device: highlight only the half (top or bottom) whose color is to move.
           VStack(spacing: 0) {
-            if currentSideToMove == .black {
-              AppColors.turnHighlight
-            } else {
-              AppColors.turnHighlight
-            }
+            (currentSideToMove == topSide ? AppColors.turnHighlight : Color.clear)
+              .frame(maxHeight: .infinity)
+            (currentSideToMove == bottomSide ? AppColors.turnHighlight : Color.clear)
+              .frame(maxHeight: .infinity)
           }
           .allowsHitTesting(false)
           .transition(.opacity)
@@ -211,8 +218,6 @@ struct ContentView: View {
     let material = materialDiff(on: vm.displayedBoard)
     let whiteLead = max(material, 0)
     let blackLead = max(-material, 0)
-    let topSide: PieceColor = vm.peers.isConnected ? ((vm.myColor == .white) ? .black : .white) : .black
-    let bottomSide: PieceColor = vm.peers.isConnected ? (vm.myColor ?? .white) : .white
     let whiteCaps = ctx.whiteCaptures
     let blackCaps = ctx.blackCaptures
     let topPieces = topSide == .black ? blackCaps : whiteCaps
@@ -253,8 +258,8 @@ struct ContentView: View {
     }()
     return BoardView(
       board: vm.displayedBoard,
-      perspective: vm.myColor ?? .white,
-      myColor: vm.myColor ?? .white,
+      perspective: vm.peers.isConnected ? (vm.myColor ?? .white) : vm.preferredPerspective,
+      myColor: vm.myColor ?? (vm.preferredPerspective),
       sideToMove: vm.displayedSideToMove,
       inCheckCurrentSide: inCheck,
       isCheckmatePosition: isMate,
@@ -321,8 +326,8 @@ struct ContentView: View {
         overlayControls(for: vm.myColor) // show only my side
       } else {
         // Single-device: show both sides explicitly with fixed colors
-        overlayControls(for: .white)
-        overlayControls(for: .black)
+        overlayControls(for: bottomSide)
+        overlayControls(for: topSide)
           .rotationEffect(.degrees(180))
           .zIndex(OverlayZIndex.peerChooser - 50) // below overlays
       }
@@ -570,6 +575,19 @@ private extension ContentView {
       Color.clear.frame(height: 30)
       if vm.movesMade == 0, vm.myColor == .some(.white), vm.peers.isConnected { // swap only relevant connected pre-game
         swapColorButton
+      }
+      if !vm.peers.isConnected, overlayColor == vm.preferredPerspective { // show flip on bottom bar only
+        HStack {
+          Spacer(minLength: 0)
+          Button(action: {
+            // Change orientation without animation so pieces reorient instantly.
+            withAnimation(.none) { vm.preferredPerspective = vm.preferredPerspective.opposite }
+          }) {
+            Text(vm.preferredPerspective == .white ? String.loc("flip_black_bottom") : String.loc("flip_white_bottom"))
+              .font(.caption.weight(.semibold))
+          }
+          .buttonStyle(.plain)
+        }
       }
       resetButtonArea(for: overlayColor)
     }

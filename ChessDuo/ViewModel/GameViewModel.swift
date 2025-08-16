@@ -12,7 +12,30 @@ import SwiftUI
 
 final class GameViewModel: ObservableObject {
   @Published private(set) var engine = ChessEngine()
-  @Published var myColor: PieceColor? = nil
+  /// Assigned multiplayer color (nil in single-device mode). Persisted across reconnects
+  /// when a game is in progress so that killing one app does not flip sides.
+  @Published var myColor: PieceColor? = nil {
+    didSet {
+      guard !suppressPersistMyColor else { return }
+      if let c = myColor {
+        persistedMyColorRaw = c.rawValue
+        // Sync preferred perspective with multiplayer color when connected so single-device fallback matches.
+        if peers.isConnected { preferredPerspective = c }
+      } else {
+        if movesMade == 0 { persistedMyColorRaw = "" } // only clear if no game in progress
+      }
+    }
+  }
+  // User preference for bottom perspective in single-device mode (persisted). When connected,
+  // this is automatically synced to myColor so if the peer disconnects mid-game, orientation stays.
+  @AppStorage("preferredPerspective") private var preferredPerspectiveRaw: String = PieceColor.white.rawValue
+  var preferredPerspective: PieceColor {
+    get { PieceColor(rawValue: preferredPerspectiveRaw) ?? .white }
+    set { preferredPerspectiveRaw = newValue.rawValue }
+  }
+  // Persist last assigned multiplayer color so reconnect keeps roles mid-game.
+  @AppStorage("persistedMyColor") private var persistedMyColorRaw: String = ""
+  private var suppressPersistMyColor = false
   @Published var otherDeviceNames: [String] = []
   @Published var discoveredPeerNames: [String] = [] // for UI prompt (friendly names without unique suffix)
   @Published var capturedByMe: [Piece] = []
@@ -134,6 +157,10 @@ final class GameViewModel: ObservableObject {
   init() {
   // Attempt to load persisted game before starting networking so board state is restored.
   loadGameIfAvailable()
+  // Restore myColor from persistent storage if moves have been made and value exists
+  if movesMade > 0, let stored = PieceColor(rawValue: persistedMyColorRaw), myColor == nil {
+    myColor = stored
+  }
   // Falls beim Laden (z.B. V1 ohne History) keine Snapshots erzeugt wurden, initialisieren wir minimal.
   if boardSnapshots.isEmpty { boardSnapshots = [engine.board] }
     peers.onMessage = { [weak self] msg in
@@ -171,13 +198,24 @@ final class GameViewModel: ObservableObject {
       .sink { [weak self] peers in
         guard let self = self else { return }
         if !peers.isEmpty {
+          // If we had already been playing locally (single-device) and moves exist, preserve that this device is White.
+          if self.myColor == nil, self.movesMade > 0 {
+            self.myColor = .white
+            // (Optional) Align perspective with newly fixed color to avoid sudden flip.
+            self.preferredPerspective = .white
+            // Proactively announce role so the peer adopts black.
+            self.peers.send(.init(kind: .proposeRole))
+          }
           if !self.hasSentHello { self.sendHello(); self.hasSentHello = true }
           self.attemptRoleProposalIfNeeded()
           // Initiate state sync (both sides may request; reconciliation chooses higher move count)
           self.requestSync()
         } else {
-          // Reset when all peers gone so a new connection can renegotiate.
-          self.myColor = nil
+          // Do NOT clear myColor if a game is in progress; keep color stable for potential reconnect.
+          if self.movesMade == 0 {
+            self.myColor = nil
+            self.persistedMyColorRaw = ""
+          }
           self.hasSentHello = false
         }
       }
@@ -327,7 +365,23 @@ final class GameViewModel: ObservableObject {
   private func handle(_ msg: NetMessage) {
     switch msg.kind {
     case .hello:
-      attemptRoleProposalIfNeeded()
+      // If the incoming hello carries a color and we have none yet (joining mid offline game), adopt the opposite immediately.
+      if myColor == nil, let remoteColor = msg.color {
+        myColor = remoteColor.opposite
+        // Let remote know we accepted its implicit role claim.
+        peers.send(.init(kind: .acceptRole))
+      } else if let mine = myColor, let remoteColor = msg.color, mine == remoteColor {
+        // Conflict: both sides think they are the same color. If we have movesMade>0 we claim white and re-propose; otherwise relinquish.
+        if movesMade > 0, mine == .white {
+          peers.send(.init(kind: .proposeRole))
+        } else if mine == .white {
+          // No local progress yet; yield white to remote.
+          myColor = .black
+          peers.send(.init(kind: .acceptRole))
+        }
+      } else {
+        attemptRoleProposalIfNeeded()
+      }
       requestSync()
     case .reset:
       engine.reset()
@@ -373,7 +427,11 @@ final class GameViewModel: ObservableObject {
       if myColor == nil {
         myColor = .black
         peers.send(.init(kind: .acceptRole))
-      }
+      } else if myColor == .white && movesMade == 0 {
+        // Fresh session, we can still yield white if we haven't progressed.
+        myColor = .black
+        peers.send(.init(kind: .acceptRole))
+      } // else keep current color (e.g., we have offline progress as white)
     case .acceptRole:
       // Other peer accepted our proposal, we should already have set our color.
       if myColor == nil { myColor = .white }
@@ -488,6 +546,8 @@ final class GameViewModel: ObservableObject {
     guard me == .white else { return }
     myColor = .black
     peers.send(.init(kind: .colorSwap))
+  // Also update preferred perspective so if we later disconnect we retain orientation.
+  preferredPerspective = .black
   }
 
   private func requestSync() {
@@ -677,6 +737,8 @@ extension GameViewModel {
     }
     // After loading any version, rebuild snapshots to enable history animations.
     rebuildSnapshotsFromHistory()
+  // Align preferred perspective with current multiplayer color if connected previously
+  if let mine = myColor { preferredPerspective = mine }
   }
 
   // Reconstruct a board state after n moves from history (n in 0...moveHistory.count)
