@@ -25,6 +25,12 @@ struct BoardView: View {
       let rowArray   = rows()
       let colArray   = cols()
       let squareSize = boardSide / 8.0
+      // Precompute active origin and its legal targets once per frame to avoid recomputing inside every square view.
+      let activeOrigin: Square? = gesture.draggingFrom ?? selected
+      let precomputedLegalTargets: Set<Square> = {
+        guard let origin = activeOrigin else { return [] }
+        return legalMovesProvider(origin)
+      }()
 
       ZStack(alignment: .topLeading) {
         // Squares layer
@@ -36,7 +42,9 @@ struct BoardView: View {
                        colIdx: colIdx,
                        squareSize: squareSize,
                        rowArray: rowArray,
-                       colArray: colArray)
+                       colArray: colArray,
+                       activeOrigin: activeOrigin,
+                       legalTargets: precomputedLegalTargets)
           }
         }
 
@@ -91,7 +99,9 @@ struct BoardView: View {
                           colIdx: Int,
                           squareSize: CGFloat,
                           rowArray: [Int],
-                          colArray: [Int]) -> some View {
+                          colArray: [Int],
+                          activeOrigin: Square?,
+                          legalTargets: Set<Square>) -> some View {
     let sq = Square(file: file, rank: rank)
     let piece = board.piece(at: sq)
     let kingInCheckHighlight = inCheckCurrentSide && piece?.type == .king && piece?.color == sideToMove
@@ -113,10 +123,8 @@ struct BoardView: View {
     let showFileLabel = rank == fileLabelRank
     let rankNumber = rank + 1
     let fileLetter = String(UnicodeScalar("a".unicodeScalars.first!.value + UInt32(file))!)
-    // Determine if we should show a legal move indicator for this square
-    let activeOrigin: Square? = gesture.draggingFrom ?? selected
-    let legalTargets: Set<Square> = activeOrigin.map { legalMovesProvider($0) } ?? []
-    let showIndicator = activeOrigin != nil && legalTargets.contains(sq)
+  // Use precomputed legalTargets for current active origin; avoids recalculating per square.
+  let showIndicator = activeOrigin != nil && legalTargets.contains(sq)
     // Distinguish capture vs quiet move
     let isCaptureIndicator: Bool = showIndicator && board.piece(at: sq) != nil && board.piece(at: activeOrigin!)?.color != board.piece(at: sq)?.color
     // Square brightness for color choice
@@ -153,7 +161,10 @@ struct BoardView: View {
               .transition(.scale.combined(with: .opacity))
           }
         }
-        .animation(.easeInOut(duration: 0.18), value: showIndicator)
+        // Skip animation while an active drag is in progress to reduce frame overhead.
+        .if(!gesture.dragActivated) { view in
+          view.animation(.easeInOut(duration: 0.18), value: showIndicator)
+        }
         .accessibilityHidden(true)
       }
       // Overlay coordinate labels
@@ -222,7 +233,10 @@ struct BoardView: View {
                                   squareSize: squareSize,
                                   axis: .y)
     )
-    .matchedGeometryEffect(id: item.piece.id, in: pieceNamespace)
+    // Avoid matchedGeometryEffect on the actively dragged piece to reduce per-frame layout cost.
+    .if(!(gesture.dragActivated && gesture.draggingFrom == item.square)) { view in
+      view.matchedGeometryEffect(id: item.piece.id, in: pieceNamespace)
+    }
     .zIndex(gesture.zIndexForPiece(item.square, selected: selected))
     .contentShape(Rectangle())
   }
@@ -329,5 +343,13 @@ struct BoardView: View {
   private func isLastMoveSquare(_ sq: Square) -> Bool {
     guard let mv = lastMove else { return false }
     return mv.from == sq || mv.to == sq
+  }
+}
+
+// MARK: - View helpers
+private extension View {
+  @ViewBuilder
+  func `if`<Content: View>(_ condition: @autoclosure () -> Bool, transform: (Self) -> Content) -> some View {
+    if condition() { transform(self) } else { self }
   }
 }

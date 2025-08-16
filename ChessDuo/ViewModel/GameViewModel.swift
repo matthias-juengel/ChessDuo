@@ -62,6 +62,10 @@ final class GameViewModel: ObservableObject {
   // Provides stable Piece.id continuity across adjacent history states for matchedGeometryEffect animations.
   @Published private(set) var boardSnapshots: [Board] = []
 
+  // Cache for legal destination queries: key = (boardSignature, originSquare)
+  private var legalDestCache: [String: Set<Square>] = [:]
+  private var lastCacheBoardSignature: String? = nil
+
   // Export current game state as a textual snapshot (for debugging / tests)
   func exportText() -> String {
     // Ensure status is up to date before exporting (fallback safety)
@@ -892,16 +896,45 @@ extension GameViewModel {
   /// Returns the set of legal destination squares for a piece on `from` in the current live position.
   /// If history view is active or no piece / wrong color, returns empty set.
   func legalDestinations(from: Square) -> Set<Square> {
-    // Do not show indicators in history mode (readonly replay)
     if historyIndex != nil { return [] }
     guard let piece = engine.board.piece(at: from) else { return [] }
-    // Restrict by myColor only while connected; in single-device mode (not connected) allow whichever side is to move.
     if peers.isConnected, let mine = myColor, engine.sideToMove != mine { return [] }
     if piece.color != engine.sideToMove { return [] }
-    // Ask engine for all legal moves for sideToMove; filter origins
+    let sig = boardSignature()
+    if lastCacheBoardSignature != sig { // board changed -> clear cache
+      legalDestCache.removeAll()
+      lastCacheBoardSignature = sig
+    }
+    let cacheKey = sig + "|f" + String(from.file) + "r" + String(from.rank)
+    if let cached = legalDestCache[cacheKey] { return cached }
     let moves = engine.generateLegalMoves(for: engine.sideToMove)
-    let dests = moves.filter { $0.from == from }.map { $0.to }
-    return Set(dests)
+    let dests = Set(moves.filter { $0.from == from }.map { $0.to })
+    legalDestCache[cacheKey] = dests
+    return dests
+  }
+}
+
+// MARK: - Board Signature (for legal move cache invalidation)
+private extension GameViewModel {
+  /// Lightweight signature representing current board layout + side to move.
+  /// Not a full Zobrist hash; sufficient to know when any piece configuration changes.
+  func boardSignature() -> String {
+    var s = String(); s.reserveCapacity(8*8*2 + 1)
+    for rank in 0..<8 {
+      for file in 0..<8 {
+        let sq = Square(file: file, rank: rank)
+        if let p = engine.board.piece(at: sq) {
+          // Color letter + piece type first char
+            let c = (p.color == .white ? "W" : "B")
+            let t = String(p.type.rawValue.first!)
+            s.append(c); s.append(t)
+        } else {
+          s.append("__")
+        }
+      }
+    }
+    s.append(engine.sideToMove == .white ? "w" : "b")
+    return s
   }
 }
 

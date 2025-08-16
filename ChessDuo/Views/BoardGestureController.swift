@@ -16,6 +16,11 @@ final class BoardGestureController: ObservableObject {
   @Published var gestureHistoryIndexAtStart: Int? = nil
   @Published var blockedGesture: Bool = false
 
+  // Last location we published (for throttling)
+  private var lastPublishedDragPoint: CGPoint? = nil
+  // Minimum movement (in points) required to republish dragLocation to cut down on UI invalidations.
+  private let dragPublishThreshold: CGFloat = 2.0
+
   // Not published: internal scheduling work item
   var dragHoldWorkItem: DispatchWorkItem? = nil
 
@@ -264,7 +269,18 @@ final class BoardGestureController: ObservableObject {
           self.dragHoldWorkItem = wi
           DispatchQueue.main.asyncAfter(deadline: .now() + 0.18, execute: wi)
         }
-        self.dragLocation = point
+        // Throttle dragLocation publishes to reduce layout churn.
+        if let last = self.lastPublishedDragPoint {
+          let dx = point.x - last.x
+            let dy = point.y - last.y
+            if (dx*dx + dy*dy) >= dragPublishThreshold * dragPublishThreshold {
+              self.dragLocation = point
+              self.lastPublishedDragPoint = point
+            }
+        } else {
+          self.dragLocation = point
+          self.lastPublishedDragPoint = point
+        }
         // Movement threshold
         if !self.dragActivated, let start = self.dragStartPoint, self.pendingDragFrom != nil {
           let dx = point.x - start.x
@@ -290,6 +306,7 @@ final class BoardGestureController: ObservableObject {
         let pieceCenter = self.adjustedDragCenter(rawPoint: point, squareSize: squareSize)
         let releasedSquare = squareAtPoint(pieceCenter)
         self.dragHoldWorkItem?.cancel(); self.dragHoldWorkItem = nil
+  self.lastPublishedDragPoint = nil
         if !self.dragActivated {
           if let target = releasedSquare { self.handleTap(target: target,
                                                           selected: &selected.wrappedValue,
