@@ -3,16 +3,21 @@ import SwiftUI
 // Central semantic color palette for ChessDuo.
 // Adjust values here to theme the entire app.
 struct AppColors {
+  // Compact grayscale generator. v: 0.0 (black) ... 1.0 (white)
+  // Optional alpha for convenience; default 1.0.
+  @inline(__always) private static func gray(_ v: Double, _ a: Double = 1.0) -> Color {
+    Color(red: v, green: v, blue: v).opacity(a)
+  }
   // Board squares
-  static let boardDark = Color(red: 0.40, green: 0.40, blue: 0.40)
-  static let boardLight = Color(red: 0.60, green: 0.60, blue: 0.60)
+  static let boardDark = gray(0.40)
+  static let boardLight = gray(0.60)
 
   // Coordinate labels (contrasts)
-  static let coordLight = Color(red: 0.75, green: 0.75, blue: 0.75)
-  static let coordDark  = Color(red: 0.25, green: 0.25, blue: 0.25)
+  static let coordLight = gray(0.75)
+  static let coordDark  = gray(0.25)
 
   // Backgrounds / overlays
-  static let turnBase = Color(red: 0.50, green: 0.50, blue: 0.50)
+  static let turnBase = gray(0.50)
   static let turnHighlight = Color.green.opacity(0.40)
   static let turnHighlightHalf = Color.green.opacity(0.38)
   static let backdrop = Color.black.opacity(0.55)
@@ -29,10 +34,10 @@ struct AppColors {
 
   // Move indicators (quiet target / capture target)
   // New per-square variants (light square vs dark square) for improved contrast
-  static let moveIndicatorQuietOnLight = Color.black.opacity(0.3)  // subtle on light square
-  static let moveIndicatorQuietOnDark  = Color.white.opacity(0.3)  // brighter on dark square
-  static let moveIndicatorCaptureOnLight = Color.black.opacity(0.2) // Color(red: 0.55, green: 0.10, blue: 0.10).opacity(0.70)
-  static let moveIndicatorCaptureOnDark  = Color.white.opacity(0.2) // Color(red: 1.00, green: 0.40, blue: 0.40).opacity(0.85)
+  static let moveIndicatorQuietOnLight = gray(0.0, 0.20)   // subtle on light square
+  static let moveIndicatorQuietOnDark  = gray(1.0, 0.20)   // brighter on dark square
+  static let moveIndicatorCaptureOnLight = gray(0.0, 0.15)
+  static let moveIndicatorCaptureOnDark  = gray(1.0, 0.15)
 
   // Modal button backgrounds
   static let buttonPrimaryBG = Color.white.opacity(0.92)
