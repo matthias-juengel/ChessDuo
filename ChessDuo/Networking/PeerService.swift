@@ -8,6 +8,7 @@
 
 import Foundation
 import MultipeerConnectivity
+import UIKit
 
 final class PeerService: NSObject, ObservableObject {
     private let serviceType = "btchess"
@@ -31,6 +32,8 @@ final class PeerService: NSObject, ObservableObject {
     private var discoveryTimer: Timer? // legacy (no longer used); kept for safety invalidation only
     private var autoModeActive = false
     private let desiredOpponentCount = 1
+    private var browsingActive = false
+    private var advertisingActive = false
 
     @Published var connectedPeers: [MCPeerID] = []
     // Cache of peerID display names -> friendly names (from hello message)
@@ -51,34 +54,61 @@ final class PeerService: NSObject, ObservableObject {
     }
 
     func startHosting() {
+        if !Thread.isMainThread { DispatchQueue.main.async { self.startHosting() }; return }
         advertiser?.stopAdvertisingPeer()
+        advertisingActive = false
+        advertiser?.delegate = nil
         advertiser = MCNearbyServiceAdvertiser(peer: myPeer, discoveryInfo: nil, serviceType: serviceType)
         advertiser?.delegate = self
         advertiser?.startAdvertisingPeer()
+        advertisingActive = true
     }
 
     func join() {
+        if !Thread.isMainThread { DispatchQueue.main.async { self.join() }; return }
         browser?.stopBrowsingForPeers()
+        browsingActive = false
+        browser?.delegate = nil
         browser = MCNearbyServiceBrowser(peer: myPeer, serviceType: serviceType)
         browser?.delegate = self
         browser?.startBrowsingForPeers()
+        browsingActive = true
     }
 
     /// Symmetric auto mode: advertise and browse simultaneously so that
     /// two devices can discover each other without manual host/join buttons.
     func startAuto() {
-    startHosting()
-    join()
-    autoModeActive = true
+        if !Thread.isMainThread { DispatchQueue.main.async { self.startAuto() }; return }
+        autoModeActive = true
+        startHosting()
+        join()
     }
 
     func stop() {
-        advertiser?.stopAdvertisingPeer()
-        browser?.stopBrowsingForPeers()
-    session.disconnect()
-    discoveryTimer?.invalidate()
-    discoveryTimer = nil
-    autoModeActive = false
+        if !Thread.isMainThread { DispatchQueue.main.async { self.stop() }; return }
+        // Prevent auto restarts from delegate callbacks during teardown
+        autoModeActive = false
+
+        // Stop advertising
+        if advertisingActive { advertiser?.stopAdvertisingPeer(); advertisingActive = false }
+        advertiser?.delegate = nil
+        advertiser = nil
+
+        // Stop browsing
+        if browsingActive { browser?.stopBrowsingForPeers(); browsingActive = false }
+        browser?.delegate = nil
+        browser = nil
+
+        // Disconnect session last
+        session.disconnect()
+
+        discoveryTimer?.invalidate()
+        discoveryTimer = nil
+
+        // Clear observable state
+        connectedPeers = []
+        discoveredPeers = []
+        allBrowsedPeers = []
     }
 
     func send(_ message: NetMessage) {
@@ -177,16 +207,23 @@ extension PeerService: MCNearbyServiceBrowserDelegate {
 // MARK: - Discovery Timer Management
 private extension PeerService {
     func adjustDiscoveryTimerForConnectionState() {
+        if !Thread.isMainThread { DispatchQueue.main.async { self.adjustDiscoveryTimerForConnectionState() }; return }
         guard autoModeActive else { return }
         let opponentCount = connectedPeers.count
         if opponentCount >= desiredOpponentCount {
-            browser?.stopBrowsingForPeers()
+            if browsingActive {
+                browser?.stopBrowsingForPeers()
+                browsingActive = false
+            }
         } else {
             if browser == nil {
                 browser = MCNearbyServiceBrowser(peer: myPeer, serviceType: serviceType)
                 browser?.delegate = self
             }
-            browser?.startBrowsingForPeers()
+            if !browsingActive {
+                browser?.startBrowsingForPeers()
+                browsingActive = true
+            }
         }
     }
 
