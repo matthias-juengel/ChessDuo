@@ -126,14 +126,14 @@ struct BoardView: View {
         ZStack {
           if showRankLabel {
             Text("\(rankNumber)")
-              .font(labelFont)
+              .font(AppFonts.caption)
               .foregroundColor(labelColor)
               .position(x: g.size.width * 0.15, y: g.size.height * 0.18)
               .accessibilityHidden(true)
           }
           if showFileLabel {
             Text(fileLetter)
-              .font(labelFont)
+              .font(AppFonts.caption)
               .foregroundColor(labelColor)
               .position(x: g.size.width * 0.82, y: g.size.height * 0.82)
               .accessibilityHidden(true)

@@ -12,12 +12,12 @@ struct NewGameConfirmOverlay: View {
       OverlayBackdrop(onTap: onCancel)
       ModalCard {
         VStack(spacing: 20) {
-          Text(String.loc("offline_new_game_title"))
-            .font(.title2).bold()
+                Text(String.loc("offline_new_game_title"))
+                  .appTitle()
             .multilineTextAlignment(.center)
             .foregroundColor(AppColors.textPrimary)
-          Text(message)
-            .font(.body)
+                Text(message)
+                  .appBody()
             .foregroundColor(AppColors.textSecondary)
             .multilineTextAlignment(.center)
           HStack(spacing: 14) {

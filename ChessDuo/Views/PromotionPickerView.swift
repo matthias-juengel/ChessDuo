@@ -21,7 +21,7 @@ struct PromotionPickerView: View {
             }) {
               // Slightly smaller to ensure the row fits on iPhone SE width with card padding
               Text(symbol(for: pt, color: color))
-                .font(.system(size: 44))
+                  .appTitle()
                 .frame(width: 56, height: 56)
                 .background(RoundedRectangle(cornerRadius: 14).fill(AppColors.buttonSymbolBG))
                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(AppColors.buttonSymbolStroke, lineWidth: 1))

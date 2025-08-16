@@ -11,11 +11,11 @@ struct AwaitingResetOverlay: View {
       ModalCard {
         VStack(spacing: 18) {
           Text(String.loc("awaiting_confirmation_title"))
-            .font(.title2).bold()
+            .appTitle()
             .multilineTextAlignment(.center)
             .foregroundColor(AppColors.textPrimary)
           Text(message)
-            .font(.body)
+            .appBody()
             .foregroundColor(AppColors.textSecondary)
             .multilineTextAlignment(.center)
           Button(cancelTitle) { onCancel() }
@@ -41,11 +41,11 @@ struct IncomingResetRequestOverlay: View {
       ModalCard {
         VStack(spacing: 18) {
           Text(String.loc("reset_accept_title"))
-            .font(.title2).bold()
+            .appTitle()
             .multilineTextAlignment(.center)
             .foregroundColor(AppColors.textPrimary)
           Text(message)
-            .font(.body)
+            .appBody()
             .foregroundColor(AppColors.textSecondary)
             .multilineTextAlignment(.center)
           HStack(spacing: 14) {

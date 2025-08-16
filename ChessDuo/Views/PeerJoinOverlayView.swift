@@ -14,8 +14,8 @@ struct PeerJoinOverlayView: View {
           Text(String.loc("found_devices_section"))
             .font(.title2).bold()
             .foregroundColor(AppColors.textPrimary)
-          Text(String.loc("peer_join_subtitle"))
-            .font(.callout)
+            Text(String.loc("peer_join_subtitle"))
+              .appCallout()
             .foregroundColor(AppColors.textSecondary)
             .multilineTextAlignment(.center)
             .padding(.horizontal, 4)
@@ -32,6 +32,7 @@ struct PeerJoinOverlayView: View {
                   HStack {
                     Text(name)
                       .font(.title3)
+                        .appSubtitle()
                       .foregroundColor(AppColors.textPrimary)
                       .frame(maxWidth: .infinity, alignment: .leading)
                     if selected == name { Image(systemName: "checkmark.circle.fill").foregroundColor(.green) }
