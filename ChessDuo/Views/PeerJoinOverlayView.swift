@@ -13,16 +13,16 @@ struct PeerJoinOverlayView: View {
         VStack(spacing: 16) {
           Text(String.loc("found_devices_section"))
             .font(.title2).bold()
-            .foregroundColor(.white)
+            .foregroundColor(AppColors.textPrimary)
           Text(String.loc("peer_join_subtitle"))
             .font(.callout)
-            .foregroundColor(.white.opacity(0.85))
+            .foregroundColor(AppColors.textSecondary)
             .multilineTextAlignment(.center)
             .padding(.horizontal, 4)
 
         if peers.isEmpty {
           Text(String.loc("no_devices_found"))
-            .foregroundColor(.white.opacity(0.8))
+            .foregroundColor(AppColors.textTertiary)
             .padding(.vertical, 20)
         } else {
           ScrollView {
@@ -32,14 +32,14 @@ struct PeerJoinOverlayView: View {
                   HStack {
                     Text(name)
                       .font(.title3)
-                      .foregroundColor(.white)
+                      .foregroundColor(AppColors.textPrimary)
                       .frame(maxWidth: .infinity, alignment: .leading)
                     if selected == name { Image(systemName: "checkmark.circle.fill").foregroundColor(.green) }
                   }
                   .padding(.horizontal, 14)
                   .padding(.vertical, 10)
-                  .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.12)))
-                  .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.25), lineWidth: 1))
+                  .background(RoundedRectangle(cornerRadius: 12).fill(AppColors.buttonListBG))
+                  .overlay(RoundedRectangle(cornerRadius: 12).stroke(AppColors.buttonListStroke, lineWidth: 1))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(name)

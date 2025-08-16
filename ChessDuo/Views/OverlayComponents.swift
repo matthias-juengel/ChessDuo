@@ -15,8 +15,8 @@ struct OverlayBackdrop: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var visible = false
   var body: some View {
-    Color.black
-      .opacity(visible ? 0.55 : 0)
+    AppColors.backdrop
+      .opacity(visible ? 1 : 0)
       .ignoresSafeArea()
       .contentShape(Rectangle())
       .onTapGesture { onTap?() }
@@ -40,7 +40,7 @@ struct ModalCard<Content: View>: View {
     content
       .padding(padding)
       .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-  .shadow(color: .black.opacity(0.28), radius: 14, x: 0, y: 6)
+  .shadow(color: AppColors.shadowCard, radius: 14, x: 0, y: 6)
       .frame(maxWidth: maxWidth)
       .padding(.horizontal, 28)
   }
@@ -83,13 +83,13 @@ struct ModalActionButtonStyle: ButtonStyle {
     let fg: Color
     switch role {
     case .primary:
-      bg = Color.white.opacity(0.92)
+  bg = AppColors.buttonPrimaryBG
       fg = .black
     case .secondary:
-      bg = Color.white.opacity(0.18)
+  bg = AppColors.buttonSecondaryBG
       fg = .white
     case .destructive:
-      bg = Color.red.opacity(0.85)
+  bg = AppColors.buttonDestructiveBG
       fg = .white
     }
     let hPad: CGFloat = (size == .regular) ? 18 : 10
@@ -105,7 +105,7 @@ struct ModalActionButtonStyle: ButtonStyle {
       .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
       .overlay(
         RoundedRectangle(cornerRadius: corner, style: .continuous)
-          .stroke(Color.white.opacity(role == .secondary ? 0.35 : 0.0), lineWidth: 1)
+          .stroke(AppColors.pieceWhite.opacity(role == .secondary ? 0.35 : 0.0), lineWidth: 1)
       )
   .fixedSize(horizontal: true, vertical: false) // avoid multi-line wrap
       .opacity(configuration.isPressed ? 0.85 : 1)

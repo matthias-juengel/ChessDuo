@@ -117,9 +117,9 @@ struct BoardView: View {
       )
       // Overlay coordinate labels
       GeometryReader { g in
-        let labelFont = Font.system(size: squareSize * 0.18, weight: .semibold, design: .rounded)
-        let lightGray = Color(red: 0.75, green: 0.75, blue: 0.75)
-        let darkGray = Color(red: 0.25, green: 0.25, blue: 0.25)
+  let labelFont = Font.system(size: squareSize * 0.18, weight: .semibold, design: .rounded)
+  let lightGray = AppColors.coordLight
+  let darkGray = AppColors.coordDark
         let isDarkSquare = ((sq.file + sq.rank) % 2 == 0)
         // Contrast: use opposite tone
         let labelColor = isDarkSquare ? lightGray : darkGray
@@ -157,13 +157,13 @@ struct BoardView: View {
   let showSelectionRing = selected == item.square && !(gesture.dragActivated && gesture.draggingFrom == item.square)
       if showSelectionRing {
         RoundedRectangle(cornerRadius: 6)
-          .stroke(Color.white, lineWidth: 2)
+          .stroke(AppColors.pieceWhite, lineWidth: 2)
           .padding(2)
-          .shadow(color: .white.opacity(0.6), radius: 4)
+          .shadow(color: AppColors.captureGlow, radius: 4)
       }
       Text(symbol(for: item.piece))
         .font(.system(size: squareSize * 0.75))
-        .foregroundColor(item.piece.color == .white ? .white : .black)
+  .foregroundColor(item.piece.color == .white ? AppColors.pieceWhite : AppColors.pieceBlack)
         .rotationEffect(singleDevice && item.piece.color == .black ? .degrees(180) : .degrees(0))
   .scaleEffect(gesture.dragActivated && gesture.draggingFrom == item.square ? 3.0 : 1.0)
         .offset(y: pieceLiftOffset(for: item))

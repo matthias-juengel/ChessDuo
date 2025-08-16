@@ -15,10 +15,10 @@ struct NewGameConfirmOverlay: View {
           Text(String.loc("offline_new_game_title"))
             .font(.title2).bold()
             .multilineTextAlignment(.center)
-            .foregroundColor(.white)
+            .foregroundColor(AppColors.textPrimary)
           Text(message)
             .font(.body)
-            .foregroundColor(.white.opacity(0.85))
+            .foregroundColor(AppColors.textSecondary)
             .multilineTextAlignment(.center)
           HStack(spacing: 14) {
             Button(keepTitle) { onCancel() }

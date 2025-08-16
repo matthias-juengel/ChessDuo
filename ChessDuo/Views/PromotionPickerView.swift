@@ -10,7 +10,7 @@ struct PromotionPickerView: View {
   VStack(spacing: 16) {
         Text(String.loc("promote_choose"))
           .font(.title2).bold()
-          .foregroundColor(.white)
+          .foregroundColor(AppColors.textPrimary)
         HStack(spacing: 14) { // tighter spacing to fit small widths
           ForEach(choices, id: \.self) { pt in
             Button(action: {
@@ -23,8 +23,8 @@ struct PromotionPickerView: View {
               Text(symbol(for: pt, color: color))
                 .font(.system(size: 44))
                 .frame(width: 56, height: 56)
-                .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.18)))
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.35), lineWidth: 1))
+                .background(RoundedRectangle(cornerRadius: 14).fill(AppColors.buttonSymbolBG))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(AppColors.buttonSymbolStroke, lineWidth: 1))
             }
             .buttonStyle(.plain)
             .accessibilityLabel(accessibilityLabel(for: pt))
