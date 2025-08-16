@@ -55,6 +55,29 @@ struct BoardView: View {
                     colArray: colArray,
                     squareSize: squareSize)
         }
+
+        // Crosshair lines for current drag target
+        if gesture.dragActivated, let target = gesture.dragTarget,
+           let targetFrame = squareFrame(for: target,
+                                         rowArray: rowArray,
+                                         colArray: colArray,
+                                         squareSize: squareSize) {
+          let center = CGPoint(x: targetFrame.midX, y: targetFrame.midY)
+          // Horizontal & vertical thin rectangles spanning board
+          Group {
+            Rectangle()
+              .fill(AppColors.dragCrosshair)
+              .frame(width: boardSide, height: 1)
+              .position(x: boardSide / 2.0, y: center.y)
+            Rectangle()
+              .fill(AppColors.dragCrosshair)
+              .frame(width: 1, height: boardSide)
+              .position(x: center.x, y: boardSide / 2.0)
+          }
+          .transition(.opacity.combined(with: .scale(scale: 0.98)))
+          .animation(.easeOut(duration: 0.16), value: gesture.dragTarget)
+          .animation(.easeOut(duration: 0.12), value: gesture.dragActivated)
+        }
       }
       .frame(width: boardSide, height: boardSide)
       .contentShape(Rectangle())

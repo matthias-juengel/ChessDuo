@@ -45,6 +45,8 @@ struct AppColors {
   static let checkmate = AppColors.highlightLight
   static let captureGlow = Color.white.opacity(0.60)
 
+  static let dragCrosshair = gray(0.5, 1)
+
   // Move indicators (quiet target / capture target)
   // New per-square variants (light square vs dark square) for improved contrast
   static let moveIndicatorQuietOnLight = gray(0.0, 0.20)   // subtle on light square
