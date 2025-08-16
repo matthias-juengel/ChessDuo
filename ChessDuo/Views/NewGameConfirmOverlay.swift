@@ -21,9 +21,15 @@ struct NewGameConfirmOverlay: View {
             .foregroundColor(AppColors.textSecondary)
             .multilineTextAlignment(.center)
           HStack(spacing: 14) {
-            Button(keepTitle) { onCancel() }
+            Button(keepTitle) {
+              Haptics.lightImpact()
+              onCancel()
+            }
               .buttonStyle(.modal(role: .secondary))
-            Button(destructiveTitle) { onConfirm() }
+            Button(destructiveTitle) {
+              Haptics.success()
+              onConfirm()
+            }
               .buttonStyle(.modal(role: .destructive))
           }
         }

@@ -467,7 +467,9 @@ final class GameViewModel: ObservableObject {
       performLocalReset(send: true)
     } else {
       peers.send(.init(kind: .declineReset))
-      incomingResetRequest = false
+  // If we were the requester, clear our awaiting flag; if we were the recipient, clear incoming flag.
+  incomingResetRequest = false
+  awaitingResetConfirmation = false
     }
   }
 

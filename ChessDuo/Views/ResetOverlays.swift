@@ -18,7 +18,10 @@ struct AwaitingResetOverlay: View {
             .appBody()
             .foregroundColor(AppColors.textSecondary)
             .multilineTextAlignment(.center)
-          Button(cancelTitle) { onCancel() }
+          Button(cancelTitle) {
+            Haptics.lightImpact()
+            onCancel()
+          }
             .buttonStyle(.modal(role: .primary))
         }
       }
@@ -49,15 +52,22 @@ struct IncomingResetRequestOverlay: View {
             .foregroundColor(AppColors.textSecondary)
             .multilineTextAlignment(.center)
           HStack(spacing: 14) {
-            Button(declineTitle) { onDecline() }
+            Button(declineTitle) {
+              Haptics.lightImpact()
+              onDecline()
+            }
               .buttonStyle(.modal(role: .secondary))
-            Button(acceptTitle) { onAccept() }
+            Button(acceptTitle) {
+              Haptics.success()
+              onAccept()
+            }
               .buttonStyle(.modal(role: .destructive))
           }
         }
       }
       .modalTransition(animatedWith: true)
     }
+  .onAppear { Haptics.warning() }
     .zIndex(OverlayZIndex.resetConnected)
   }
 }
