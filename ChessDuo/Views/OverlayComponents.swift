@@ -42,7 +42,6 @@ struct ModalCard<Content: View>: View {
       .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
   .shadow(color: AppColors.shadowCard, radius: 14, x: 0, y: 6)
       .frame(maxWidth: maxWidth)
-      .padding(.horizontal, 28)
   }
 }
 
