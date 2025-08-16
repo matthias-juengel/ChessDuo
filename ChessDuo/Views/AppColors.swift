@@ -5,6 +5,19 @@ import SwiftUI
 struct AppColors {
   // Compact grayscale generator. v: 0.0 (black) ... 1.0 (white)
   // Optional alpha for convenience; default 1.0.
+
+  // Hex helper: 0xRRGGBB and optional alpha (0.0–1.0)
+  @inline(__always) private static func hex(_ rgb: UInt32, alpha: Double = 1.0) -> Color {
+    let r = Double((rgb >> 16) & 0xFF) / 255.0
+    let g = Double((rgb >> 8) & 0xFF) / 255.0
+    let b = Double(rgb & 0xFF) / 255.0
+    return Color(red: r, green: g, blue: b).opacity(alpha)
+  }
+
+  static let highlight = hex(0x50847c)
+  static let highlightLight = hex(0x80d2c6)
+
+
   @inline(__always) private static func gray(_ v: Double, _ a: Double = 1.0) -> Color {
     Color(red: v, green: v, blue: v).opacity(a)
   }
@@ -18,18 +31,18 @@ struct AppColors {
 
   // Backgrounds / overlays
   static let turnBase = gray(0.50)
-  static let turnHighlight = Color.green.opacity(0.40)
-  static let turnHighlightHalf = Color.green.opacity(0.38)
+  static let turnHighlight = highlight
   static let backdrop = Color.black.opacity(0.55)
+  static let captureHighlight = highlightLight.opacity(0.5)
 
   // Piece colors
   static let pieceWhite = Color.white
   static let pieceBlack = Color.black
 
   // Status / feedback
-  static let highlightMove = Color.green.opacity(0.45)
-  static let check = Color.orange.opacity(0.70)
-  static let checkmate = Color.red.opacity(0.90)
+  static let highlightMove = highlight.opacity(0.45)
+  static let check = AppColors.highlight
+  static let checkmate = AppColors.highlightLight
   static let captureGlow = Color.white.opacity(0.60)
 
   // Move indicators (quiet target / capture target)

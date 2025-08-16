@@ -24,7 +24,7 @@ struct CapturedRow: View {
             .frame(width: size, height: size)
             .background(
               RoundedRectangle(cornerRadius: 4)
-                .fill(Color.green.opacity(0.45))
+                .fill(AppColors.captureHighlight)
                 .opacity(highlightPieceID == p.id ? 1 : 0)
             )
             .animation(.easeInOut(duration: 0.25), value: highlightPieceID)

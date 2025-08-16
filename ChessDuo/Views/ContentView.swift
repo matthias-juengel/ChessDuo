@@ -140,9 +140,9 @@ struct ContentView: View {
       let colorText = showYou ? baseColor + " " + String.loc("you_mark") : baseColor
       let fg = currentSideToMove == .white ? Color.white : Color.black
       return (String.loc("turn_prefix", colorText), fg)
-    case .win: return (String.loc("win_text"), .green)
-    case .loss: return (String.loc("loss_text"), .red)
-    case .draw: return (String.loc("draw_text"), .yellow)
+    case .win: return (String.loc("win_text"), AppColors.highlightLight)
+    case .loss: return (String.loc("loss_text"), AppColors.highlightLight)
+    case .draw: return (String.loc("draw_text"), AppColors.highlightLight)
     }
   }
 
@@ -187,17 +187,15 @@ struct ContentView: View {
       if vm.displayedOutcomeForSide(currentSideToMove) == .ongoing { // show turn background only while game running
         if vm.peers.isConnected {
           if let my = vm.myColor, currentSideToMove == my {
-            Color.green.opacity(0.4)
+            AppColors.turnHighlight
           }
         } else {
           // Single-device: highlight only the half belonging to the side to move
           VStack(spacing: 0) {
             if currentSideToMove == .black {
-              Color.green.opacity(0.38)
-              Color.clear
+              AppColors.turnHighlight
             } else {
-              Color.clear
-              Color.green.opacity(0.38)
+              AppColors.turnHighlight
             }
           }
           .allowsHitTesting(false)
@@ -530,7 +528,7 @@ private extension ContentView {
               let dist = abs((newHistory ?? vm.moveHistory.count) - current)
               stepHistoryToward(targetIndex: newHistory, animated: dist <= 4)
             }), in: 0...Double(vm.moveHistory.count), step: 1)
-            .tint(.green)
+            .tint(AppColors.highlight)
             .padding(.horizontal, 4)
         }
         .padding(.horizontal, 6)

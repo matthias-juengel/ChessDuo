@@ -13,10 +13,18 @@ struct SquareView: View {
     ZStack {
     Rectangle().fill(baseColor())
     if lastMoveHighlight { Rectangle().fill(AppColors.highlightMove) }
-      if isKingInCheck {
-        RoundedRectangle(cornerRadius: 6, style: .continuous)
-      .fill(isKingCheckmated ? AppColors.checkmate : AppColors.check)
-          .padding(4)
+      if isKingCheckmated {
+        Circle()
+          .fill(AppColors.checkmate)
+          .padding(3)
+        Circle()
+          .fill(AppColors.check)
+          .padding(6)
+      }
+      else if isKingInCheck {
+        Circle()
+          .fill(AppColors.check)
+          .padding(3)
       }
       if let p = piece {
         GeometryReader { geo in
