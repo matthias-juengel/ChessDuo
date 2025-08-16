@@ -27,6 +27,13 @@ struct AppColors {
   static let checkmate = Color.red.opacity(0.90)
   static let captureGlow = Color.white.opacity(0.60)
 
+  // Move indicators (quiet target / capture target)
+  // New per-square variants (light square vs dark square) for improved contrast
+  static let moveIndicatorQuietOnLight = Color.black.opacity(0.3)  // subtle on light square
+  static let moveIndicatorQuietOnDark  = Color.white.opacity(0.3)  // brighter on dark square
+  static let moveIndicatorCaptureOnLight = Color.black.opacity(0.2) // Color(red: 0.55, green: 0.10, blue: 0.10).opacity(0.70)
+  static let moveIndicatorCaptureOnDark  = Color.white.opacity(0.2) // Color(red: 1.00, green: 0.40, blue: 0.40).opacity(0.85)
+
   // Modal button backgrounds
   static let buttonPrimaryBG = Color.white.opacity(0.92)
   static let buttonSecondaryBG = Color.white.opacity(0.18)

@@ -271,7 +271,8 @@ struct ContentView: View {
       let success = single ? vm.makeLocalMove(from: from, to: to) : vm.makeMove(from: from, to: to)
       if success { hideHistory() }
       return success
-    }
+  }
+  legalMovesProvider: { origin in vm.legalDestinations(from: origin) }
     .onChange(of: vm.engine.sideToMove) { newValue in
       if let mine = vm.myColor, mine != newValue { selected = nil }
     }

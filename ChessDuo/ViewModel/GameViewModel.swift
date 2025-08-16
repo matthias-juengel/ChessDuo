@@ -254,12 +254,10 @@ final class GameViewModel: ObservableObject {
   func makeMove(from: Square, to: Square) -> Bool {
     guard !gameIsOver else { return false }
     guard let me = myColor, engine.sideToMove == me else { return false }
-    let isPromotion = isPromotionMove(from: from, to: to)
-    if isPromotion {
-      // Defer until user picks piece
+    if isLegalPromotionMove(from: from, to: to) {
       pendingPromotionMove = Move(from: from, to: to, promotion: nil)
       showingPromotionPicker = true
-      return true // treat as handled for drag success (piece will transition via picker)
+      return true // treat as handled for drag success (engine move committed after selection)
     }
     let move = Move(from: from, to: to)
   let capturedBefore = capturedPieceConsideringEnPassant(from: from, to: to, board: engine.board)
@@ -290,8 +288,7 @@ final class GameViewModel: ObservableObject {
   @discardableResult
   func makeLocalMove(from: Square, to: Square) -> Bool {
     guard !gameIsOver else { return false }
-    let isPromotion = isPromotionMove(from: from, to: to)
-    if isPromotion {
+    if isLegalPromotionMove(from: from, to: to) {
       pendingPromotionMove = Move(from: from, to: to, promotion: nil)
       showingPromotionPicker = true
       return true
@@ -522,6 +519,15 @@ final class GameViewModel: ObservableObject {
     if piece.color == .white && to.rank == 7 { return true }
     if piece.color == .black && to.rank == 0 { return true }
     return false
+  }
+
+  // Full legality check for promotion attempts: ensure the move would succeed (aside from promotion choice)
+  private func isLegalPromotionMove(from: Square, to: Square) -> Bool {
+    guard isPromotionMove(from: from, to: to) else { return false }
+    // Try move on a copy with default queen promotion; if engine accepts it's legal
+    var copy = engine
+    let test = Move(from: from, to: to, promotion: .queen)
+    return copy.tryMakeMove(test)
   }
 
   // Detect en-passant captured pawn before engine.tryMakeMove mutates board.
@@ -805,6 +811,26 @@ extension GameViewModel {
     case .pawn: return 1
     case .king: return 0 // should not normally appear
     }
+  }
+}
+
+// MARK: - Legal Move Query (UI helpers)
+extension GameViewModel {
+  /// Returns the set of legal destination squares for a piece on `from` in the current live position.
+  /// If history view is active or no piece / wrong color, returns empty set.
+  func legalDestinations(from: Square) -> Set<Square> {
+    // Do not show indicators in history mode (readonly replay)
+    if historyIndex != nil { return [] }
+    guard let piece = engine.board.piece(at: from) else { return [] }
+    // In connected mode restrict to myColor's moves only; in single-device allow current side to move only.
+    if let mine = myColor, engine.sideToMove != mine, myColor != nil { // connected but not my turn
+      return []
+    }
+    if piece.color != engine.sideToMove { return [] }
+    // Ask engine for all legal moves for sideToMove; filter origins
+    let moves = engine.generateLegalMoves(for: engine.sideToMove)
+    let dests = moves.filter { $0.from == from }.map { $0.to }
+    return Set(dests)
   }
 }
 

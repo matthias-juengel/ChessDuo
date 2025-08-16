@@ -14,6 +14,8 @@ struct BoardView: View {
   var onAttemptInteraction: () -> Void = {}
   @Binding var selected: Square?
   let onMove: (Square, Square, Bool) -> Bool
+  // Provides set of legal destinations for a given origin square (live position only)
+  var legalMovesProvider: (Square) -> Set<Square> = { _ in [] }
   @Namespace private var pieceNamespace
   @StateObject private var gesture = BoardGestureController()
 
@@ -111,6 +113,17 @@ struct BoardView: View {
   let showFileLabel = rank == fileLabelRank
     let rankNumber = rank + 1
     let fileLetter = String(UnicodeScalar("a".unicodeScalars.first!.value + UInt32(file))!)
+    // Determine if we should show a legal move indicator for this square
+    let activeOrigin: Square? = gesture.draggingFrom ?? selected
+    let legalTargets: Set<Square> = activeOrigin.map { legalMovesProvider($0) } ?? []
+    let showIndicator = activeOrigin != nil && legalTargets.contains(sq)
+    // Distinguish capture vs quiet move
+    let isCaptureIndicator: Bool = showIndicator && board.piece(at: sq) != nil && board.piece(at: activeOrigin!)?.color != board.piece(at: sq)?.color
+  // Square brightness for color choice
+  let isDarkSquare = ((sq.file + sq.rank) % 2 == 0)
+  let quietColor = isDarkSquare ? AppColors.moveIndicatorQuietOnDark : AppColors.moveIndicatorQuietOnLight
+  let captureColor = isDarkSquare ? AppColors.moveIndicatorCaptureOnDark : AppColors.moveIndicatorCaptureOnLight
+
     return ZStack {
       SquareView(
         square: sq,
@@ -121,6 +134,29 @@ struct BoardView: View {
         rotateForOpponent: false,
         lastMoveHighlight: isLastMoveSquare(sq) || dragHighlight
       )
+      // Legal move indicator layer
+      if showIndicator {
+        GeometryReader { g in
+          let size = min(g.size.width, g.size.height)
+          if isCaptureIndicator {
+            // Filled larger circle for capture squares (piece present)
+            Circle()
+              .fill(captureColor)
+              .frame(width: size * 0.8, height: size * 0.8)
+              .position(x: size / 2, y: size / 2)
+              .transition(.scale.combined(with: .opacity))
+          } else {
+            // Dot indicator for quiet moves
+            Circle()
+              .fill(quietColor)
+              .frame(width: size * 0.28, height: size * 0.28)
+              .position(x: size / 2, y: size / 2)
+              .transition(.scale.combined(with: .opacity))
+          }
+        }
+        .animation(.easeInOut(duration: 0.18), value: showIndicator)
+        .accessibilityHidden(true)
+      }
       // Overlay coordinate labels
       GeometryReader { g in
   let labelFont = Font.system(size: squareSize * 0.18, weight: .semibold, design: .rounded)
