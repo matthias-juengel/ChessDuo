@@ -447,22 +447,21 @@ private extension ContentView {
   var peerChooserLayer: some View {
     ZStack {
       if showPeerChooser {
-        ZStack {
-          PeerJoinOverlayView(
-            peers: vm.discoveredPeerNames,
-            selected: selectedPeerToJoin,
-            onSelect: { name in
-              selectedPeerToJoin = name
-              vm.confirmJoin(peerName: name)
-              withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) { showPeerChooser = false }
-            },
-            onCancel: {
-              withAnimation(.easeInOut(duration: 0.25)) { showPeerChooser = false }
-            }
-          )
-        }
-  .zIndex(OverlayZIndex.peerChooser)
-        .modalTransition(animatedWith: showPeerChooser)
+        PeerJoinOverlayView(
+          peers: vm.discoveredPeerNames,
+          selected: selectedPeerToJoin,
+          onSelect: { name in
+            selectedPeerToJoin = name
+            vm.confirmJoin(peerName: name)
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) { showPeerChooser = false }
+          },
+          onCancel: {
+            withAnimation(.easeInOut(duration: 0.25)) { showPeerChooser = false }
+          },
+          animated: true
+        )
+        .zIndex(OverlayZIndex.peerChooser)
+        .transition(.opacity) // Backdrop fade handled internally; opacity pairs nicely with card scale
       }
     }
   }

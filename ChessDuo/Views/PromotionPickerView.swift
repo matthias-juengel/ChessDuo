@@ -19,12 +19,14 @@ struct PromotionPickerView: View {
 #endif
               onSelect(pt)
             }) {
-              // Slightly smaller to ensure the row fits on iPhone SE width with card padding
+              // Enlarged piece symbol; slightly reduced container to decrease empty padding.
+              // Layout math (smallest width target ~320): 4 * 52 + 3 * 14 = 250 + card horizontal padding (2*24) = 298 < 320.
               Text(symbol(for: pt, color: color))
-                  .appTitle()
-                .frame(width: 56, height: 56)
-                .background(RoundedRectangle(cornerRadius: 14).fill(AppColors.buttonSymbolBG))
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(AppColors.buttonSymbolStroke, lineWidth: 1))
+                .font(.system(size: 34))
+                .minimumScaleFactor(0.6) // allow slight shrink on very small accessibility sizes
+                .frame(width: 52, height: 52)
+                .background(RoundedRectangle(cornerRadius: 12).fill(AppColors.buttonSymbolBG))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(AppColors.buttonSymbolStroke, lineWidth: 1))
             }
             .buttonStyle(.plain)
             .accessibilityLabel(accessibilityLabel(for: pt))

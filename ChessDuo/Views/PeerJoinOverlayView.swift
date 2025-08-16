@@ -5,10 +5,14 @@ struct PeerJoinOverlayView: View {
   let selected: String?
   let onSelect: (String) -> Void
   let onCancel: () -> Void
+  /// Controls whether the modal card applies the standard scale transition.
+  /// Parent overlays can disable this if they drive their own transitions.
+  var animated: Bool = true
 
   var body: some View {
     ZStack {
       OverlayBackdrop(onTap: onCancel)
+      // Outer horizontal padding ensures the card never touches screen edges on compact widths.
       ModalCard {
         VStack(spacing: 16) {
           Text(String.loc("found_devices_section"))
@@ -57,8 +61,9 @@ struct PeerJoinOverlayView: View {
               .accessibilityLabel(String.loc("cancel"))
           }
         }
-      }
-      .modalTransition(animatedWith: (peers.count != 0))
+  }
+  .padding(.horizontal, 20)
+  .modalTransition(animatedWith: animated)
     }
   }
 }
