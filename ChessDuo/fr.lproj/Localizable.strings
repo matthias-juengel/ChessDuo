@@ -61,3 +61,7 @@
 "menu_close" = "Fermer";
 "menu_accessibility_label" = "Ouvrir le menu";
 "menu_join_section" = "Joueurs proches";
+"menu_load_game" = "Charger Partie";
+"load_game_title" = "Parties d'Échecs Célèbres";
+"load_game_subtitle" = "Choisissez une partie à charger";
+"load_game_cancel" = "Annuler";

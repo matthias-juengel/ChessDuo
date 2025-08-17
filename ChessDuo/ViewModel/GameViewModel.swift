@@ -912,6 +912,39 @@ extension GameViewModel {
     legalDestCache[cacheKey] = dests
     return dests
   }
+
+  // Load a famous game - replaces current game state
+  func loadFamousGame(_ game: FamousGame) {
+    // Reset to initial state
+    engine = ChessEngine()
+    moveHistory = []
+    boardSnapshots = [engine.board] // Initial position
+    capturedByMe = []
+    capturedByOpponent = []
+    movesMade = 0
+    lastMove = nil
+    lastCapturedPieceID = nil
+    lastCaptureByMe = nil
+    historyIndex = nil
+
+    // Apply all moves from the famous game
+    for move in game.moves {
+      if engine.tryMakeMove(move) {
+        moveHistory.append(move)
+        boardSnapshots.append(engine.board)
+        movesMade += 1
+        lastMove = move
+      } else {
+        // Log skipped illegal move for debugging (e.g. because source JSON sequence simplified or engine limitation)
+        print("Skipped illegal famous game move from (f:\(move.from.file) r:\(move.from.rank)) to (f:\(move.to.file) r:\(move.to.rank))")
+        break // stop applying further moves once a move fails to preserve coherent state
+      }
+    }
+    // Keep historyIndex nil so UI displays live board (so turn indicator shows correct side to move)
+
+    // Save the loaded game state
+    saveGame()
+  }
 }
 
 // MARK: - Board Signature (for legal move cache invalidation)

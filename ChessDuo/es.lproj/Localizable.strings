@@ -61,3 +61,7 @@
 "menu_close" = "Cerrar";
 "menu_accessibility_label" = "Abrir menú";
 "menu_join_section" = "Jugadores cercanos";
+"menu_load_game" = "Cargar Partida";
+"load_game_title" = "Partidas de Ajedrez Famosas";
+"load_game_subtitle" = "Elige una partida para cargar";
+"load_game_cancel" = "Cancelar";

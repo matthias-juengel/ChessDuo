@@ -1,0 +1,204 @@
+[
+  {
+    "title": "Immortal Game",
+    "players": "Anderssen vs Kieseritzky (London 1851)",
+    "description": "Classic Immortal Game (compressed to key moves ending 23.Be7#).",
+    "moves": [
+  {"from": {"file": 4, "rank": 1}, "to": {"file": 4, "rank": 3}},
+  {"from": {"file": 4, "rank": 6}, "to": {"file": 4, "rank": 4}},
+  {"from": {"file": 5, "rank": 1}, "to": {"file": 5, "rank": 3}},
+  {"from": {"file": 4, "rank": 4}, "to": {"file": 5, "rank": 3}},
+  {"from": {"file": 5, "rank": 0}, "to": {"file": 2, "rank": 3}},
+  {"from": {"file": 3, "rank": 7}, "to": {"file": 7, "rank": 3}},
+  {"from": {"file": 4, "rank": 0}, "to": {"file": 5, "rank": 0}},
+  {"from": {"file": 1, "rank": 6}, "to": {"file": 1, "rank": 4}},
+  {"from": {"file": 2, "rank": 3}, "to": {"file": 1, "rank": 4}},
+  {"from": {"file": 6, "rank": 7}, "to": {"file": 5, "rank": 5}},
+  {"from": {"file": 6, "rank": 0}, "to": {"file": 5, "rank": 2}},
+  {"from": {"file": 7, "rank": 3}, "to": {"file": 7, "rank": 5}},
+  {"from": {"file": 3, "rank": 1}, "to": {"file": 3, "rank": 2}},
+  {"from": {"file": 5, "rank": 5}, "to": {"file": 7, "rank": 4}},
+  {"from": {"file": 5, "rank": 2}, "to": {"file": 7, "rank": 3}},
+  {"from": {"file": 7, "rank": 5}, "to": {"file": 6, "rank": 4}},
+  {"from": {"file": 7, "rank": 3}, "to": {"file": 5, "rank": 4}},
+  {"from": {"file": 2, "rank": 6}, "to": {"file": 2, "rank": 5}},
+  {"from": {"file": 6, "rank": 1}, "to": {"file": 6, "rank": 3}},
+  {"from": {"file": 7, "rank": 4}, "to": {"file": 5, "rank": 5}},
+  {"from": {"file": 7, "rank": 0}, "to": {"file": 6, "rank": 0}},
+  {"from": {"file": 2, "rank": 5}, "to": {"file": 1, "rank": 4}},
+  {"from": {"file": 7, "rank": 1}, "to": {"file": 7, "rank": 3}},
+  {"from": {"file": 6, "rank": 4}, "to": {"file": 6, "rank": 5}},
+  {"from": {"file": 7, "rank": 3}, "to": {"file": 7, "rank": 4}},
+  {"from": {"file": 6, "rank": 5}, "to": {"file": 6, "rank": 4}},
+  {"from": {"file": 3, "rank": 0}, "to": {"file": 5, "rank": 2}},
+  {"from": {"file": 5, "rank": 5}, "to": {"file": 6, "rank": 7}},
+  {"from": {"file": 2, "rank": 0}, "to": {"file": 5, "rank": 3}},
+  {"from": {"file": 6, "rank": 4}, "to": {"file": 5, "rank": 5}},
+  {"from": {"file": 1, "rank": 0}, "to": {"file": 2, "rank": 2}},
+  {"from": {"file": 5, "rank": 7}, "to": {"file": 2, "rank": 4}},
+  {"from": {"file": 2, "rank": 2}, "to": {"file": 3, "rank": 4}},
+  {"from": {"file": 5, "rank": 5}, "to": {"file": 1, "rank": 1}},
+  {"from": {"file": 5, "rank": 3}, "to": {"file": 3, "rank": 5}},
+  {"from": {"file": 2, "rank": 4}, "to": {"file": 6, "rank": 0}},
+  {"from": {"file": 4, "rank": 3}, "to": {"file": 4, "rank": 4}},
+  {"from": {"file": 1, "rank": 1}, "to": {"file": 0, "rank": 0}},
+  {"from": {"file": 5, "rank": 0}, "to": {"file": 4, "rank": 1}},
+  {"from": {"file": 1, "rank": 7}, "to": {"file": 0, "rank": 5}},
+  {"from": {"file": 5, "rank": 4}, "to": {"file": 6, "rank": 6}},
+  {"from": {"file": 4, "rank": 7}, "to": {"file": 3, "rank": 7}},
+  {"from": {"file": 5, "rank": 2}, "to": {"file": 5, "rank": 5}},
+  {"from": {"file": 6, "rank": 7}, "to": {"file": 5, "rank": 5}},
+  {"from": {"file": 3, "rank": 5}, "to": {"file": 4, "rank": 6}}
+    ]
+  },
+  {
+    "title": "Scholar's Mate",
+    "players": "Quick checkmate example",
+    "description": "A simple 4-move checkmate pattern for demonstration.",
+    "moves": [
+      {"from": {"file": 4, "rank": 1}, "to": {"file": 4, "rank": 3}},
+      {"from": {"file": 4, "rank": 6}, "to": {"file": 4, "rank": 4}},
+      {"from": {"file": 5, "rank": 0}, "to": {"file": 2, "rank": 3}},
+      {"from": {"file": 1, "rank": 7}, "to": {"file": 2, "rank": 5}},
+      {"from": {"file": 3, "rank": 0}, "to": {"file": 7, "rank": 4}},
+      {"from": {"file": 6, "rank": 7}, "to": {"file": 5, "rank": 5}},
+      {"from": {"file": 7, "rank": 4}, "to": {"file": 5, "rank": 6}}
+    ]
+  },
+  {
+    "title": "Ruy Lopez Opening",
+    "players": "Classical opening sequence",
+    "description": "The famous Spanish Opening showing classical development.",
+    "moves": [
+      {"from": {"file": 4, "rank": 1}, "to": {"file": 4, "rank": 3}},
+      {"from": {"file": 4, "rank": 6}, "to": {"file": 4, "rank": 4}},
+      {"from": {"file": 6, "rank": 0}, "to": {"file": 5, "rank": 2}},
+      {"from": {"file": 1, "rank": 7}, "to": {"file": 2, "rank": 5}},
+      {"from": {"file": 5, "rank": 0}, "to": {"file": 1, "rank": 4}},
+      {"from": {"file": 0, "rank": 6}, "to": {"file": 0, "rank": 5}},
+      {"from": {"file": 3, "rank": 1}, "to": {"file": 3, "rank": 3}},
+      {"from": {"file": 3, "rank": 6}, "to": {"file": 3, "rank": 4}},
+      {"from": {"file": 1, "rank": 0}, "to": {"file": 2, "rank": 2}},
+      {"from": {"file": 2, "rank": 7}, "to": {"file": 2, "rank": 5}}
+    ]
+  },
+  {
+    "title": "Italian Game",
+    "players": "Classical Italian opening",
+    "description": "The Italian Game showing early bishop development.",
+    "moves": [
+      {"from": {"file": 4, "rank": 1}, "to": {"file": 4, "rank": 3}},
+      {"from": {"file": 4, "rank": 6}, "to": {"file": 4, "rank": 4}},
+      {"from": {"file": 6, "rank": 0}, "to": {"file": 5, "rank": 2}},
+      {"from": {"file": 1, "rank": 7}, "to": {"file": 2, "rank": 5}},
+      {"from": {"file": 5, "rank": 0}, "to": {"file": 2, "rank": 3}},
+      {"from": {"file": 5, "rank": 7}, "to": {"file": 2, "rank": 4}},
+      {"from": {"file": 3, "rank": 1}, "to": {"file": 3, "rank": 3}},
+      {"from": {"file": 6, "rank": 7}, "to": {"file": 5, "rank": 5}},
+      {"from": {"file": 1, "rank": 0}, "to": {"file": 2, "rank": 2}},
+      {"from": {"file": 3, "rank": 6}, "to": {"file": 3, "rank": 4}}
+    ]
+  },
+  {
+    "title": "French Defense",
+    "players": "French Defense demonstration",
+    "description": "The solid French Defense system.",
+    "moves": [
+      {"from": {"file": 4, "rank": 1}, "to": {"file": 4, "rank": 3}},
+      {"from": {"file": 4, "rank": 6}, "to": {"file": 4, "rank": 5}},
+      {"from": {"file": 3, "rank": 1}, "to": {"file": 3, "rank": 3}},
+      {"from": {"file": 3, "rank": 6}, "to": {"file": 3, "rank": 4}},
+      {"from": {"file": 1, "rank": 0}, "to": {"file": 2, "rank": 2}},
+      {"from": {"file": 2, "rank": 7}, "to": {"file": 2, "rank": 5}},
+      {"from": {"file": 4, "rank": 3}, "to": {"file": 4, "rank": 4}},
+  {"from": {"file": 2, "rank": 7}, "to": {"file": 3, "rank": 6}},
+      {"from": {"file": 6, "rank": 0}, "to": {"file": 5, "rank": 2}},
+      {"from": {"file": 6, "rank": 7}, "to": {"file": 5, "rank": 5}}
+    ]
+  },
+  {
+    "title": "Sicilian Defense",
+    "players": "Sicilian Dragon variation",
+    "description": "The sharp Sicilian Defense leading to tactical play.",
+    "moves": [
+      {"from": {"file": 4, "rank": 1}, "to": {"file": 4, "rank": 3}},
+      {"from": {"file": 2, "rank": 6}, "to": {"file": 2, "rank": 4}},
+      {"from": {"file": 6, "rank": 0}, "to": {"file": 5, "rank": 2}},
+      {"from": {"file": 3, "rank": 6}, "to": {"file": 3, "rank": 5}},
+      {"from": {"file": 3, "rank": 1}, "to": {"file": 3, "rank": 3}},
+      {"from": {"file": 6, "rank": 7}, "to": {"file": 5, "rank": 5}},
+      {"from": {"file": 5, "rank": 0}, "to": {"file": 4, "rank": 1}},
+      {"from": {"file": 6, "rank": 6}, "to": {"file": 6, "rank": 5}},
+      {"from": {"file": 1, "rank": 0}, "to": {"file": 2, "rank": 2}},
+  {"from": {"file": 5, "rank": 7}, "to": {"file": 6, "rank": 6}}
+    ]
+  },
+  {
+    "title": "Queen's Gambit",
+    "players": "Classical Queen's Gambit",
+    "description": "The famous Queen's Gambit opening system.",
+    "moves": [
+      {"from": {"file": 3, "rank": 1}, "to": {"file": 3, "rank": 3}},
+      {"from": {"file": 3, "rank": 6}, "to": {"file": 3, "rank": 4}},
+      {"from": {"file": 2, "rank": 1}, "to": {"file": 2, "rank": 3}},
+      {"from": {"file": 4, "rank": 6}, "to": {"file": 4, "rank": 4}},
+      {"from": {"file": 1, "rank": 0}, "to": {"file": 2, "rank": 2}},
+      {"from": {"file": 6, "rank": 7}, "to": {"file": 5, "rank": 5}},
+      {"from": {"file": 6, "rank": 0}, "to": {"file": 5, "rank": 2}},
+      {"from": {"file": 1, "rank": 7}, "to": {"file": 2, "rank": 5}},
+      {"from": {"file": 4, "rank": 1}, "to": {"file": 4, "rank": 2}},
+      {"from": {"file": 4, "rank": 6}, "to": {"file": 4, "rank": 4}}
+    ]
+  },
+  {
+    "title": "English Opening",
+    "players": "English Opening system",
+    "description": "The flexible English Opening with c4.",
+    "moves": [
+      {"from": {"file": 2, "rank": 1}, "to": {"file": 2, "rank": 3}},
+      {"from": {"file": 4, "rank": 6}, "to": {"file": 4, "rank": 4}},
+      {"from": {"file": 1, "rank": 0}, "to": {"file": 2, "rank": 2}},
+      {"from": {"file": 3, "rank": 6}, "to": {"file": 3, "rank": 4}},
+      {"from": {"file": 6, "rank": 0}, "to": {"file": 5, "rank": 2}},
+      {"from": {"file": 6, "rank": 7}, "to": {"file": 5, "rank": 5}},
+      {"from": {"file": 6, "rank": 1}, "to": {"file": 6, "rank": 2}},
+  {"from": {"file": 5, "rank": 7}, "to": {"file": 6, "rank": 6}},
+      {"from": {"file": 5, "rank": 0}, "to": {"file": 6, "rank": 1}},
+      {"from": {"file": 1, "rank": 7}, "to": {"file": 2, "rank": 5}}
+    ]
+  },
+  {
+    "title": "King's Indian Defense",
+    "players": "King's Indian setup",
+    "description": "The hypermodern King's Indian Defense.",
+    "moves": [
+      {"from": {"file": 3, "rank": 1}, "to": {"file": 3, "rank": 3}},
+      {"from": {"file": 6, "rank": 7}, "to": {"file": 5, "rank": 5}},
+      {"from": {"file": 2, "rank": 1}, "to": {"file": 2, "rank": 3}},
+  {"from": {"file": 5, "rank": 7}, "to": {"file": 6, "rank": 6}},
+      {"from": {"file": 1, "rank": 0}, "to": {"file": 2, "rank": 2}},
+      {"from": {"file": 3, "rank": 6}, "to": {"file": 3, "rank": 5}},
+      {"from": {"file": 4, "rank": 1}, "to": {"file": 4, "rank": 2}},
+      {"from": {"file": 0, "rank": 7}, "to": {"file": 1, "rank": 7}},
+      {"from": {"file": 5, "rank": 0}, "to": {"file": 4, "rank": 1}},
+      {"from": {"file": 2, "rank": 7}, "to": {"file": 2, "rank": 5}}
+    ]
+  },
+  {
+    "title": "Caro-Kann Defense",
+    "players": "Caro-Kann demonstration",
+    "description": "The solid Caro-Kann Defense system.",
+    "moves": [
+      {"from": {"file": 4, "rank": 1}, "to": {"file": 4, "rank": 3}},
+      {"from": {"file": 2, "rank": 6}, "to": {"file": 2, "rank": 5}},
+      {"from": {"file": 3, "rank": 1}, "to": {"file": 3, "rank": 3}},
+      {"from": {"file": 3, "rank": 6}, "to": {"file": 3, "rank": 4}},
+      {"from": {"file": 1, "rank": 0}, "to": {"file": 2, "rank": 2}},
+      {"from": {"file": 3, "rank": 4}, "to": {"file": 3, "rank": 3}},
+      {"from": {"file": 2, "rank": 2}, "to": {"file": 3, "rank": 3}},
+      {"from": {"file": 2, "rank": 7}, "to": {"file": 3, "rank": 6}},
+      {"from": {"file": 6, "rank": 0}, "to": {"file": 5, "rank": 2}},
+      {"from": {"file": 6, "rank": 7}, "to": {"file": 5, "rank": 5}}
+    ]
+  }
+]

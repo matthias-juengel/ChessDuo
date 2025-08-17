@@ -78,6 +78,7 @@ struct ContentView: View {
   @State private var historySliderOwner: PieceColor? = nil // which side opened the slider (single-device)
   @State private var historyAnimationToken: Int = 0 // used to cancel in-flight history step animations
   @State private var showMenu: Bool = false
+  @State private var showLoadGame: Bool = false
 
   // MARK: - Perspective Helpers
   // Current board orientation perspective (bottom side color). In connected mode this is my multiplayer color (if known) else white; in single-device it's the persisted preference.
@@ -304,6 +305,7 @@ struct ContentView: View {
   if showMenu { menuOverlay }
   promotionLayer
   newGameConfirmLayer
+  loadGameLayer
   peerChooserLayer
   connectedResetLayers
   if exportFlash { Text("Copied state")
@@ -457,6 +459,15 @@ private extension ContentView {
         )
   .zIndex(OverlayZIndex.newGameConfirm)
         .modalTransition(animatedWith: vm.offlineResetPrompt)
+      }
+    }
+  }
+  
+  var loadGameLayer: some View {
+    ZStack {
+      if showLoadGame {
+        LoadGameOverlay(vm: vm, showLoadGame: $showLoadGame)
+          .zIndex(OverlayZIndex.menu + 2)
       }
     }
   }
@@ -663,6 +674,12 @@ private extension ContentView {
   }) { labeledRow(system: "arrow.left.arrow.right", text: String.loc("menu_play_black")) }
           .buttonStyle(.plain)
       }
+      // Load Game option
+      Button(action: {
+        withAnimation(.easeInOut(duration: 0.25)) { showMenu = false }
+        showLoadGame = true
+      }) { labeledRow(system: "doc.text", text: String.loc("menu_load_game")) }
+        .buttonStyle(.plain)
       // Joinable peers section (single-device only, not connected) when peers are available
   if !vm.peers.isConnected, !vm.allBrowsedPeerNames.isEmpty {
         // visual separation

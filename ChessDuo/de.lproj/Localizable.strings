@@ -61,3 +61,7 @@
 "menu_close" = "Schließen";
 "menu_accessibility_label" = "Menü öffnen";
 "menu_join_section" = "Verfügbare Spieler";
+"menu_load_game" = "Spiel laden";
+"load_game_title" = "Berühmte Schachpartien";
+"load_game_subtitle" = "Wähle ein Spiel zum Laden";
+"load_game_cancel" = "Abbrechen";

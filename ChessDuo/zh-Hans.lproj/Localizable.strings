@@ -61,3 +61,7 @@
 "menu_close" = "关闭";
 "menu_accessibility_label" = "打开菜单";
 "menu_join_section" = "附近玩家";
+"menu_load_game" = "载入对局";
+"load_game_title" = "著名棋局";
+"load_game_subtitle" = "选择要载入的对局";
+"load_game_cancel" = "取消";

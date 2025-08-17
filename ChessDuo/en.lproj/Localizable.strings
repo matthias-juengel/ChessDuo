@@ -75,3 +75,7 @@
 "menu_close" = "Close";
 "menu_accessibility_label" = "Open menu";
 "menu_join_section" = "Nearby Players";
+"menu_load_game" = "Load Game";
+"load_game_title" = "Famous Chess Games";
+"load_game_subtitle" = "Choose a game to load";
+"load_game_cancel" = "Cancel";
