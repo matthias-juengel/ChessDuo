@@ -54,8 +54,9 @@ struct GameScreen: View {
 
   var body: some View {
     ZStack {
+      Color.clear
       viewBackground.ignoresSafeArea().highPriorityGesture(exportGesture)
-      boardSection.ignoresSafeArea().contentShape(Rectangle())
+      boardSection
       GameMenuButtonOverlay(availability: menuAvailability, isPresented: $showMenu)
       if showMenu { GameMenuView(state: menuState, isPresented: $showMenu, showLoadGame: $showLoadGame, send: handleMenuAction) }
       GameScreenOverlays(
@@ -75,10 +76,10 @@ struct GameScreen: View {
       if exportFlash { exportFlashView }
     }
     .modifier(StateChangeHandlers(vm: vm,
-                                   showPeerChooser: $showPeerChooser,
-                                   showHistorySlider: $showHistorySlider,
-                                   showMenu: $showMenu,
-                                   hideHistory: hideHistory))
+                                  showPeerChooser: $showPeerChooser,
+                                  showHistorySlider: $showHistorySlider,
+                                  showMenu: $showMenu,
+                                  hideHistory: hideHistory))
     .alert(String.loc("incoming_join_title"), isPresented: Binding<Bool>(get: { vm.incomingJoinRequestPeer != nil }, set: { if !$0 { vm.incomingJoinRequestPeer = nil } })) {
       Button(String.loc("yes")) { vm.respondToIncomingInvitation(true) }
       Button(String.loc("no"), role: .cancel) { vm.respondToIncomingInvitation(false) }
@@ -89,9 +90,9 @@ struct GameScreen: View {
   private var exportGesture: some Gesture {
     TapGesture(count: 5).onEnded {
       let text = vm.exportText()
-      #if canImport(UIKit)
+#if canImport(UIKit)
       UIPasteboard.general.string = text
-      #endif
+#endif
       withAnimation(.easeInOut(duration: 0.3)) { exportFlash = true }
       DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
         withAnimation(.easeOut(duration: 0.3)) { exportFlash = false }
@@ -221,7 +222,9 @@ struct GameScreen: View {
     }
   }
 
-  // MARK: Board section
+  let statusBarHeight: CGFloat = 50.0 // fixed height for status bar
+  let capturedRowHeight: CGFloat = 50.0 // fixed height for captured row
+
   private var boardSection: some View {
     let ctx = captureContext()
     let material = materialDiff(on: vm.displayedBoard)
@@ -231,19 +234,31 @@ struct GameScreen: View {
     let blackCaps = ctx.blackCaptures
     let topPieces = topSide == .black ? blackCaps : whiteCaps
     let bottomPieces = bottomSide == .white ? whiteCaps : blackCaps
-    return VStack(spacing: 0) {
-      statusBar(for: topSide)
-        .rotationEffect(!vm.peers.isConnected ? .degrees(180) : .degrees(0))
-        .padding(.top, 4)
-      capturedRow(for: topSide, pieces: topPieces, ctx: ctx, whiteLead: whiteLead, blackLead: blackLead, rotate: !vm.peers.isConnected)
-        .padding(.horizontal, 10).padding(.top, 4)
-      Color.black.frame(height: 1)
-      chessBoard
-      Color.black.frame(height: 1)
-      capturedRow(for: bottomSide, pieces: bottomPieces, ctx: ctx, whiteLead: whiteLead, blackLead: blackLead, rotate: false)
-        .padding(.horizontal, 10).padding(.bottom, 4)
-      statusBar(for: bottomSide)
-        .padding(.bottom, 8)
+
+    return GeometryReader { geo in
+      let dividerSize = 1.0 
+      let boardSize = min(geo.size.width, geo.size.height - 2.0 * (statusBarHeight + capturedRowHeight + dividerSize))
+      ZStack {
+        viewBackground
+        VStack(spacing: 0) {
+          statusBar(for: topSide)
+            .rotationEffect(!vm.peers.isConnected ? .degrees(180) : .degrees(0))
+            .frame(height: statusBarHeight)
+          capturedRow(for: topSide, pieces: topPieces, ctx: ctx, whiteLead: whiteLead, blackLead: blackLead, rotate: !vm.peers.isConnected)
+            .padding(.horizontal, 5)
+            .frame(height: capturedRowHeight)
+          chessBoard.frame(width: boardSize, height: boardSize).overlay(
+            Rectangle()
+              .stroke(AppColors.boardBorder, lineWidth: dividerSize)
+              .padding(-0.5 * dividerSize)
+          ).padding(EdgeInsets(top: dividerSize, leading: 0, bottom: dividerSize, trailing: 0))
+          capturedRow(for: bottomSide, pieces: bottomPieces, ctx: ctx, whiteLead: whiteLead, blackLead: blackLead, rotate: false)
+            .padding(.horizontal, 5)
+            .frame(height: capturedRowHeight)
+          statusBar(for: bottomSide)
+            .frame(height: statusBarHeight)
+        }.frame(width: boardSize)
+      }
     }
   }
 
@@ -285,9 +300,9 @@ struct GameScreen: View {
       if success { hideHistory() }
       return success
     } legalMovesProvider: { origin in vm.legalDestinations(from: origin) }
-    .onChange(of: vm.engine.sideToMove) { newValue in if let mine = vm.myColor, mine != newValue { selected = nil } }
-    .onChange(of: vm.historyIndex) { newVal in if newVal != nil { withAnimation(.easeInOut(duration: 0.15)) { selected = nil } } }
-    .aspectRatio(1, contentMode: .fit)
+      .onChange(of: vm.engine.sideToMove) { newValue in if let mine = vm.myColor, mine != newValue { selected = nil } }
+      .onChange(of: vm.historyIndex) { newVal in if newVal != nil { withAnimation(.easeInOut(duration: 0.15)) { selected = nil } } }
+      .aspectRatio(1, contentMode: .fit)
   }
 
   private func materialDiff(on board: Board) -> Int {
@@ -302,7 +317,6 @@ struct GameScreen: View {
   private func statusBar(for overlayColor: PieceColor?) -> some View {
     let canShowSlider = vm.moveHistory.count > 0
     return ZStack {
-      Color.clear.frame(height: 54)
       let showForThisBar: Bool = {
         if !showHistorySlider || !canShowSlider { return false }
         if vm.peers.isConnected { if let my = vm.myColor, overlayColor == my { return true }; return false }
@@ -312,7 +326,7 @@ struct GameScreen: View {
         HistorySliderView(currentIndex: vm.historyIndex, totalMoves: vm.moveHistory.count) { newHistory in
           let current = vm.historyIndex ?? vm.moveHistory.count
           let dist = abs((newHistory ?? vm.moveHistory.count) - current)
-            stepHistoryToward(targetIndex: newHistory, animated: dist <= 4)
+          stepHistoryToward(targetIndex: newHistory, animated: dist <= 4)
         }
       } else if let status = turnStatus(for: overlayColor) {
         Text(status.text).font(.title).foregroundStyle(status.color)
@@ -393,5 +407,23 @@ private struct StateChangeHandlers: ViewModifier {
 }
 
 // MARK: Piece values (UI-level)
-private func pieceValue(_ p: Piece) -> Int { switch p.type { case .queen: return 9; case .rook: return 5; case .bishop, .knight: return 3; case .pawn: return 1; case .king: return 0 } }
-private func symbol(for p: Piece) -> String { switch p.type { case .king: return "♚"; case .queen: return "♛"; case .rook: return "♜"; case .bishop: return "♝"; case .knight: return "♞"; case .pawn: return "♟︎" } }
+private func pieceValue(_ p: Piece) -> Int {
+  switch p.type {
+  case .queen: return 9
+  case .rook: return 5
+  case .bishop, .knight: return 3
+  case .pawn: return 1
+  case .king: return 0
+  }
+}
+
+private func symbol(for p: Piece) -> String {
+  switch p.type {
+  case .king:   return "♚"
+  case .queen:  return "♛"
+  case .rook:   return "♜"
+  case .bishop: return "♝"
+  case .knight: return "♞"
+  case .pawn:   return "♟︎"
+  }
+}

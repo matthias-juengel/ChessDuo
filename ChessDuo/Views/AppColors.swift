@@ -25,6 +25,9 @@ struct AppColors {
   static let boardDark = gray(0.40)
   static let boardLight = gray(0.60)
 
+  // Board border
+  static let boardBorder = gray(0)
+
   // Coordinate labels (contrasts)
   static let coordLight = gray(0.75)
   static let coordDark  = gray(0.25)
