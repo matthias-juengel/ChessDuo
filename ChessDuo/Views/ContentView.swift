@@ -539,32 +539,15 @@ private extension ContentView {
         }
       }()
       if showForThisBar {
-        // History slider replaces status text
-        VStack(spacing: 4) {
-          HStack {
-            Text(vm.historyIndex == nil ? "Live" : "Move \(vm.historyIndex!) / \(vm.moveHistory.count)")
-              .font(.caption)
-              .padding(.leading, 4)
-            Spacer(minLength: 0)
+        HistorySliderView(
+          currentIndex: vm.historyIndex,
+          totalMoves: vm.moveHistory.count,
+          onScrub: { newHistory in
+            let current = vm.historyIndex ?? vm.moveHistory.count
+            let dist = abs((newHistory ?? vm.moveHistory.count) - current)
+            stepHistoryToward(targetIndex: newHistory, animated: dist <= 4)
           }
-          Slider(value: Binding<Double>(
-            get: { Double(vm.historyIndex ?? vm.moveHistory.count) },
-            set: { newVal in
-              let idx = Int(newVal.rounded())
-              let newHistory: Int? = (idx == vm.moveHistory.count ? nil : max(0, min(idx, vm.moveHistory.count)))
-              if newHistory == vm.historyIndex { return }
-              // Determine if user is scrubbing quickly (dragging) vs discrete taps
-              // SwiftUI Slider does not expose drag state directly; assume step-wise if difference is 1
-              let current = vm.historyIndex ?? vm.moveHistory.count
-              let dist = abs((newHistory ?? vm.moveHistory.count) - current)
-              stepHistoryToward(targetIndex: newHistory, animated: dist <= 4)
-            }), in: 0...Double(vm.moveHistory.count), step: 1)
-            .tint(AppColors.highlight)
-            .padding(.horizontal, 4)
-        }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 6)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        )
       } else if let status = turnStatus(for: overlayColor) {
         Text(status.text)
           .font(.title)
