@@ -76,3 +76,17 @@
 "history_revert_request_sent" = "En attente de confirmation du redémarrage...";
 "history_revert_short" = "D'ici";
 "menu_show_history" = "Voir l'historique";
+
+/* Chargement de partie célèbre */
+"opponent_requests_load_game" = "L'adversaire veut charger : %@";
+"load_game_accept_yes" = "Charger";
+"load_game_accept_no" = "Garder";
+"load_game_cancel_request" = "Garder";
+"load_game_request_sent" = "En attente de confirmation de chargement...";
+
+/* Chargement d'une partie célèbre */
+"opponent_requests_load_game" = "L'adversaire veut charger : %@";
+"load_game_accept_yes" = "Charger";
+"load_game_accept_no" = "Garder";
+"load_game_cancel_request" = "Garder";
+"load_game_request_sent" = "En attente de confirmation de chargement...";

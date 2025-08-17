@@ -95,6 +95,10 @@ struct GameMenuView: View {
         send(.newGameOrReset)
       }
     }
+    menuButton(icon: "doc.text", text: String.loc("menu_load_game")) {
+      dismiss()
+      send(.loadGame)
+    }.padding(.bottom, 20) // Only add padding if no new game
     if !state.isConnected { // Rotate
       menuButton(icon: "arrow.triangle.2.circlepath", text: String.loc("menu_rotate_board")) {
         dismiss()
@@ -112,10 +116,6 @@ struct GameMenuView: View {
         dismiss()
         send(.showHistory)
       }
-    }
-    menuButton(icon: "doc.text", text: String.loc("menu_load_game")) {
-      dismiss()
-      send(.loadGame)
     }
     if !state.isConnected, state.hasPeersToJoin {
       VStack(spacing: 6) {

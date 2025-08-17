@@ -76,3 +76,10 @@
 "history_revert_request_sent" = "等待对手确认重开...";
 "history_revert_short" = "从这里";
 "menu_show_history" = "显示历史";
+
+/* 载入著名棋局 协商 */
+"opponent_requests_load_game" = "对手想载入：%@";
+"load_game_accept_yes" = "载入";
+"load_game_accept_no" = "保持当前";
+"load_game_cancel_request" = "保持当前";
+"load_game_request_sent" = "等待对手确认载入...";

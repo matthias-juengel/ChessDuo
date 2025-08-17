@@ -90,3 +90,10 @@
 "history_revert_request_sent" = "Waiting for other player to confirm restart...";
 "history_revert_short" = "From here";
 "menu_show_history" = "Show History";
+
+/* Famous game load negotiation */
+"opponent_requests_load_game" = "Opponent wants to load: %@";
+"load_game_accept_yes" = "Load Game";
+"load_game_accept_no" = "Keep Current";
+"load_game_cancel_request" = "Keep Current";
+"load_game_request_sent" = "Waiting for other player to confirm load...";

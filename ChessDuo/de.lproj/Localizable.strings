@@ -76,3 +76,10 @@
 "history_revert_request_sent" = "Warte auf Bestätigung des Neustarts...";
 "history_revert_short" = "Ab hier";
 "menu_show_history" = "Spielverlauf";
+
+/* Berühmte Partie Laden Verhandlung */
+"opponent_requests_load_game" = "Gegner möchte laden: %@";
+"load_game_accept_yes" = "Spiel laden";
+"load_game_accept_no" = "Aktuell behalten";
+"load_game_cancel_request" = "Aktuell behalten";
+"load_game_request_sent" = "Warte auf Bestätigung zum Laden...";

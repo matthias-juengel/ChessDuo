@@ -3,9 +3,9 @@ import SwiftUI
 struct LoadGameOverlay: View {
     @ObservedObject var vm: GameViewModel
     @Binding var showLoadGame: Bool
-    
+
     private let games = FamousGamesLoader.shared.getAllGames()
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
@@ -14,7 +14,7 @@ struct LoadGameOverlay: View {
                     .appTitle()
                     .foregroundColor(AppColors.textPrimary)
                     .frame(maxWidth: .infinity)
-                
+
                 HStack {
                     Spacer()
                     Button(action: {
@@ -35,13 +35,13 @@ struct LoadGameOverlay: View {
             .padding(.horizontal, 6)
             .padding(.top, 14)
             .padding(.bottom, 8)
-            
+
             // Subtitle
             Text(String.loc("load_game_subtitle"))
                 .font(.subheadline)
                 .foregroundColor(AppColors.textSecondary)
                 .padding(.bottom, 16)
-            
+
             // Games List
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 12) {
@@ -50,7 +50,7 @@ struct LoadGameOverlay: View {
                             withAnimation(.easeInOut(duration: 0.25)) {
                                 showLoadGame = false
                             }
-                            vm.loadFamousGame(game)
+                            vm.userSelectedFamousGame(game)
                         }
                     }
                 }
@@ -73,7 +73,7 @@ struct LoadGameOverlay: View {
 struct GameRow: View {
     let game: FamousGame
     let onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 4) {
@@ -86,11 +86,11 @@ struct GameRow: View {
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(AppColors.textSecondary)
                 }
-                
+
                 Text(game.players)
                     .font(.subheadline.weight(.medium))
                     .foregroundColor(AppColors.textSecondary)
-                
+
                 Text(game.description)
                     .font(.caption)
                     .foregroundColor(AppColors.textSecondary)

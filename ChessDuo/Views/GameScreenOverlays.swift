@@ -97,6 +97,27 @@ private extension GameScreenOverlays {
             onCancel: { vm.cancelPendingHistoryRevertRequest() }
           )
         }
+        // Famous game load negotiation overlays
+        if let incomingTitle = vm.incomingLoadGameRequestTitle {
+          IncomingResetRequestOverlay(
+            message: String.loc("opponent_requests_load_game", incomingTitle),
+            acceptTitle: String.loc("load_game_accept_yes"),
+            declineTitle: String.loc("load_game_accept_no"),
+            onAccept: { vm.respondToLoadGameRequest(accept: true) },
+            onDecline: { vm.respondToLoadGameRequest(accept: false) }
+          )
+        }
+        if vm.awaitingLoadGameConfirmation {
+          AwaitingResetOverlay(
+            cancelTitle: String.loc("load_game_cancel_request"),
+            message: String.loc("load_game_request_sent"),
+            onCancel: {
+              // Cancel outgoing load request: send decline and clear state
+              vm.respondToLoadGameRequest(accept: false)
+              vm.awaitingLoadGameConfirmation = false
+            }
+          )
+        }
       }
     }
   }

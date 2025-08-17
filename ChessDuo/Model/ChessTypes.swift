@@ -55,6 +55,11 @@ struct NetMessage: Codable {
     case declineHistoryRevert   // opponent declined revert
     case revertHistory          // authoritative revert to given move count
     case historyView            // peer is viewing a historical position (index provided or nil to exit)
+    // Famous game load negotiation
+    case requestLoadGame        // ask opponent to confirm loading a famous game (will end current game)
+    case acceptLoadGame         // opponent accepted loading the game
+    case declineLoadGame        // opponent declined loading the game
+    case loadGameState          // authoritative load of a famous game snapshot
     }
     let kind: Kind
     var move: Move? = nil
@@ -77,4 +82,6 @@ struct NetMessage: Codable {
     var revertToCount: Int? = nil
     // History view index (number of moves applied). nil represents live view.
     var historyViewIndex: Int? = nil
+    // Famous game metadata (title) for load negotiation/reference
+    var gameTitle: String? = nil
 }

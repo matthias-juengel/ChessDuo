@@ -49,6 +49,10 @@ final class GameViewModel: ObservableObject {
   @Published var incomingHistoryRevertRequest: Int? = nil // opponent requested revert to this move count
   @Published var requestedHistoryRevertTarget: Int? = nil // outgoing revert target while awaiting
   @Published var lastAppliedHistoryRevertTarget: Int? = nil // set when revert applied for UI
+  // Famous game load negotiation
+  @Published var awaitingLoadGameConfirmation: Bool = false // I requested to load a famous game
+  @Published var incomingLoadGameRequestTitle: String? = nil // opponent wants to load a game with this title
+  private var pendingGameToLoad: FamousGame? = nil // locally selected game awaiting acceptance
 //  @Published var outcome: GameOutcome = .ongoing
   @Published var incomingJoinRequestPeer: String? = nil
   @Published var offlineResetPrompt: Bool = false
@@ -69,6 +73,8 @@ final class GameViewModel: ObservableObject {
   // Remote history view sync
   @Published var remoteIsDrivingHistoryView: Bool = false // true while we reflect a peer's slider movement
   private var suppressHistoryViewBroadcast = false
+  // Tracks whether any live moves have been made since last reset or famous game load
+  private var sessionProgressed: Bool = false
 
   // Cache for legal destination queries: key = (boardSignature, originSquare)
   private var legalDestCache: [String: Set<Square>] = [:]
@@ -346,7 +352,8 @@ final class GameViewModel: ObservableObject {
           lastCapturedPieceID = nil
           lastCaptureByMe = nil
         }
-        movesMade += 1
+  movesMade += 1
+  sessionProgressed = true
         lastMove = move
   moveHistory.append(move)
   historyIndex = nil
@@ -386,7 +393,8 @@ final class GameViewModel: ObservableObject {
           lastCapturedPieceID = nil
           lastCaptureByMe = nil
         }
-        movesMade += 1
+  movesMade += 1
+  sessionProgressed = true
         lastMove = move
   moveHistory.append(move)
   historyIndex = nil
@@ -446,6 +454,7 @@ final class GameViewModel: ObservableObject {
               lastCaptureByMe = nil
             }
             movesMade += 1
+            sessionProgressed = true
             lastMove = m
             moveHistory.append(m)
             historyIndex = nil
@@ -561,6 +570,44 @@ final class GameViewModel: ObservableObject {
           suppressHistoryViewBroadcast = false
         }
       }
+    case .requestLoadGame:
+      // Opponent wants to load a famous game; show prompt only if we have progress (if no moves we can silently accept?)
+      incomingLoadGameRequestTitle = msg.gameTitle
+      awaitingLoadGameConfirmation = false
+    case .acceptLoadGame:
+      // Peer accepted our request; now send authoritative loadGameState snapshot using pendingGameToLoad
+      if let game = pendingGameToLoad {
+        applyFamousGame(game, broadcast: true)
+        pendingGameToLoad = nil
+      }
+      awaitingLoadGameConfirmation = false
+    case .declineLoadGame:
+      awaitingLoadGameConfirmation = false
+      pendingGameToLoad = nil
+      incomingLoadGameRequestTitle = nil
+    case .loadGameState:
+      // Adopt incoming authoritative famous game snapshot
+      if let b = msg.board,
+         let stm = msg.sideToMove,
+         let remoteMoves = msg.movesMade,
+         let remoteCapturedBySender = msg.capturedByMe,
+         let remoteCapturedByOpponent = msg.capturedByOpponent,
+         let remoteHistory = msg.moveHistory {
+        engine = ChessEngine.fromSnapshot(board: b, sideToMove: stm)
+        capturedByOpponent = remoteCapturedBySender
+        capturedByMe = remoteCapturedByOpponent
+        movesMade = remoteMoves
+        moveHistory = remoteHistory
+        lastMove = msg.lastMoveFrom.flatMap { from in msg.lastMoveTo.map { Move(from: from, to: $0) } }
+        lastCapturedPieceID = msg.lastCapturedPieceID
+        lastCaptureByMe = msg.lastCaptureByMe.map { !$0 } // invert perspective like syncState
+        historyIndex = nil
+        remoteIsDrivingHistoryView = false
+        boardSnapshots = []
+        rebuildSnapshotsFromHistory()
+        saveGame()
+  sessionProgressed = false
+      }
     }
   }
 
@@ -591,6 +638,7 @@ final class GameViewModel: ObservableObject {
     lastCaptureByMe = nil
   moveHistory = []
   historyIndex = nil
+    sessionProgressed = false
   boardSnapshots = [engine.board]
     if send { peers.send(.init(kind: .reset)) }
   saveGame()
@@ -660,6 +708,7 @@ final class GameViewModel: ObservableObject {
     lastCaptureByMe = lastCapByMe
     // Truncate histories
   if target < moveHistory.count { moveHistory = Array(moveHistory.prefix(target)) }
+  sessionProgressed = target > 0
   // Ensure all devices exit history mode after a confirmed revert.
   // Suppress broadcasting while we locally reset historyIndex to avoid redundant historyView(nil) chatter;
   // the authoritative revertHistory message (if send == true) implicitly instructs remote to rebuild and exit.
@@ -679,6 +728,92 @@ final class GameViewModel: ObservableObject {
   awaitingHistoryRevertConfirmation = false
   incomingHistoryRevertRequest = nil
   requestedHistoryRevertTarget = nil
+  }
+
+  // MARK: - Famous Game Load Logic
+  /// Entry point from UI when user selects a famous game.
+  func userSelectedFamousGame(_ game: FamousGame) {
+  // Require confirmation only if session has progressed (live moves since last load/reset)
+  if peers.isConnected, sessionProgressed {
+      pendingGameToLoad = game
+      awaitingLoadGameConfirmation = true
+      // Send request with game title metadata
+      peers.send(.init(kind: .requestLoadGame, gameTitle: game.title))
+    } else if peers.isConnected {
+      // No existing moves: directly apply & broadcast snapshot
+      applyFamousGame(game, broadcast: true)
+    } else {
+      // Offline single-device: just load locally
+      applyFamousGame(game, broadcast: false)
+    }
+  }
+
+  /// Respond to incoming load game request.
+  func respondToLoadGameRequest(accept: Bool) {
+    guard let title = incomingLoadGameRequestTitle else { return }
+    if accept {
+      // Accept: send accept; wait for authoritative loadGameState message.
+      peers.send(.init(kind: .acceptLoadGame, gameTitle: title))
+    } else {
+      peers.send(.init(kind: .declineLoadGame, gameTitle: title))
+    }
+    incomingLoadGameRequestTitle = nil
+  }
+
+  /// Apply a famous game to local state, optionally broadcasting snapshot to peer via loadGameState.
+  private func applyFamousGame(_ game: FamousGame, broadcast: Bool) {
+    // Reset existing state similar to loadFamousGame
+    engine = ChessEngine()
+    moveHistory = []
+    boardSnapshots = [engine.board]
+    capturedByMe = []
+    capturedByOpponent = []
+  movesMade = 0
+  sessionProgressed = false
+    lastMove = nil
+    lastCapturedPieceID = nil
+    lastCaptureByMe = nil
+    historyIndex = nil
+    remoteIsDrivingHistoryView = false
+
+    var sourceMoves: [Move] = game.moves
+    if sourceMoves.isEmpty, let pgn = game.pgn {
+      if case .success(let parsed) = PGNParser.parseMoves(pgn: pgn) { sourceMoves = parsed }
+    }
+    for mv in sourceMoves {
+      let capturedBefore = capturedPieceConsideringEnPassant(from: mv.from, to: mv.to, board: engine.board)
+      if engine.tryMakeMove(mv) {
+        if let cap = capturedBefore {
+          if cap.color == .white { capturedByOpponent.append(cap); lastCapturedPieceID = cap.id; lastCaptureByMe = false }
+          else { capturedByMe.append(cap); lastCapturedPieceID = cap.id; lastCaptureByMe = true }
+        } else { lastCapturedPieceID = nil; lastCaptureByMe = nil }
+        moveHistory.append(mv)
+        boardSnapshots.append(engine.board)
+        movesMade += 1
+        lastMove = mv
+      } else { break }
+    }
+    saveGame()
+    if broadcast {
+      // Broadcast full authoritative snapshot (mirrors syncState semantics but distinct kind)
+      let msg = NetMessage(kind: .loadGameState,
+                           move: nil,
+                           color: nil,
+                           deviceName: peers.localFriendlyName,
+                           board: engine.board,
+                           sideToMove: engine.sideToMove,
+                           movesMade: movesMade,
+                           capturedByMe: capturedByMe,
+                           capturedByOpponent: capturedByOpponent,
+                           lastMoveFrom: lastMove?.from,
+                           lastMoveTo: lastMove?.to,
+                           lastCapturedPieceID: lastCapturedPieceID,
+                           lastCaptureByMe: lastCaptureByMe,
+                           moveHistory: moveHistory,
+                           historyViewIndex: nil,
+                           gameTitle: game.title)
+      peers.send(msg)
+    }
   }
 
   /// Utility for UI to be called (e.g. via onReceive) to clear history view when revert applied.
@@ -798,7 +933,8 @@ final class GameViewModel: ObservableObject {
           lastCapturedPieceID = nil
           lastCaptureByMe = nil
         }
-        movesMade += 1
+  movesMade += 1
+  sessionProgressed = true
         lastMove = base
         if peers.isConnected { peers.send(.init(kind: .move, move: base)) }
   moveHistory.append(base)
@@ -912,6 +1048,7 @@ extension GameViewModel {
     rebuildSnapshotsFromHistory()
   // Align preferred perspective with current multiplayer color if connected previously
   if let mine = myColor { preferredPerspective = mine }
+    sessionProgressed = movesMade > 0
   }
 
   // Reconstruct a board state after n moves from history (n in 0...moveHistory.count)

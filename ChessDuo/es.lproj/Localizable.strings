@@ -76,3 +76,10 @@
 "history_revert_request_sent" = "Esperando confirmación del reinicio...";
 "history_revert_short" = "Desde aquí";
 "menu_show_history" = "Ver historial";
+
+/* Cargar partida famosa */
+"opponent_requests_load_game" = "El oponente quiere cargar: %@";
+"load_game_accept_yes" = "Cargar";
+"load_game_accept_no" = "Mantener";
+"load_game_cancel_request" = "Mantener";
+"load_game_request_sent" = "Esperando confirmación para cargar...";
