@@ -58,11 +58,20 @@ struct GameScreen: View {
       boardSection.ignoresSafeArea().contentShape(Rectangle())
       GameMenuButtonOverlay(availability: menuAvailability, isPresented: $showMenu)
       if showMenu { GameMenuView(state: menuState, isPresented: $showMenu, showLoadGame: $showLoadGame, send: handleMenuAction) }
-      promotionLayer
-      newGameConfirmLayer
-      loadGameLayer
-      peerChooserLayer
-      connectedResetLayers
+      GameScreenOverlays(
+        vm: vm,
+        showPeerChooser: $showPeerChooser,
+        selectedPeerToJoin: $selectedPeerToJoin,
+        showLoadGame: $showLoadGame,
+        onCancelPromotion: { vm.cancelPromotion() },
+        onSelectPromotion: { vm.promote(to: $0) },
+        onSelectPeer: { name in
+          selectedPeerToJoin = name
+          vm.confirmJoin(peerName: name)
+          withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) { showPeerChooser = false }
+        },
+        onDismissPeerChooser: { withAnimation(.easeInOut(duration: 0.25)) { showPeerChooser = false } }
+      )
       if exportFlash { exportFlashView }
     }
     .modifier(StateChangeHandlers(vm: vm,
@@ -287,108 +296,7 @@ struct GameScreen: View {
     return w - b
   }
 
-  // MARK: Overlays
-  // Promotion picker layer (always present ZStack to avoid layout shifts when it appears).
-  private var promotionLayer: some View {
-    ZStack {
-      if vm.showingPromotionPicker, let pending = vm.pendingPromotionMove {
-        // Determine color needing promotion; fall back to side to move opposite if piece vanished (edge cases).
-        let promoColor = vm.engine.board.piece(at: pending.from)?.color ?? vm.engine.sideToMove.opposite
-        let rotateBoard180 = !vm.peers.isConnected && promoColor == .black
-
-        ZStack {
-          OverlayBackdrop(onTap: { vm.cancelPromotion() })
-          ModalCard() {
-            PromotionPickerView(
-              color: promoColor,
-              rotate180: rotateBoard180,
-              onSelect: { vm.promote(to: $0) },
-              onCancel: { vm.cancelPromotion() }
-            )
-          }
-        }
-        .modalTransition(animatedWith: vm.showingPromotionPicker)
-        .zIndex(OverlayZIndex.promotion)
-      }
-    }
-  }
-
-  // Overlays related to reset flow when connected to another peer.
-  private var connectedResetLayers: some View {
-    ZStack {
-      if vm.peers.isConnected {
-        if vm.incomingResetRequest {
-          IncomingResetRequestOverlay(
-            message: String.loc("opponent_requests_reset"),
-            acceptTitle: String.loc("reset_accept_yes"),
-            declineTitle: String.loc("reset_accept_no"),
-            onAccept: { vm.respondToResetRequest(accept: true) },
-            onDecline: { vm.respondToResetRequest(accept: false) }
-          )
-        }
-        if vm.awaitingResetConfirmation {
-          AwaitingResetOverlay(
-            cancelTitle: String.loc("reset_cancel_request"),
-            message: String.loc("reset_request_sent"),
-            onCancel: { vm.respondToResetRequest(accept: false) }
-          )
-        }
-      }
-    }
-  }
-
-  // Peer chooser when browsing for opponents (single-device discovery UI).
-  private var peerChooserLayer: some View {
-    ZStack {
-      if showPeerChooser {
-        PeerJoinOverlayView(
-          peers: vm.discoveredPeerNames,
-          selected: selectedPeerToJoin,
-          onSelect: { name in
-            selectedPeerToJoin = name
-            vm.confirmJoin(peerName: name)
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) { showPeerChooser = false }
-          },
-          onCancel: {
-            withAnimation(.easeInOut(duration: 0.25)) { showPeerChooser = false }
-          },
-          animated: true
-        )
-        .zIndex(OverlayZIndex.peerChooser)
-        .transition(.opacity)
-      }
-    }
-  }
-
-  // Confirmation dialog for starting a new offline game (local reset prompt).
-  private var newGameConfirmLayer: some View {
-    ZStack {
-      if vm.offlineResetPrompt {
-        NewGameConfirmOverlay(
-          message: String.loc("offline_new_game_message"),
-          destructiveTitle: String.loc("offline_new_game_confirm"),
-          keepTitle: String.loc("offline_new_game_keep"),
-          onConfirm: { vm.performLocalReset(send: false) },
-          onCancel: { vm.offlineResetPrompt = false }
-        )
-        .zIndex(OverlayZIndex.newGameConfirm)
-        .modalTransition(animatedWith: vm.offlineResetPrompt)
-      }
-    }
-  }
-
-  // Load game overlay (PGN import / famous games list etc.).
-  private var loadGameLayer: some View {
-    ZStack {
-      if showLoadGame {
-        LoadGameOverlay(
-          vm: vm,
-          showLoadGame: $showLoadGame
-        )
-        .zIndex(OverlayZIndex.menu + 2)
-      }
-    }
-  }
+  // Overlays moved to GameScreenOverlays
 
   // MARK: Status bar with history slider
   private func statusBar(for overlayColor: PieceColor?) -> some View {
