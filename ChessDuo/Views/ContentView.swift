@@ -297,8 +297,18 @@ struct ContentView: View {
         .contentShape(Rectangle())
         // Overlay controls removed; status bars integrated into boardSection
   // Hamburger button & menu layer
-  menuInvocationButtonLayer
-  if showMenu { menuOverlay }
+  GameMenuButtonOverlay(
+    availability: menuAvailability,
+    isPresented: $showMenu
+  )
+  if showMenu {
+    GameMenuView(
+      state: menuState,
+      isPresented: $showMenu,
+      showLoadGame: $showLoadGame,
+      send: handleMenuAction
+    )
+  }
   promotionLayer
   newGameConfirmLayer
   loadGameLayer
@@ -379,6 +389,46 @@ struct ContentView: View {
 }
 
 private extension ContentView {
+  var menuState: GameMenuView.State {
+    GameMenuView.State(
+      movesMade: vm.movesMade,
+      isConnected: vm.peers.isConnected,
+      myColorIsWhite: vm.myColor.map { $0 == .white },
+      canSwapColorsPreGame: vm.peers.isConnected && vm.movesMade == 0 && vm.myColor == .some(.white),
+      hasPeersToJoin: !vm.peers.isConnected && !vm.allBrowsedPeerNames.isEmpty,
+      browsedPeerNames: vm.allBrowsedPeerNames
+    )
+  }
+
+  var menuAvailability: GameMenuButtonOverlay.Availability {
+    var a: GameMenuButtonOverlay.Availability = []
+    if vm.movesMade > 0 { a.insert(.newGame) }
+    if !vm.peers.isConnected { a.insert(.rotate) }
+    if vm.peers.isConnected && vm.movesMade == 0 && vm.myColor == .some(.white) { a.insert(.swap) }
+    if !vm.peers.isConnected && !vm.allBrowsedPeerNames.isEmpty { a.insert(.join) }
+    return a
+  }
+
+  func handleMenuAction(_ action: GameMenuView.Action) {
+    switch action {
+    case .close: break
+    case .newGameOrReset:
+      if vm.peers.isConnected {
+        hideHistory()
+        vm.resetGame()
+      } else {
+        vm.offlineResetPrompt = true
+      }
+    case .rotateBoard:
+      withAnimation(.none) { vm.preferredPerspective = vm.preferredPerspective.opposite }
+    case .swapColors:
+      vm.swapColorsIfAllowed()
+    case .loadGame:
+      showLoadGame = true
+    case .joinPeer(let name):
+      vm.confirmJoin(peerName: name)
+    }
+  }
   // Dedicated overlay layer to isolate promotion picker transitions from the board layout.
   var promotionLayer: some View {
     ZStack { // Always present layer to avoid parent ZStack layout changes.
@@ -458,7 +508,7 @@ private extension ContentView {
       }
     }
   }
-  
+
   var loadGameLayer: some View {
     ZStack {
       if showLoadGame {
@@ -547,175 +597,6 @@ private extension ContentView {
   }
 }
 
-// MARK: - Menu Overlay & Hamburger
-private extension ContentView {
-  // Position hamburger: bottom-right normally; when single-device and it's top side's turn we flip orientation so top acts like bottom => put it top-left.
-  var menuInvocationButtonLayer: some View {
-    GeometryReader { geo in
-      // Determine if there is at least one actionable entry (excluding the Close entry)
-      let hasNewGame = vm.movesMade > 0
-      let canRotate = !vm.peers.isConnected
-      let canSwapPreGame = vm.peers.isConnected && vm.movesMade == 0 && vm.myColor == .some(.white)
-  // Single-device join candidates (when not connected but peers discovered)
-  let joinablePeers: [String] = (!vm.peers.isConnected ? vm.discoveredPeerNames : [])
-  let hasJoinables = !joinablePeers.isEmpty
-  let hasAction = hasNewGame || canRotate || canSwapPreGame || hasJoinables
-      let size: CGFloat = 46
-      let padding: CGFloat = 14
-      Group {
-        if hasAction {
-          Button(action: { withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) { showMenu.toggle() } }) {
-            Image(systemName: "line.3.horizontal")
-              .font(.system(size: 22, weight: .semibold))
-              .foregroundColor(.white)
-              .frame(width: size, height: size)
-              .background(AppColors.buttonSymbolBG, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-              .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(AppColors.buttonSymbolStroke, lineWidth: 1))
-          }
-          .buttonStyle(.plain)
-          .shadow(color: AppColors.shadowCard.opacity(0.6), radius: 8, x: 0, y: 4)
-          .position(x: geo.size.width - padding - size/2,
-                    y: geo.size.height - padding - size/2)
-          .zIndex(OverlayZIndex.menu)
-          .accessibilityLabel(String.loc("menu_accessibility_label"))
-        }
-      }
-    }
-    .allowsHitTesting(true)
-  }
-
-  var menuOverlay: some View {
-    ZStack {
-      OverlayBackdrop(onTap: { withAnimation(.easeInOut(duration: 0.25)) { showMenu = false } })
-        .zIndex(OverlayZIndex.menu)
-      VStack(spacing: 0) {
-        ZStack {
-          // Title centered
-          Text(String.loc("menu_title"))
-            .appTitle()
-            .foregroundColor(AppColors.textPrimary)
-            .frame(maxWidth: .infinity)
-          HStack {
-            Spacer()
-            Button(action: { withAnimation(.easeInOut(duration: 0.25)) { showMenu = false } }) {
-              Image(systemName: "xmark")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(.white)
-                .padding(10)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(String.loc("menu_close"))
-          }
-        }
-        .padding(.horizontal, 6)
-        .padding(.top, 14)
-        .padding(.bottom, 8)
-        ScrollView(showsIndicators: false) {
-          VStack(spacing: 10) {
-            menuEntries
-          }
-          .padding(.bottom, 8)
-        }
-        .frame(maxHeight: 420)
-        .padding(.horizontal, 4)
-        .padding(.bottom, 8)
-      }
-      .padding(.horizontal, 18)
-      .padding(.bottom, 18)
-      .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-      .shadow(color: AppColors.shadowCard, radius: 14, x: 0, y: 6)
-      .padding(.horizontal, 28)
-      .frame(maxWidth: 440)
-      .zIndex(OverlayZIndex.menu + 1)
-      .modalTransition(animatedWith: showMenu)
-    }
-  }
-
-  @ViewBuilder var menuEntries: some View {
-    VStack(spacing: 10) {
-      // New Game / Reset (single-device immediate, connected triggers existing logic)
-  if vm.movesMade > 0 { // show only after at least one move has been made
-        Button(action: {
-          withAnimation(.easeInOut(duration: 0.25)) { showMenu = false }
-          if vm.peers.isConnected {
-            // Mirror existing reset button logic
-            hideHistory()
-            vm.resetGame() // existing path triggers confirmation state machine
-          } else {
-            vm.offlineResetPrompt = true
-          }
-  }) { labeledRow(system: "flag.fill", text: String.loc("menu_new_game")) }
-        .buttonStyle(.plain)
-      }
-      // Rotate board (single-device only)
-      if !vm.peers.isConnected {
-        Button(action: {
-          // First hide the menu (animated) then flip perspective without animating board state changes.
-          withAnimation(.easeInOut(duration: 0.25)) { showMenu = false }
-          withAnimation(.none) { vm.preferredPerspective = vm.preferredPerspective.opposite }
-  }) { labeledRow(system: "arrow.triangle.2.circlepath", text: String.loc("menu_rotate_board")) }
-          .buttonStyle(.plain)
-      }
-      // Swap sides pre-game (connected, only before first move and I'm white)
-      if vm.peers.isConnected, vm.movesMade == 0, vm.myColor == .some(.white) {
-        Button(action: {
-          withAnimation(.easeInOut(duration: 0.25)) { showMenu = false }
-          vm.swapColorsIfAllowed()
-  }) { labeledRow(system: "arrow.left.arrow.right", text: String.loc("menu_play_black")) }
-          .buttonStyle(.plain)
-      }
-      // Load Game option
-      Button(action: {
-        withAnimation(.easeInOut(duration: 0.25)) { showMenu = false }
-        showLoadGame = true
-      }) { labeledRow(system: "doc.text", text: String.loc("menu_load_game")) }
-        .buttonStyle(.plain)
-      // Joinable peers section (single-device only, not connected) when peers are available
-  if !vm.peers.isConnected, !vm.allBrowsedPeerNames.isEmpty {
-        // visual separation
-        VStack(spacing: 6) {
-          // subtle divider with label
-          HStack {
-            Text(String.loc("menu_join_section"))
-              .font(.caption.weight(.semibold))
-              .foregroundColor(AppColors.textSecondary)
-            Spacer(minLength: 0)
-          }
-          ForEach(vm.allBrowsedPeerNames, id: \..self) { peer in
-            Button(action: {
-              withAnimation(.easeInOut(duration: 0.25)) { showMenu = false }
-              vm.confirmJoin(peerName: peer)
-            }) { labeledRow(system: "person.2", text: peer) }
-              .buttonStyle(.plain)
-          }
-        }
-        .padding(.top, 4)
-      }
-    }
-  }
-
-  func labeledRow(system: String, text: String) -> some View {
-    HStack(spacing: 14) {
-      Image(systemName: system)
-        .font(.system(size: 20, weight: .semibold))
-        .foregroundColor(.white)
-    .frame(width: 32, alignment: .center)
-      Text(text)
-        .font(.title3.weight(.semibold))
-        .foregroundColor(AppColors.textPrimary)
-      Spacer(minLength: 0)
-    }
-    .padding(.horizontal, 6)
-    .padding(.vertical, 4)
-  .frame(minHeight: 48)
-    .background(AppColors.buttonListBG, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-    .overlay(
-      RoundedRectangle(cornerRadius: 16, style: .continuous)
-        .stroke(AppColors.buttonListStroke, lineWidth: 1)
-    )
-  }
-}
 
 // Local helper (UI-only) mirroring GameViewModel piece values for captured material computation above
 private func pieceValue(_ p: Piece) -> Int {
