@@ -57,7 +57,7 @@ struct GameScreen: View {
       Color.clear
       viewBackground.ignoresSafeArea().highPriorityGesture(exportGesture)
       boardSection
-      GameMenuButtonOverlay(availability: menuAvailability, isPresented: $showMenu)
+  CombinedFloatingButtons(vm: vm, availability: menuAvailability, showMenu: $showMenu) { hideHistory() }
       if showMenu { GameMenuView(state: menuState, isPresented: $showMenu, showLoadGame: $showLoadGame, send: handleMenuAction) }
       GameScreenOverlays(
         vm: vm,
@@ -80,6 +80,28 @@ struct GameScreen: View {
                                   showHistorySlider: $showHistorySlider,
                                   showMenu: $showMenu,
                                   hideHistory: hideHistory))
+    // React to remote-driven history view sync (enter/exit)
+    .onChange(of: vm.remoteIsDrivingHistoryView) { remoteDriving in
+      if remoteDriving {
+        // Show slider if remote entered history view and we aren't already showing
+        if !showHistorySlider, vm.historyIndex != nil {
+          historySliderOwner = vm.peers.isConnected ? vm.myColor : bottomSide
+          withAnimation(.easeInOut(duration: 0.25)) { showHistorySlider = true }
+        }
+      } else {
+        // Remote exited; hide if we were only in due to remote (i.e., user not interacting locally)
+        if showHistorySlider, vm.historyIndex == nil {
+          withAnimation(.easeInOut(duration: 0.25)) { showHistorySlider = false }
+          historySliderOwner = nil
+        }
+      }
+    }
+    // Hide history slider when a revert is applied (confirmed) so all devices return to live mode
+    .onChange(of: vm.lastAppliedHistoryRevertTarget) { _ in
+      if showHistorySlider {
+        withAnimation(.easeInOut(duration: 0.25)) { hideHistory() }
+      }
+    }
     .alert(String.loc("incoming_join_title"), isPresented: Binding<Bool>(get: { vm.incomingJoinRequestPeer != nil }, set: { if !$0 { vm.incomingJoinRequestPeer = nil } })) {
       Button(String.loc("yes")) { vm.respondToIncomingInvitation(true) }
       Button(String.loc("no"), role: .cancel) { vm.respondToIncomingInvitation(false) }
@@ -236,7 +258,7 @@ struct GameScreen: View {
     let bottomPieces = bottomSide == .white ? whiteCaps : blackCaps
 
     return GeometryReader { geo in
-      let dividerSize = 1.0 
+      let dividerSize = 1.0
       let boardSize = min(geo.size.width, geo.size.height - 2.0 * (statusBarHeight + capturedRowHeight + dividerSize))
       ZStack {
         viewBackground
@@ -358,6 +380,13 @@ struct GameScreen: View {
       showLoadGame = true
     case .joinPeer(let name):
       vm.confirmJoin(peerName: name)
+    case .showHistory:
+      // Activate history slider for current bottom side (or my color when connected)
+      if vm.moveHistory.count > 0 {
+        let owner = vm.peers.isConnected ? vm.myColor : bottomSide
+        historySliderOwner = owner
+        withAnimation(.easeInOut(duration: 0.25)) { showHistorySlider = true }
+      }
     }
   }
 }

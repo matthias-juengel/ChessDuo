@@ -65,3 +65,14 @@
 "load_game_title" = "Parties d'Échecs Célèbres";
 "load_game_subtitle" = "Choisissez une partie à charger";
 "load_game_cancel" = "Annuler";
+
+/* History revert */
+"history_revert_button" = "Recommencer depuis cette position";
+"history_close_button" = "Fermer l'historique";
+"opponent_requests_history_revert" = "L'adversaire veut recommencer au coup %@.";
+"history_revert_accept_yes" = "Recommencer";
+"history_revert_accept_no" = "Garder";
+"history_revert_cancel_request" = "Garder";
+"history_revert_request_sent" = "En attente de confirmation du redémarrage...";
+"history_revert_short" = "D'ici";
+"menu_show_history" = "Voir l'historique";

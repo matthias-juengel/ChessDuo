@@ -25,6 +25,7 @@ struct GameMenuView: View {
     case swapColors
     case loadGame
     case joinPeer(String)
+  case showHistory
   }
 
   let state: State
@@ -104,6 +105,12 @@ struct GameMenuView: View {
       menuButton(icon: "arrow.left.arrow.right", text: String.loc("menu_play_black")) {
         dismiss()
         send(.swapColors)
+      }
+    }
+    if state.movesMade > 0 { // Show history
+      menuButton(icon: "clock.arrow.circlepath", text: String.loc("menu_show_history")) {
+        dismiss()
+        send(.showHistory)
       }
     }
     menuButton(icon: "doc.text", text: String.loc("menu_load_game")) {

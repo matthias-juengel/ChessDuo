@@ -65,3 +65,14 @@
 "load_game_title" = "Berühmte Schachpartien";
 "load_game_subtitle" = "Wähle ein Spiel zum Laden";
 "load_game_cancel" = "Abbrechen";
+
+/* History revert */
+"history_revert_button" = "Von dieser Stellung neu starten";
+"history_close_button" = "Verlauf schließen";
+"opponent_requests_history_revert" = "Gegner möchte ab Zug %@ neu starten.";
+"history_revert_accept_yes" = "Neu starten";
+"history_revert_accept_no" = "Aktuell behalten";
+"history_revert_cancel_request" = "Aktuell behalten";
+"history_revert_request_sent" = "Warte auf Bestätigung des Neustarts...";
+"history_revert_short" = "Ab hier";
+"menu_show_history" = "Spielverlauf";

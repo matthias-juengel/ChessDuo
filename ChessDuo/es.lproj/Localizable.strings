@@ -65,3 +65,14 @@
 "load_game_title" = "Partidas de Ajedrez Famosas";
 "load_game_subtitle" = "Elige una partida para cargar";
 "load_game_cancel" = "Cancelar";
+
+/* History revert */
+"history_revert_button" = "Reiniciar desde esta posición";
+"history_close_button" = "Cerrar historial";
+"opponent_requests_history_revert" = "El oponente quiere reiniciar desde el movimiento %@.";
+"history_revert_accept_yes" = "Reiniciar";
+"history_revert_accept_no" = "Mantener";
+"history_revert_cancel_request" = "Mantener";
+"history_revert_request_sent" = "Esperando confirmación del reinicio...";
+"history_revert_short" = "Desde aquí";
+"menu_show_history" = "Ver historial";

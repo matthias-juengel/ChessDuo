@@ -49,6 +49,12 @@ struct NetMessage: Codable {
         case syncRequest  // ask peer to send its current game snapshot
         case syncState    // contains full game snapshot
     case colorSwap    // pre-game swap of colors initiated by current white
+    // History revert negotiation
+    case requestHistoryRevert   // ask opponent to revert to a prior move count
+    case acceptHistoryRevert    // opponent accepted revert (will follow with revertHistory)
+    case declineHistoryRevert   // opponent declined revert
+    case revertHistory          // authoritative revert to given move count
+    case historyView            // peer is viewing a historical position (index provided or nil to exit)
     }
     let kind: Kind
     var move: Move? = nil
@@ -67,4 +73,8 @@ struct NetMessage: Codable {
     var lastCaptureByMe: Bool? = nil
     // Full move history (optional). Included for syncState to allow animation-ready reconstruction.
     var moveHistory: [Move]? = nil
+    // History revert target (number of moves to keep) for revertHistory / requestHistoryRevert
+    var revertToCount: Int? = nil
+    // History view index (number of moves applied). nil represents live view.
+    var historyViewIndex: Int? = nil
 }

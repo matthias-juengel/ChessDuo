@@ -44,6 +44,11 @@ final class GameViewModel: ObservableObject {
   @Published var movesMade: Int = 0
   @Published var awaitingResetConfirmation: Bool = false
   @Published var incomingResetRequest: Bool = false
+  // History revert negotiation (multiplayer)
+  @Published var awaitingHistoryRevertConfirmation: Bool = false // I requested revert and wait
+  @Published var incomingHistoryRevertRequest: Int? = nil // opponent requested revert to this move count
+  @Published var requestedHistoryRevertTarget: Int? = nil // outgoing revert target while awaiting
+  @Published var lastAppliedHistoryRevertTarget: Int? = nil // set when revert applied for UI
 //  @Published var outcome: GameOutcome = .ongoing
   @Published var incomingJoinRequestPeer: String? = nil
   @Published var offlineResetPrompt: Bool = false
@@ -61,6 +66,9 @@ final class GameViewModel: ObservableObject {
   // Board snapshots after each applied move (index 0 = initial position, i = board after i moves).
   // Provides stable Piece.id continuity across adjacent history states for matchedGeometryEffect animations.
   @Published private(set) var boardSnapshots: [Board] = []
+  // Remote history view sync
+  @Published var remoteIsDrivingHistoryView: Bool = false // true while we reflect a peer's slider movement
+  private var suppressHistoryViewBroadcast = false
 
   // Cache for legal destination queries: key = (boardSignature, originSquare)
   private var legalDestCache: [String: Set<Square>] = [:]
@@ -243,6 +251,19 @@ final class GameViewModel: ObservableObject {
 
     // Automatically start symmetric discovery
     peers.startAuto()
+
+    // Observe historyIndex changes to broadcast history view state (only when we initiate changes locally)
+    $historyIndex
+      .removeDuplicates { $0 == $1 }
+      .sink { [weak self] idx in
+        guard let self = self else { return }
+        if self.suppressHistoryViewBroadcast { return }
+        // Only send if connected and change represents entering an older state or exiting.
+        guard self.peers.isConnected else { return }
+        // Send message: if idx is nil -> live view, else index value.
+        self.peers.send(.init(kind: .historyView, historyViewIndex: idx))
+      }
+      .store(in: &cancellables)
   }
 
   // User accepted to connect with a given peer name
@@ -501,6 +522,45 @@ final class GameViewModel: ObservableObject {
     case .colorSwap:
       // Swap colors locally if no moves made yet
       if movesMade == 0, let current = myColor { myColor = current.opposite }
+    case .requestHistoryRevert:
+      // Opponent asks to revert to count
+      if let target = msg.revertToCount {
+        incomingHistoryRevertRequest = target
+        awaitingHistoryRevertConfirmation = false
+        requestedHistoryRevertTarget = nil
+      }
+    case .acceptHistoryRevert:
+      // Opponent accepted our request; perform revert locally and broadcast authoritative revertHistory
+      if let target = msg.revertToCount {
+        performHistoryRevert(to: target, send: true)
+        awaitingHistoryRevertConfirmation = false
+        requestedHistoryRevertTarget = nil
+      }
+    case .declineHistoryRevert:
+      awaitingHistoryRevertConfirmation = false
+      incomingHistoryRevertRequest = nil
+      requestedHistoryRevertTarget = nil
+    case .revertHistory:
+      if let target = msg.revertToCount { performHistoryRevert(to: target, send: false) }
+    case .historyView:
+      // Peer entered or exited history view. We mirror their index unless we ourselves are currently the driver.
+      if let remoteIdx = msg.historyViewIndex { // remote is in history mode
+        // Enter history view only if remote index is a past state ( < moveHistory.count )
+        if remoteIdx >= 0 && remoteIdx <= moveHistory.count && remoteIdx != moveHistory.count {
+          suppressHistoryViewBroadcast = true
+          remoteIsDrivingHistoryView = true
+          historyIndex = remoteIdx
+          suppressHistoryViewBroadcast = false
+        }
+      } else {
+        // Remote returned to live view; exit if we are following
+        if remoteIsDrivingHistoryView {
+          suppressHistoryViewBroadcast = true
+          remoteIsDrivingHistoryView = false
+          historyIndex = nil
+          suppressHistoryViewBroadcast = false
+        }
+      }
     }
   }
 
@@ -536,6 +596,96 @@ final class GameViewModel: ObservableObject {
   saveGame()
   }
 
+  // MARK: - History Revert Logic
+  /// Request a revert to a given move count (0...movesMade). In connected mode triggers confirmation; offline directly reverts.
+  func requestHistoryRevert(to target: Int) {
+    guard target >= 0, target <= moveHistory.count else { return }
+    if peers.isConnected {
+      // If we have no moves difference (target == movesMade) ignore
+      if target == moveHistory.count { return }
+      awaitingHistoryRevertConfirmation = true
+      incomingHistoryRevertRequest = nil
+  requestedHistoryRevertTarget = target
+      peers.send(.init(kind: .requestHistoryRevert, revertToCount: target))
+    } else {
+      performHistoryRevert(to: target, send: false)
+    }
+  }
+
+  /// Respond to an incoming revert request.
+  func respondToHistoryRevertRequest(accept: Bool) {
+    guard let target = incomingHistoryRevertRequest else { return }
+    if accept {
+      // Accept: send accept and perform locally after receiving authoritative revertHistory
+      peers.send(.init(kind: .acceptHistoryRevert, revertToCount: target))
+    } else {
+      peers.send(.init(kind: .declineHistoryRevert, revertToCount: target))
+    }
+    incomingHistoryRevertRequest = nil
+  }
+
+  /// Perform the actual revert, adjusting engine, history, captures etc. If send==true broadcast revertHistory.
+  func performHistoryRevert(to target: Int, send: Bool) {
+    guard target >= 0, target <= moveHistory.count else { return }
+    // Rebuild engine from first target moves
+    var e = ChessEngine()
+    var newCapturedByMe: [Piece] = []
+    var newCapturedByOpponent: [Piece] = []
+    var lastCapID: UUID? = nil
+    var lastCapByMe: Bool? = nil
+    var newLastMove: Move? = nil
+    for i in 0..<target {
+      let mv = moveHistory[i]
+      // capture detection before applying
+      let captured: Piece? = capturedPieceConsideringEnPassant(from: mv.from, to: mv.to, board: e.board)
+      _ = e.tryMakeMove(mv)
+      if let cap = captured {
+        // Determine whose capture list it goes into (from POV of myColor if connected, else white=me assumption)
+        if let my = myColor { // multiplayer perspective
+          if cap.color == my { newCapturedByOpponent.append(cap); lastCapByMe = false }
+          else { newCapturedByMe.append(cap); lastCapByMe = true }
+        } else { // single device: white captures -> capturedByMe
+          if cap.color == .black { newCapturedByMe.append(cap); lastCapByMe = true } else { newCapturedByOpponent.append(cap); lastCapByMe = false }
+        }
+        lastCapID = cap.id
+      }
+      newLastMove = mv
+    }
+    engine = e
+    capturedByMe = newCapturedByMe
+    capturedByOpponent = newCapturedByOpponent
+    movesMade = target
+    lastMove = newLastMove
+    lastCapturedPieceID = lastCapID
+    lastCaptureByMe = lastCapByMe
+    // Truncate histories
+  if target < moveHistory.count { moveHistory = Array(moveHistory.prefix(target)) }
+  // Ensure all devices exit history mode after a confirmed revert.
+  // Suppress broadcasting while we locally reset historyIndex to avoid redundant historyView(nil) chatter;
+  // the authoritative revertHistory message (if send == true) implicitly instructs remote to rebuild and exit.
+  let prevSuppress = suppressHistoryViewBroadcast
+  suppressHistoryViewBroadcast = true
+  historyIndex = nil
+  remoteIsDrivingHistoryView = false
+  suppressHistoryViewBroadcast = prevSuppress
+    // Rebuild snapshots for truncated history
+    boardSnapshots = [ChessEngine().board]
+    var rebuildEngine = ChessEngine()
+    for mv in moveHistory { _ = rebuildEngine.tryMakeMove(mv); boardSnapshots.append(rebuildEngine.board) }
+    // Persist
+    saveGame()
+    if send { peers.send(.init(kind: .revertHistory, revertToCount: target)) }
+  lastAppliedHistoryRevertTarget = target
+  awaitingHistoryRevertConfirmation = false
+  incomingHistoryRevertRequest = nil
+  requestedHistoryRevertTarget = nil
+  }
+
+  /// Utility for UI to be called (e.g. via onReceive) to clear history view when revert applied.
+  func acknowledgeAppliedHistoryRevert() {
+    // No-op placeholder for future if additional side effects needed.
+  }
+
   func respondToResetRequest(accept: Bool) {
     if accept {
       peers.send(.init(kind: .acceptReset))
@@ -546,6 +696,14 @@ final class GameViewModel: ObservableObject {
   incomingResetRequest = false
   awaitingResetConfirmation = false
     }
+  }
+
+  /// Cancel an outgoing history revert request (sends a decline so opponent dismisses their dialog)
+  func cancelPendingHistoryRevertRequest() {
+    guard awaitingHistoryRevertConfirmation, let target = requestedHistoryRevertTarget else { return }
+    awaitingHistoryRevertConfirmation = false
+    peers.send(.init(kind: .declineHistoryRevert, revertToCount: target))
+    requestedHistoryRevertTarget = nil
   }
 
   func respondToIncomingInvitation(_ accept: Bool) {

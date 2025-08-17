@@ -23,6 +23,7 @@ struct GameScreenOverlays: View {
     ZStack {
       promotionLayer
       connectedResetLayers
+  connectedHistoryRevertLayers
       peerChooserLayer
       newGameConfirmLayer
       loadGameLayer
@@ -71,6 +72,29 @@ private extension GameScreenOverlays {
             cancelTitle: String.loc("reset_cancel_request"),
             message: String.loc("reset_request_sent"),
             onCancel: { vm.respondToResetRequest(accept: false) }
+          )
+        }
+      }
+    }
+  }
+
+  var connectedHistoryRevertLayers: some View {
+    ZStack {
+      if vm.peers.isConnected {
+        if let target = vm.incomingHistoryRevertRequest {
+          IncomingResetRequestOverlay( // reuse styling
+            message: String.loc("opponent_requests_history_revert", String(target)),
+            acceptTitle: String.loc("history_revert_accept_yes"),
+            declineTitle: String.loc("history_revert_accept_no"),
+            onAccept: { vm.respondToHistoryRevertRequest(accept: true) },
+            onDecline: { vm.respondToHistoryRevertRequest(accept: false) }
+          )
+        }
+        if vm.awaitingHistoryRevertConfirmation {
+          AwaitingResetOverlay(
+            cancelTitle: String.loc("history_revert_cancel_request"),
+            message: String.loc("history_revert_request_sent"),
+            onCancel: { vm.cancelPendingHistoryRevertRequest() }
           )
         }
       }

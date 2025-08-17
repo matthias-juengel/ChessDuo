@@ -65,3 +65,14 @@
 "load_game_title" = "著名棋局";
 "load_game_subtitle" = "选择要载入的对局";
 "load_game_cancel" = "取消";
+
+/* 回到历史位置 */
+"history_revert_button" = "从此位置重开";
+"history_close_button" = "关闭历史";
+"opponent_requests_history_revert" = "对手想从第 %@ 步重新开始。";
+"history_revert_accept_yes" = "重开";
+"history_revert_accept_no" = "保持当前";
+"history_revert_cancel_request" = "保持当前";
+"history_revert_request_sent" = "等待对手确认重开...";
+"history_revert_short" = "从这里";
+"menu_show_history" = "显示历史";

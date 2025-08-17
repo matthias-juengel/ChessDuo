@@ -79,3 +79,14 @@
 "load_game_title" = "Famous Chess Games";
 "load_game_subtitle" = "Choose a game to load";
 "load_game_cancel" = "Cancel";
+
+/* History revert */
+"history_revert_button" = "Restart from this position";
+"history_close_button" = "Close history";
+"opponent_requests_history_revert" = "Opponent wants to restart from move %@.";
+"history_revert_accept_yes" = "Restart";
+"history_revert_accept_no" = "Keep Current";
+"history_revert_cancel_request" = "Keep Current";
+"history_revert_request_sent" = "Waiting for other player to confirm restart...";
+"history_revert_short" = "From here";
+"menu_show_history" = "Show History";
