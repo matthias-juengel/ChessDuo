@@ -192,15 +192,20 @@ struct ContentView: View {
     let topPieces = topSide == .black ? blackCaps : whiteCaps
     let bottomPieces = bottomSide == .white ? whiteCaps : blackCaps
     return VStack(spacing: 0) {
-      Spacer(minLength: 0)
+      // Top status bar
+      statusBar(for: topSide)
+        .rotationEffect(!vm.peers.isConnected ? .degrees(180) : .degrees(0))
+        .padding(.top, 4)
       capturedRow(for: topSide, pieces: topPieces, ctx: ctx, whiteLead: whiteLead, blackLead: blackLead, rotate: !vm.peers.isConnected)
-        .padding(.horizontal, 10).padding(.top, 6)
+        .padding(.horizontal, 10).padding(.top, 4)
       Color.black.frame(height: 1)
       chessBoard
       Color.black.frame(height: 1)
       capturedRow(for: bottomSide, pieces: bottomPieces, ctx: ctx, whiteLead: whiteLead, blackLead: blackLead, rotate: false)
-        .padding(.horizontal, 10).padding(.bottom, 6)
-      Spacer(minLength: 0)
+        .padding(.horizontal, 10).padding(.bottom, 4)
+      // Bottom status bar
+      statusBar(for: bottomSide)
+        .padding(.bottom, 8)
     }
   }
 
@@ -288,18 +293,9 @@ struct ContentView: View {
         }
       )
 
-  boardSection.ignoresSafeArea()
+      boardSection.ignoresSafeArea()
         .contentShape(Rectangle())
-        // Removed board tap gesture; handled inside BoardView gesture
-      if vm.peers.isConnected {
-        overlayControls(for: vm.myColor) // show only my side
-      } else {
-        // Single-device: show both sides explicitly with fixed colors
-        overlayControls(for: bottomSide)
-        overlayControls(for: topSide)
-          .rotationEffect(.degrees(180))
-          .zIndex(OverlayZIndex.peerChooser - 50) // below overlays
-      }
+        // Overlay controls removed; status bars integrated into boardSection
   // Hamburger button & menu layer
   menuInvocationButtonLayer
   if showMenu { menuOverlay }
@@ -474,12 +470,7 @@ private extension ContentView {
 }
 
 private extension ContentView {
-  func overlayControls(for color: PieceColor?) -> some View {
-    VStack {
-      Spacer().allowsHitTesting(false)
-      statusBar(for: color)
-    }
-  }
+  // overlayControls removed in favor of integrated status bars inside boardSection
 
   func statusBar(for overlayColor: PieceColor?) -> some View {
     let canShowSlider = vm.moveHistory.count > 0
