@@ -110,8 +110,7 @@
       {"from": {"file": 3, "rank": 6}, "to": {"file": 3, "rank": 4}},
       {"from": {"file": 1, "rank": 0}, "to": {"file": 2, "rank": 2}},
       {"from": {"file": 2, "rank": 7}, "to": {"file": 2, "rank": 5}},
-      {"from": {"file": 4, "rank": 3}, "to": {"file": 4, "rank": 4}},
-  {"from": {"file": 2, "rank": 7}, "to": {"file": 3, "rank": 6}},
+  {"from": {"file": 4, "rank": 3}, "to": {"file": 4, "rank": 4}},
       {"from": {"file": 6, "rank": 0}, "to": {"file": 5, "rank": 2}},
       {"from": {"file": 6, "rank": 7}, "to": {"file": 5, "rank": 5}}
     ]
@@ -194,11 +193,51 @@
       {"from": {"file": 3, "rank": 1}, "to": {"file": 3, "rank": 3}},
       {"from": {"file": 3, "rank": 6}, "to": {"file": 3, "rank": 4}},
       {"from": {"file": 1, "rank": 0}, "to": {"file": 2, "rank": 2}},
-      {"from": {"file": 3, "rank": 4}, "to": {"file": 3, "rank": 3}},
-      {"from": {"file": 2, "rank": 2}, "to": {"file": 3, "rank": 3}},
-      {"from": {"file": 2, "rank": 7}, "to": {"file": 3, "rank": 6}},
+  {"from": {"file": 2, "rank": 2}, "to": {"file": 2, "rank": 3}},
       {"from": {"file": 6, "rank": 0}, "to": {"file": 5, "rank": 2}},
       {"from": {"file": 6, "rank": 7}, "to": {"file": 5, "rank": 5}}
     ]
+  },
+  {
+    "title": "Opera Game (Morphy vs Duke/Count 1858)",
+    "players": "Paul Morphy vs Duke Karl / Count Isouard (Paris 1858)",
+    "description": "Famous miniature illustrating rapid development and tactics.",
+    "moves": [],
+    "pgn": "1.e4 e5 2.Nf3 d6 3.d4 Bg4 4.dxe5 Bxf3 5.Qxf3 dxe5 6.Bc4 Nf6 7.Qb3 Qe7 8.Nc3 c6 9.Bg5 b5 10.Nxb5 cxb5 11.Bxb5+ Nbd7 12.O-O-O Rd8 13.Rxd7 Rxd7 14.Rd1 Qe6 15.Bxd7+ Nxd7 16.Qb8+ Nxb8 17.Rd8#"
+  },
+  {
+    "title": "Sicilian Najdorf Sample",
+    "players": "Najdorf structure demo",
+    "description": "Illustrative Najdorf move order with thematic ...e5 and ...Be6 ideas.",
+    "moves": [],
+    "pgn": "1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 a6 6.Bg5 e6 7.f4 Be7 8.Qf3 Qc7 9.O-O-O Nbd7 10.Bd3 b5"
+  },
+  {
+    "title": "London System Intro",
+    "players": "London System pattern",
+    "description": "Core London setup: d4, Nf3, Bf4, e3, c3, Nbd2, Bd3, O-O.",
+    "moves": [],
+    "pgn": "1.d4 d5 2.Nf3 Nf6 3.Bf4 e6 4.e3 c5 5.c3 Nc6 6.Nbd2 Bd6 7.Bxd6 Qxd6 8.Bd3 O-O"
+  },
+  {
+    "title": "Scandinavian Defense Mini",
+    "players": "Scandinavian early queen activity",
+    "description": "Basic Scandinavian: 1.e4 d5 2.exd5 Qxd5 3.Nc3 Qa5.",
+    "moves": [],
+    "pgn": "1.e4 d5 2.exd5 Qxd5 3.Nc3 Qa5 4.d4 Nf6 5.Nf3 c6 6.Bc4 Bf5"
+  },
+  {
+    "title": "Evans Gambit Line",
+    "players": "Evans Gambit attacking idea",
+    "description": "Evans Gambit: 1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.b4.",
+    "moves": [],
+    "pgn": "1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.b4 Bxb4 5.c3 Ba5 6.d4 exd4 7.O-O d3 8.Qb3 Qf6"
+  },
+  {
+    "title": "Benko Gambit Outline",
+    "players": "Benko (Volga) Gambit",
+    "description": "Typical Benko acceptance structure after ...b5 and ...a6.",
+    "moves": [],
+    "pgn": "1.d4 Nf6 2.c4 c5 3.d5 b5 4.cxb5 a6 5.bxa6 Bxa6 6.Nc3 d6 7.Nf3 g6 8.g3 Bg7"
   }
 ]

@@ -927,9 +927,36 @@ extension GameViewModel {
     lastCaptureByMe = nil
     historyIndex = nil
 
-    // Apply all moves from the famous game
-    for move in game.moves {
+    // Determine source of moves: explicit array or PGN parsing fallback
+    var sourceMoves: [Move] = game.moves
+    if sourceMoves.isEmpty, let pgn = game.pgn {
+      switch PGNParser.parseMoves(pgn: pgn) {
+      case .success(let parsed): sourceMoves = parsed
+      case .failure(let err):
+        print("PGN parse failed for game \(game.title): \(err)")
+      }
+    }
+
+    // Apply all moves from the famous game (array or parsed PGN)
+    for move in sourceMoves {
+      // Detect capture prior to making move (including en passant)
+      let capturedBefore = capturedPieceConsideringEnPassant(from: move.from, to: move.to, board: engine.board)
       if engine.tryMakeMove(move) {
+        // Attribute capture lists: treat White as "me" for famous games (no multiplayer color context)
+        if let cap = capturedBefore {
+          if cap.color == .white { // black captured white piece
+            capturedByOpponent.append(cap)
+            lastCapturedPieceID = cap.id
+            lastCaptureByMe = false
+          } else { // white captured black piece
+            capturedByMe.append(cap)
+            lastCapturedPieceID = cap.id
+            lastCaptureByMe = true
+          }
+        } else {
+          lastCapturedPieceID = nil
+          lastCaptureByMe = nil
+        }
         moveHistory.append(move)
         boardSnapshots.append(engine.board)
         movesMade += 1
@@ -942,8 +969,8 @@ extension GameViewModel {
     }
     // Keep historyIndex nil so UI displays live board (so turn indicator shows correct side to move)
 
-    // Save the loaded game state
-    saveGame()
+  // Save the loaded game state (also persists parsed PGN result via history)
+  saveGame()
   }
 }
 
