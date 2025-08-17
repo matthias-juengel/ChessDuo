@@ -97,3 +97,13 @@
 "load_game_accept_no" = "Keep Current";
 "load_game_cancel_request" = "Keep Current";
 "load_game_request_sent" = "Waiting for other player to confirm load...";
+
+/* Name change */
+"menu_change_name_title" = "Change Name (%@)";
+"name_prompt_title_first" = "Choose a Name";
+"name_prompt_message_first" = "Pick how other players will see you. You can change it later.";
+"name_prompt_title" = "Change Your Name";
+"name_prompt_message" = "Update the name shown to other players.";
+"name_prompt_placeholder" = "Player Name";
+"name_prompt_later" = "Later";
+"name_prompt_save" = "Save";

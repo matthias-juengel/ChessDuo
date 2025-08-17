@@ -16,6 +16,7 @@ struct GameMenuView: View {
     var canSwapColorsPreGame: Bool // derived externally
     var hasPeersToJoin: Bool
     var browsedPeerNames: [String]
+    var playerName: String // new
   }
 
   enum Action: Equatable {
@@ -25,7 +26,8 @@ struct GameMenuView: View {
     case swapColors
     case loadGame
     case joinPeer(String)
-  case showHistory
+    case showHistory
+    case changeName // new
   }
 
   let state: State
@@ -99,6 +101,11 @@ struct GameMenuView: View {
       dismiss()
       send(.loadGame)
     }.padding(.bottom, 20) // Only add padding if no new game
+    // Change name entry (always available)
+    menuButton(icon: "pencil", text: String.loc("menu_change_name_title", state.playerName)) {
+      dismiss()
+      send(.changeName)
+    }
     if !state.isConnected { // Rotate
       menuButton(icon: "arrow.triangle.2.circlepath", text: String.loc("menu_rotate_board")) {
         dismiss()
@@ -202,7 +209,8 @@ struct GameMenuView_Previews: PreviewProvider {
           myColorIsWhite: true,
           canSwapColorsPreGame: false,
           hasPeersToJoin: true,
-          browsedPeerNames: ["iPad", "MacBook Pro"]
+          browsedPeerNames: ["iPad", "MacBook Pro"],
+          playerName: "Player1" // new
         ),
         isPresented: .constant(true),
         showLoadGame: .constant(false),
@@ -217,7 +225,8 @@ struct GameMenuView_Previews: PreviewProvider {
           myColorIsWhite: true,
           canSwapColorsPreGame: true,
           hasPeersToJoin: false,
-          browsedPeerNames: []
+          browsedPeerNames: [],
+          playerName: "Player1" // new
         ),
         isPresented: .constant(true),
         showLoadGame: .constant(false),

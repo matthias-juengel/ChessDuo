@@ -12,6 +12,7 @@ struct GameScreenOverlays: View {
   @Binding var showPeerChooser: Bool
   @Binding var selectedPeerToJoin: String?
   @Binding var showLoadGame: Bool
+  @Binding var showNameEditor: Bool // new
 
   // Actions
   let onCancelPromotion: () -> Void
@@ -27,6 +28,7 @@ struct GameScreenOverlays: View {
       peerChooserLayer
       newGameConfirmLayer
       loadGameLayer
+      nameChangeLayer // new
     }
   }
 }
@@ -126,7 +128,7 @@ private extension GameScreenOverlays {
     ZStack {
       if showPeerChooser {
         PeerJoinOverlayView(
-          peers: vm.discoveredPeerNames,
+            peers: vm.discoveredPeerNames,
           selected: selectedPeerToJoin,
           onSelect: { name in
             onSelectPeer(name)
@@ -138,6 +140,7 @@ private extension GameScreenOverlays {
         )
         .zIndex(OverlayZIndex.peerChooser)
         .transition(.opacity)
+  .onAppear { print("[UI] Showing PeerJoinOverlayView with names=\(vm.discoveredPeerNames)") }
       }
     }
   }
@@ -166,6 +169,27 @@ private extension GameScreenOverlays {
           showLoadGame: $showLoadGame
         )
         .zIndex(OverlayZIndex.menu + 2)
+      }
+    }
+  }
+
+  var nameChangeLayer: some View {
+    ZStack {
+      if showNameEditor || vm.showInitialNamePrompt {
+        NameChangeOverlay(
+          initialName: vm.playerName,
+          isFirstLaunch: vm.showInitialNamePrompt,
+          onSave: { newName in
+            vm.updatePlayerName(newName)
+            vm.showInitialNamePrompt = false
+            showNameEditor = false
+          },
+          onLater: {
+            vm.showInitialNamePrompt = false
+            showNameEditor = false
+          }
+        )
+        .zIndex(OverlayZIndex.menu + 3)
       }
     }
   }

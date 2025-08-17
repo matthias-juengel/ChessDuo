@@ -83,3 +83,13 @@
 "load_game_accept_no" = "保持当前";
 "load_game_cancel_request" = "保持当前";
 "load_game_request_sent" = "等待对手确认载入...";
+
+/* 名称修改 */
+"menu_change_name_title" = "更改名称 (%@)";
+"name_prompt_title_first" = "选择名称";
+"name_prompt_message_first" = "选择一个让其他玩家看到的名称。以后可再更改。";
+"name_prompt_title" = "更改名称";
+"name_prompt_message" = "更新显示给其他玩家的名称。";
+"name_prompt_placeholder" = "玩家名称";
+"name_prompt_later" = "以后";
+"name_prompt_save" = "保存";

@@ -83,3 +83,13 @@
 "load_game_accept_no" = "Aktuell behalten";
 "load_game_cancel_request" = "Aktuell behalten";
 "load_game_request_sent" = "Warte auf Bestätigung zum Laden...";
+
+/* Namensänderung */
+"menu_change_name_title" = "Name ändern (%@)";
+"name_prompt_title_first" = "Name wählen";
+"name_prompt_message_first" = "Wähle, wie dich andere Spieler sehen. Du kannst ihn später ändern.";
+"name_prompt_title" = "Name ändern";
+"name_prompt_message" = "Aktualisiere den angezeigten Namen.";
+"name_prompt_placeholder" = "Spielername";
+"name_prompt_later" = "Später";
+"name_prompt_save" = "Speichern";

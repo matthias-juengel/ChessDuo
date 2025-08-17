@@ -26,6 +26,7 @@ struct GameScreen: View {
   @State private var historyAnimationToken: Int = 0
   @State private var showMenu: Bool = false
   @State private var showLoadGame: Bool = false
+  @State private var showNameEditor: Bool = false // new
 
   // MARK: Derived menu state
   private var menuState: GameMenuView.State {
@@ -34,8 +35,10 @@ struct GameScreen: View {
       isConnected: vm.peers.isConnected,
       myColorIsWhite: vm.myColor.map { $0 == .white },
       canSwapColorsPreGame: vm.peers.isConnected && vm.movesMade == 0 && vm.myColor == .some(.white),
-      hasPeersToJoin: !vm.peers.isConnected && !vm.allBrowsedPeerNames.isEmpty,
-      browsedPeerNames: vm.allBrowsedPeerNames
+  hasPeersToJoin: !vm.peers.isConnected && !vm.allBrowsedPeerFriendlyNames.isEmpty,
+  // Use friendly advertised / chosen player names if available (already de-duplicated upstream)
+  browsedPeerNames: vm.allBrowsedPeerFriendlyNames,
+      playerName: vm.playerName // new
     )
   }
   private var menuAvailability: GameMenuButtonOverlay.Availability {
@@ -43,7 +46,7 @@ struct GameScreen: View {
     if vm.movesMade > 0 { a.insert(.newGame) }
     if !vm.peers.isConnected { a.insert(.rotate) }
     if vm.peers.isConnected && vm.movesMade == 0 && vm.myColor == .some(.white) { a.insert(.swap) }
-    if !vm.peers.isConnected && !vm.allBrowsedPeerNames.isEmpty { a.insert(.join) }
+  if !vm.peers.isConnected && !vm.allBrowsedPeerFriendlyNames.isEmpty { a.insert(.join) }
     return a
   }
 
@@ -64,6 +67,7 @@ struct GameScreen: View {
         showPeerChooser: $showPeerChooser,
         selectedPeerToJoin: $selectedPeerToJoin,
         showLoadGame: $showLoadGame,
+        showNameEditor: $showNameEditor, // new
         onCancelPromotion: { vm.cancelPromotion() },
         onSelectPromotion: { vm.promote(to: $0) },
         onSelectPeer: { name in
@@ -75,6 +79,8 @@ struct GameScreen: View {
       )
       if exportFlash { exportFlashView }
     }
+  // Keep the playing surface stable when keyboard appears for overlays (name entry, etc.)
+  .ignoresSafeArea(.keyboard, edges: .bottom)
     .modifier(StateChangeHandlers(vm: vm,
                                   showPeerChooser: $showPeerChooser,
                                   showHistorySlider: $showHistorySlider,
@@ -217,7 +223,14 @@ struct GameScreen: View {
           return false
         } else { if let ov = overlayColor, ov == currentSideToMove { return true }; return false }
       }()
-      let colorText = showYou ? baseColor + " " + String.loc("you_mark") : baseColor
+      let colorText: String = {
+        if showYou { return baseColor + " " + String.loc("you_mark") }
+        // If this bar represents the opponent whose turn it is, append name in parentheses if available
+        if vm.peers.isConnected, let mine = vm.myColor, let oppName = vm.opponentName, currentSideToMove != mine, overlayColor == currentSideToMove {
+          return baseColor + " (" + oppName + ")"
+        }
+        return baseColor
+      }()
       let fg = currentSideToMove == .white ? Color.white : Color.black
       return (String.loc("turn_prefix", colorText), fg)
     case .win: return (String.loc("win_text"), AppColors.highlightLight)
@@ -259,7 +272,10 @@ struct GameScreen: View {
 
     return GeometryReader { geo in
       let dividerSize = 1.0
-      let boardSize = min(geo.size.width, geo.size.height - 2.0 * (statusBarHeight + capturedRowHeight + dividerSize))
+      // Compute available board size; prevent negative values when keyboard shrinks height (e.g. during text field editing overlays)
+      let verticalChrome = 2.0 * (statusBarHeight + capturedRowHeight + dividerSize)
+      let availableHeight = geo.size.height - verticalChrome
+      let boardSize = max(0, min(geo.size.width, availableHeight))
       ZStack {
         viewBackground
         VStack(spacing: 0) {
@@ -387,6 +403,8 @@ struct GameScreen: View {
         historySliderOwner = owner
         withAnimation(.easeInOut(duration: 0.25)) { showHistorySlider = true }
       }
+    case .changeName:
+      showNameEditor = true
     }
   }
 }

@@ -20,10 +20,12 @@ final class PeerService: NSObject, ObservableObject {
         defaults.set(new, forKey: suffixKey)
         return new
     }
-    private let friendlyName = UIDevice.current.name
+    // Immutable base device name (used only for initial peerID construction). User-editable player name is advertised separately.
+    private let deviceBaseName = UIDevice.current.name
+    @Published private(set) var advertisedName: String
     private lazy var myPeer: MCPeerID = {
-        // Composite name ensures uniqueness even if multiple devices share system name.
-        let composite = "\(friendlyName)#\(Self.uniqueSuffix())"
+        // Composite name ensures uniqueness even if multiple devices share system name or choose identical player names.
+        let composite = "\(deviceBaseName)#\(Self.uniqueSuffix())"
         return MCPeerID(displayName: composite)
     }()
     private var session: MCSession!
@@ -38,19 +40,58 @@ final class PeerService: NSObject, ObservableObject {
     @Published var connectedPeers: [MCPeerID] = []
     // Cache of peerID display names -> friendly names (from hello message)
     @Published var peerFriendlyNames: [String:String] = [:]
+    // Cache of peerID display names -> advertised names discovered via discoveryInfo BEFORE connection
+    @Published var discoveryAdvertisedNames: [String:String] = [:]
+    // Persistent cache of last known friendly names (hello messages) keyed by peer displayName
+    @Published private(set) var knownPeerFriendlyNames: [String:String] = [:]
+    private var advertiseRestartWorkItem: DispatchWorkItem? = nil
+    private var advertisingEpoch: Int = 0
     // Discovered (nearby) peers not yet connected
     @Published var discoveredPeers: [MCPeerID] = []
     // Unfiltered list of all browsed peers (including those we intentionally keep passive for auto-handshake logic)
     @Published var allBrowsedPeers: [MCPeerID] = []
 
     var localDisplayName: String { myPeer.displayName }
-    var localFriendlyName: String { friendlyName }
+    var localFriendlyName: String { advertisedName }
 
     override init() {
+        self.advertisedName = deviceBaseName
         super.init()
-        print("Friendly name:", friendlyName)
+        print("Friendly name (base device):", deviceBaseName)
         session = MCSession(peer: myPeer, securityIdentity: nil, encryptionPreference: .required)
         session.delegate = self
+    loadKnownPeerNames()
+    }
+
+    /// Update the advertised (player) name. This does NOT change the peerID (cannot for active sessions) but
+    /// restarts advertising so new browsers see the updated name via discoveryInfo. Connected peers will learn
+    /// the new name when GameViewModel sends a refreshed hello message.
+    func updateAdvertisedName(_ name: String) {
+        if !Thread.isMainThread { DispatchQueue.main.async { self.updateAdvertisedName(name) }; return }
+        guard name != advertisedName else { return }
+        advertisedName = name
+        print("[ADV] updateAdvertisedName -> \(name)")
+        // Debounce restarts slightly so rapid edits don't thrash the radio; also force a lost/found by stopping first.
+        advertiseRestartWorkItem?.cancel()
+        let epoch = advertisingEpoch + 1; advertisingEpoch = epoch
+        // If we're not yet connected to anyone, we pause a little longer to increase the chance the other side's browser
+        // emits a lostPeer + foundPeer sequence (MCNearbyServiceBrowser can cache discoveryInfo for a stable peerID otherwise).
+        let pause: TimeInterval = isConnected ? 0.4 : 1.0
+        let preStopInstant: Bool = !isConnected // if not connected, stop immediately before pause to widen the outage window
+        if preStopInstant, advertisingActive {
+            advertiser?.stopAdvertisingPeer(); advertisingActive = false
+            print("[ADV] Immediate stop to force rediscovery (pre-connection) epoch=\(epoch)")
+        }
+        let work = DispatchWorkItem { [weak self] in
+            guard let self = self, self.advertisingEpoch == epoch else { return }
+            if self.advertisingActive { self.advertiser?.stopAdvertisingPeer(); self.advertisingActive = false; print("[ADV] Stopped advertising for name update epoch=\(epoch) (debounced)") }
+            if self.autoModeActive || !self.advertisingActive {
+                self.startHosting()
+                print("[ADV] Restarted advertising with discoveryInfo pn=\(self.advertisedName) epoch=\(epoch) pause=\(pause)s")
+            }
+        }
+        advertiseRestartWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + pause, execute: work)
     }
 
     func startHosting() {
@@ -58,7 +99,8 @@ final class PeerService: NSObject, ObservableObject {
         advertiser?.stopAdvertisingPeer()
         advertisingActive = false
         advertiser?.delegate = nil
-        advertiser = MCNearbyServiceAdvertiser(peer: myPeer, discoveryInfo: nil, serviceType: serviceType)
+        // Provide player name in discoveryInfo so prospective peers can show chosen name prior to connection.
+        advertiser = MCNearbyServiceAdvertiser(peer: myPeer, discoveryInfo: ["pn": advertisedName], serviceType: serviceType)
         advertiser?.delegate = self
         advertiser?.startAdvertisingPeer()
         advertisingActive = true
@@ -151,7 +193,12 @@ extension PeerService: MCSessionDelegate {
     func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
         if let msg = try? JSONDecoder().decode(NetMessage.self, from: data) {
             DispatchQueue.main.async {
-                if let name = msg.deviceName { self.peerFriendlyNames[peerID.displayName] = name }
+                if let name = msg.deviceName, !name.isEmpty {
+                    self.peerFriendlyNames[peerID.displayName] = name
+                    self.knownPeerFriendlyNames[peerID.displayName] = name
+                    self.persistKnownPeerNames()
+                    print("[HELLO] Received deviceName for peer composite=\(peerID.displayName) friendly=\(name)")
+                }
                 self.onMessage?(msg)
             }
         }
@@ -183,14 +230,30 @@ extension PeerService: MCNearbyServiceBrowserDelegate {
         // will present a prompt to invite the other. The bigger-name peer stays passive
         // and will auto-accept the invitation.
         DispatchQueue.main.async {
+            let composite = peerID.displayName
+            let advertisedPN = info?["pn"] ?? "<nil>"
+            print("[DISCOVERY] Found peer composite=\(composite) advertisedPN=\(advertisedPN)")
             // Maintain unfiltered list (dedupe by display name)
             self.allBrowsedPeers.removeAll { $0.displayName == peerID.displayName }
             self.allBrowsedPeers.append(peerID)
+            if let adv = info?["pn"], !adv.isEmpty {
+                self.discoveryAdvertisedNames[peerID.displayName] = adv
+                // Also cache persistently so future discoveries (before updated advertise) can use it.
+                self.knownPeerFriendlyNames[peerID.displayName] = adv
+                self.persistKnownPeerNames()
+                print("[DISCOVERY] Stored advertised name for \(composite): \(adv)")
+            } else if let cached = self.knownPeerFriendlyNames[peerID.displayName] {
+                // Use cached friendly name as discovery fallback.
+                self.discoveryAdvertisedNames[peerID.displayName] = cached
+                print("[DISCOVERY] Using cached friendly name for \(composite): \(cached)")
+            }
             if self.myPeer.displayName < peerID.displayName {
                 // Filtered prompt list
                 self.discoveredPeers.removeAll { $0.displayName == peerID.displayName }
                 if !self.connectedPeers.contains(where: { $0.displayName == peerID.displayName }) {
                     self.discoveredPeers.append(peerID)
+                    let friendly = self.discoveryAdvertisedNames[peerID.displayName] ?? self.peerFriendlyNames[peerID.displayName] ?? self.baseName(from: peerID.displayName)
+                    print("[DISCOVERY] Added to discoveredPeers list: composite=\(composite) shownName=\(friendly)")
                 }
             }
         }
@@ -200,12 +263,35 @@ extension PeerService: MCNearbyServiceBrowserDelegate {
             // Remove by peer identity or display name (in case restarted peer shows up anew)
             self.discoveredPeers.removeAll { $0 == peerID || $0.displayName == peerID.displayName }
             self.allBrowsedPeers.removeAll { $0 == peerID || $0.displayName == peerID.displayName }
+            self.discoveryAdvertisedNames.removeValue(forKey: peerID.displayName)
+            print("[DISCOVERY] Lost peer composite=\(peerID.displayName)")
         }
     }
 }
 
 // MARK: - Discovery Timer Management
 private extension PeerService {
+    // Persistence keys
+    private var knownNamesKey: String { "PeerService.KnownFriendlyNames" }
+
+    func loadKnownPeerNames() {
+        if let data = UserDefaults.standard.data(forKey: knownNamesKey),
+           let dict = try? JSONDecoder().decode([String:String].self, from: data) {
+            knownPeerFriendlyNames = dict
+        }
+    }
+
+    func persistKnownPeerNames() {
+        // Bound size to avoid unbounded growth
+        if knownPeerFriendlyNames.count > 200 { // arbitrary cap
+            // Keep only most recent 150 entries (order not tracked; just drop extras deterministically by key sort)
+            let trimmedKeys = Array(knownPeerFriendlyNames.keys.sorted().suffix(150))
+            knownPeerFriendlyNames = trimmedKeys.reduce(into: [:]) { acc, k in acc[k] = knownPeerFriendlyNames[k] }
+        }
+        if let data = try? JSONEncoder().encode(knownPeerFriendlyNames) {
+            UserDefaults.standard.set(data, forKey: knownNamesKey)
+        }
+    }
     func adjustDiscoveryTimerForConnectionState() {
         if !Thread.isMainThread { DispatchQueue.main.async { self.adjustDiscoveryTimerForConnectionState() }; return }
         guard autoModeActive else { return }

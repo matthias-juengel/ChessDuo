@@ -12,6 +12,12 @@ import SwiftUI
 
 final class GameViewModel: ObservableObject {
   @Published private(set) var engine = ChessEngine()
+  // New: Player name persistence and publication
+  @AppStorage("playerName") private var storedPlayerName: String = ""
+  @Published var playerName: String = UIDevice.current.name // default device name
+  @Published var showInitialNamePrompt: Bool = false
+  // Opponent name convenience (first connected friendly name if any)
+  var opponentName: String? { otherDeviceNames.first }
   /// Assigned multiplayer color (nil in single-device mode). Persisted across reconnects
   /// when a game is in progress so that killing one app does not flip sides.
   @Published var myColor: PieceColor? = nil {
@@ -39,6 +45,8 @@ final class GameViewModel: ObservableObject {
   @Published var otherDeviceNames: [String] = []
   @Published var discoveredPeerNames: [String] = [] // for UI prompt (friendly names without unique suffix)
   @Published var allBrowsedPeerNames: [String] = [] // complete unfiltered list for menu display
+  // Friendly names for all browsed peers (uses advertised/hello names if available) for menu & join UI
+  @Published var allBrowsedPeerFriendlyNames: [String] = []
   @Published var capturedByMe: [Piece] = []
   @Published var capturedByOpponent: [Piece] = []
   @Published var movesMade: Int = 0
@@ -174,6 +182,14 @@ final class GameViewModel: ObservableObject {
   enum GameOutcome: Equatable { case ongoing, win, loss, draw }
 
   init() {
+  // Initialize player name from storage or default
+  if storedPlayerName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+    playerName = UIDevice.current.name
+    // Show prompt allowing change (not mandatory)
+    showInitialNamePrompt = true
+  } else {
+    playerName = storedPlayerName
+  }
   // Attempt to load persisted game before starting networking so board state is restored.
   loadGameIfAvailable()
   // Restore myColor from persistent storage if moves have been made and value exists
@@ -198,10 +214,11 @@ final class GameViewModel: ObservableObject {
 
     // Mirror connected peer names into a published property for the UI (strip suffix unless friendly map has real name)
     peers.$connectedPeers
-      .combineLatest(peers.$peerFriendlyNames)
-      .map { peerIDs, friendlyMap in
+      .combineLatest(peers.$peerFriendlyNames, peers.$discoveryAdvertisedNames)
+      .map { peerIDs, friendlyMap, discoveryMap in
         peerIDs.map { peer in
           if let friendly = friendlyMap[peer.displayName] { return friendly }
+          if let adv = discoveryMap[peer.displayName] { return adv }
           return Self.baseName(from: peer.displayName)
         }.sorted()
       }
@@ -243,9 +260,19 @@ final class GameViewModel: ObservableObject {
 
     // Mirror discovered peers to names for confirmation UI (strip suffix)
     peers.$discoveredPeers
-      .map { $0.map { Self.baseName(from: $0.displayName) }.sorted() }
+      .combineLatest(peers.$peerFriendlyNames, peers.$discoveryAdvertisedNames)
+      .map { peerIDs, friendlyMap, discoveryMap in
+        peerIDs.map { peer in
+          if let f = friendlyMap[peer.displayName] { return f }
+          if let adv = discoveryMap[peer.displayName] { return adv }
+          return Self.baseName(from: peer.displayName)
+        }.sorted()
+      }
       .receive(on: DispatchQueue.main)
-      .sink { [weak self] names in self?.discoveredPeerNames = names }
+      .sink { [weak self] names in
+        print("[VM] discoveredPeerNames updated -> \(names)")
+        self?.discoveredPeerNames = names
+      }
       .store(in: &cancellables)
 
     // Mirror ALL browsed peers to names (unfiltered) for menu listing
@@ -255,8 +282,28 @@ final class GameViewModel: ObservableObject {
       .sink { [weak self] names in self?.allBrowsedPeerNames = names }
       .store(in: &cancellables)
 
+    // Mirror ALL browsed peers to friendly names (prefer hello/discovery advertised mapping where possible)
+    peers.$allBrowsedPeers
+      .combineLatest(peers.$peerFriendlyNames, peers.$discoveryAdvertisedNames)
+      .map { peerIDs, friendlyMap, discoveryMap in
+        peerIDs.map { peer in
+          if let f = friendlyMap[peer.displayName] { return f }
+          if let adv = discoveryMap[peer.displayName] { return adv }
+          return Self.baseName(from: peer.displayName)
+        }.sorted()
+      }
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] names in
+        print("[VM] allBrowsedPeerFriendlyNames updated -> \(names)")
+        self?.allBrowsedPeerFriendlyNames = names
+      }
+      .store(in: &cancellables)
+
     // Automatically start symmetric discovery
-    peers.startAuto()
+  // Ensure current playerName (stored or default) is used for advertisement before starting auto mode.
+  peers.updateAdvertisedName(playerName)
+  print("[VM] Initialized advertising with playerName=\(playerName)")
+  peers.startAuto()
 
     // Observe historyIndex changes to broadcast history view state (only when we initiate changes locally)
     $historyIndex
@@ -274,13 +321,25 @@ final class GameViewModel: ObservableObject {
 
   // User accepted to connect with a given peer name
   func confirmJoin(peerName: String) {
-    // Match by friendly base name (since UI lists stripped names). First search filtered discoveredPeers,
-    // then fall back to full unfiltered list so menu entries always work even on passive (lexicographically larger) devices.
-    let filtered = peers.discoveredPeers.filter { Self.baseName(from: $0.displayName) == peerName }
-    let unfiltered = peers.allBrowsedPeers.filter { Self.baseName(from: $0.displayName) == peerName }
-    let combined = (filtered + unfiltered).sorted { $0.displayName < $1.displayName }
+    // UI now may show one of: friendly hello name, advertised discovery name, or stripped base name.
+    // Attempt match precedence: friendly -> advertised -> base.
+    let friendlyMatches = peers.discoveredPeers.filter { peers.peerFriendlyNames[$0.displayName] == peerName }
+    let advertisedMatches = peers.discoveredPeers.filter { peers.discoveryAdvertisedNames[$0.displayName] == peerName }
+    let baseMatches = peers.discoveredPeers.filter { Self.baseName(from: $0.displayName) == peerName }
+
+    // If not found in filtered discovered set (because this device is the larger composite and stays passive), also search allBrowsedPeers.
+    let friendlyAll = peers.allBrowsedPeers.filter { peers.peerFriendlyNames[$0.displayName] == peerName }
+    let advertisedAll = peers.allBrowsedPeers.filter { peers.discoveryAdvertisedNames[$0.displayName] == peerName }
+    let baseAll = peers.allBrowsedPeers.filter { Self.baseName(from: $0.displayName) == peerName }
+
+    let combined = (friendlyMatches + advertisedMatches + friendlyAll + advertisedAll + baseMatches + baseAll)
+      .sorted { $0.displayName < $1.displayName }
+
     if let target = combined.first {
+      print("[JOIN] Inviting peerName=\(peerName) composite=\(target.displayName)")
       peers.invite(target)
+    } else {
+      print("[JOIN] No peer matched selection peerName=\(peerName). discovered=\(peers.discoveredPeers.map{ $0.displayName }) all=\(peers.allBrowsedPeers.map{ $0.displayName })")
     }
   }
 
@@ -305,9 +364,22 @@ final class GameViewModel: ObservableObject {
     movesMade = 0
   }
 
-  private func sendHello() {
-    // Send the friendly (unsuffixed) device name
-    peers.send(.init(kind: .hello, move: nil, color: myColor, deviceName: peers.localFriendlyName))
+  // Update local player name (optional). Broadcast updated hello if connected.
+  func updatePlayerName(_ newName: String) {
+    let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+    if trimmed.isEmpty { return }
+    guard trimmed != playerName else { return }
+    playerName = trimmed
+    storedPlayerName = trimmed
+    // Update underlying advertising
+    peers.updateAdvertisedName(trimmed)
+    // Send updated hello so peer updates mapping
+    if peers.isConnected { sendHello(force: true) }
+  }
+
+  private func sendHello(force: Bool = false) {
+    if force { hasSentHello = false }
+    peers.send(.init(kind: .hello, move: nil, color: myColor, deviceName: playerName))
   }
 
   func resetGame() {
@@ -665,9 +737,9 @@ final class GameViewModel: ObservableObject {
     guard let target = incomingHistoryRevertRequest else { return }
     if accept {
       // Accept: send accept and perform locally after receiving authoritative revertHistory
-      peers.send(.init(kind: .acceptHistoryRevert, revertToCount: target))
+  peers.send(.init(kind: .acceptHistoryRevert, revertToCount: target))
     } else {
-      peers.send(.init(kind: .declineHistoryRevert, revertToCount: target))
+  peers.send(.init(kind: .declineHistoryRevert, revertToCount: target))
     }
     incomingHistoryRevertRequest = nil
   }
@@ -795,11 +867,10 @@ final class GameViewModel: ObservableObject {
     }
     saveGame()
     if broadcast {
-      // Broadcast full authoritative snapshot (mirrors syncState semantics but distinct kind)
       let msg = NetMessage(kind: .loadGameState,
                            move: nil,
                            color: nil,
-                           deviceName: peers.localFriendlyName,
+                           deviceName: playerName,
                            board: engine.board,
                            sideToMove: engine.sideToMove,
                            movesMade: movesMade,
@@ -866,7 +937,7 @@ final class GameViewModel: ObservableObject {
     let msg = NetMessage(kind: .syncState,
                          move: nil,
                          color: nil,
-                         deviceName: peers.localFriendlyName,
+                         deviceName: playerName,
                          board: engine.board,
                          sideToMove: engine.sideToMove,
                          movesMade: movesMade,

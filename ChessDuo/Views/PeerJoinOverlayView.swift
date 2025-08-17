@@ -64,6 +64,8 @@ struct PeerJoinOverlayView: View {
   }
   .padding(.horizontal, 20)
   .modalTransition(animatedWith: animated)
+  .onAppear { print("[UI] PeerJoinOverlayView appear peers=\(peers)") }
+  .onChange(of: peers) { newVal in print("[UI] PeerJoinOverlayView peers changed -> \(newVal)") }
     }
   }
 }

@@ -84,9 +84,12 @@
 "load_game_cancel_request" = "Garder";
 "load_game_request_sent" = "En attente de confirmation de chargement...";
 
-/* Chargement d'une partie célèbre */
-"opponent_requests_load_game" = "L'adversaire veut charger : %@";
-"load_game_accept_yes" = "Charger";
-"load_game_accept_no" = "Garder";
-"load_game_cancel_request" = "Garder";
-"load_game_request_sent" = "En attente de confirmation de chargement...";
+/* Changement de nom */
+"menu_change_name_title" = "Changer le nom (%@)";
+"name_prompt_title_first" = "Choisir un nom";
+"name_prompt_message_first" = "Choisissez comment les autres joueurs vous verront. Vous pourrez le changer plus tard.";
+"name_prompt_title" = "Changer le nom";
+"name_prompt_message" = "Mettez à jour le nom visible par les autres joueurs.";
+"name_prompt_placeholder" = "Nom du joueur";
+"name_prompt_later" = "Plus tard";
+"name_prompt_save" = "Enregistrer";
