@@ -83,3 +83,68 @@
 "load_game_accept_no" = "Mantener";
 "load_game_cancel_request" = "Mantener";
 "load_game_request_sent" = "Esperando confirmación para cargar...";
+
+/* Localización de Partidas de Ajedrez Famosas */
+"famous_game_immortal_title" = "Partida Inmortal";
+"famous_game_immortal_players" = "Anderssen contra Kieseritzky (Londres 1851)";
+"famous_game_immortal_description" = "Partida Inmortal clásica (comprimida a movimientos clave terminando en 23.Ae7#).";
+
+"famous_game_scholars_mate_title" = "Mate del Pastor";
+"famous_game_scholars_mate_players" = "Ejemplo de mate rápido";
+"famous_game_scholars_mate_description" = "Un patrón simple de mate en 4 movimientos para demostración.";
+
+"famous_game_ruy_lopez_title" = "Apertura Española";
+"famous_game_ruy_lopez_players" = "Secuencia de apertura clásica";
+"famous_game_ruy_lopez_description" = "La famosa Apertura Española mostrando desarrollo clásico.";
+
+"famous_game_italian_title" = "Partida Italiana";
+"famous_game_italian_players" = "Apertura italiana clásica";
+"famous_game_italian_description" = "La Partida Italiana mostrando desarrollo temprano del alfil.";
+
+"famous_game_french_defense_title" = "Defensa Francesa";
+"famous_game_french_defense_players" = "Demostración de la Defensa Francesa";
+"famous_game_french_defense_description" = "El sólido sistema de la Defensa Francesa.";
+
+"famous_game_sicilian_defense_title" = "Defensa Siciliana";
+"famous_game_sicilian_defense_players" = "Variante Dragón Siciliana";
+"famous_game_sicilian_defense_description" = "La aguda Defensa Siciliana llevando al juego táctico.";
+
+"famous_game_queens_gambit_title" = "Gambito de Dama";
+"famous_game_queens_gambit_players" = "Gambito de Dama clásico";
+"famous_game_queens_gambit_description" = "El famoso sistema de apertura del Gambito de Dama.";
+
+"famous_game_english_opening_title" = "Apertura Inglesa";
+"famous_game_english_opening_players" = "Sistema de Apertura Inglesa";
+"famous_game_english_opening_description" = "La flexible Apertura Inglesa con c4.";
+
+"famous_game_kings_indian_title" = "Defensa India de Rey";
+"famous_game_kings_indian_players" = "Configuración India de Rey";
+"famous_game_kings_indian_description" = "La hipermoderna Defensa India de Rey.";
+
+"famous_game_caro_kann_title" = "Defensa Caro-Kann";
+"famous_game_caro_kann_players" = "Demostración Caro-Kann";
+"famous_game_caro_kann_description" = "El sólido sistema de la Defensa Caro-Kann.";
+
+"famous_game_opera_title" = "Partida de la Ópera (Morphy contra Duque/Conde 1858)";
+"famous_game_opera_players" = "Paul Morphy contra Duque Karl / Conde Isouard (París 1858)";
+"famous_game_opera_description" = "Famosa miniatura ilustrando desarrollo rápido y tácticas.";
+
+"famous_game_najdorf_title" = "Muestra Siciliana Najdorf";
+"famous_game_najdorf_players" = "Demo estructura Najdorf";
+"famous_game_najdorf_description" = "Orden de movimientos Najdorf ilustrativo con ideas temáticas ...e5 y ...Ae6.";
+
+"famous_game_london_title" = "Introducción Sistema Londres";
+"famous_game_london_players" = "Patrón Sistema Londres";
+"famous_game_london_description" = "Configuración básica de Londres: d4, Cf3, Af4, e3, c3, Cbd2, Ad3, O-O.";
+
+"famous_game_scandinavian_title" = "Mini Defensa Escandinava";
+"famous_game_scandinavian_players" = "Actividad temprana de dama escandinava";
+"famous_game_scandinavian_description" = "Escandinava básica: 1.e4 d5 2.exd5 Dxd5 3.Cc3 Da5.";
+
+"famous_game_evans_gambit_title" = "Línea Gambito Evans";
+"famous_game_evans_gambit_players" = "Idea de ataque Gambito Evans";
+"famous_game_evans_gambit_description" = "Gambito Evans: 1.e4 e5 2.Cf3 Cc6 3.Ac4 Ac5 4.b4.";
+
+"famous_game_benko_gambit_title" = "Esquema Gambito Benko";
+"famous_game_benko_gambit_players" = "Gambito Benko (Volga)";
+"famous_game_benko_gambit_description" = "Estructura típica de aceptación Benko después de ...b5 y ...a6.";

@@ -83,3 +83,68 @@
 "load_game_accept_no" = "保持当前";
 "load_game_cancel_request" = "保持当前";
 "load_game_request_sent" = "等待对手确认载入...";
+
+/* 著名国际象棋对局本地化 */
+"famous_game_immortal_title" = "不朽之局";
+"famous_game_immortal_players" = "安德森 对 基泽里茨基（伦敦 1851）";
+"famous_game_immortal_description" = "经典不朽之局（压缩为关键着法以23.Be7#结束）。";
+
+"famous_game_scholars_mate_title" = "学者杀";
+"famous_game_scholars_mate_players" = "快速将杀示例";
+"famous_game_scholars_mate_description" = "用于演示的简单4步将杀模式。";
+
+"famous_game_ruy_lopez_title" = "西班牙开局";
+"famous_game_ruy_lopez_players" = "经典开局序列";
+"famous_game_ruy_lopez_description" = "著名的西班牙开局展示经典发展。";
+
+"famous_game_italian_title" = "意大利开局";
+"famous_game_italian_players" = "经典意大利开局";
+"famous_game_italian_description" = "意大利开局展示早期象的发展。";
+
+"famous_game_french_defense_title" = "法兰西防御";
+"famous_game_french_defense_players" = "法兰西防御演示";
+"famous_game_french_defense_description" = "坚实的法兰西防御系统。";
+
+"famous_game_sicilian_defense_title" = "西西里防御";
+"famous_game_sicilian_defense_players" = "西西里龙式变例";
+"famous_game_sicilian_defense_description" = "尖锐的西西里防御导向战术对弈。";
+
+"famous_game_queens_gambit_title" = "后翼弃兵";
+"famous_game_queens_gambit_players" = "经典后翼弃兵";
+"famous_game_queens_gambit_description" = "著名的后翼弃兵开局系统。";
+
+"famous_game_english_opening_title" = "英式开局";
+"famous_game_english_opening_players" = "英式开局系统";
+"famous_game_english_opening_description" = "灵活的英式开局走c4。";
+
+"famous_game_kings_indian_title" = "王翼印度防御";
+"famous_game_kings_indian_players" = "王翼印度布阵";
+"famous_game_kings_indian_description" = "超现代王翼印度防御。";
+
+"famous_game_caro_kann_title" = "卡罗-卡恩防御";
+"famous_game_caro_kann_players" = "卡罗-卡恩演示";
+"famous_game_caro_kann_description" = "坚实的卡罗-卡恩防御系统。";
+
+"famous_game_opera_title" = "歌剧院之局（摩菲 对 公爵/伯爵 1858）";
+"famous_game_opera_players" = "保罗·摩菲 对 卡尔公爵/伊苏阿德伯爵（巴黎 1858）";
+"famous_game_opera_description" = "著名短局展示快速发展和战术。";
+
+"famous_game_najdorf_title" = "西西里纳伊多夫样本";
+"famous_game_najdorf_players" = "纳伊多夫结构演示";
+"famous_game_najdorf_description" = "说明性纳伊多夫着法顺序及主题...e5和...Be6思路。";
+
+"famous_game_london_title" = "伦敦系统介绍";
+"famous_game_london_players" = "伦敦系统模式";
+"famous_game_london_description" = "伦敦核心布局：d4, Nf3, Bf4, e3, c3, Nbd2, Bd3, O-O。";
+
+"famous_game_scandinavian_title" = "斯堪的纳维亚防御小样";
+"famous_game_scandinavian_players" = "斯堪的纳维亚早期后活动";
+"famous_game_scandinavian_description" = "基本斯堪的纳维亚：1.e4 d5 2.exd5 Qxd5 3.Nc3 Qa5。";
+
+"famous_game_evans_gambit_title" = "埃文斯弃兵线";
+"famous_game_evans_gambit_players" = "埃文斯弃兵攻击思路";
+"famous_game_evans_gambit_description" = "埃文斯弃兵：1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.b4。";
+
+"famous_game_benko_gambit_title" = "本科弃兵概要";
+"famous_game_benko_gambit_players" = "本科（伏尔加）弃兵";
+"famous_game_benko_gambit_description" = "...b5和...a6后的典型本科接受结构。";

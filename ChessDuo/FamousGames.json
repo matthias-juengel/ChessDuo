@@ -1,5 +1,6 @@
 [
   {
+    "localizationKey": "immortal",
     "title": "Immortal Game",
     "players": "Anderssen vs Kieseritzky (London 1851)",
     "description": "Classic Immortal Game (compressed to key moves ending 23.Be7#).",
@@ -52,6 +53,7 @@
     ]
   },
   {
+    "localizationKey": "scholars_mate",
     "title": "Scholar's Mate",
     "players": "Quick checkmate example",
     "description": "A simple 4-move checkmate pattern for demonstration.",
@@ -66,6 +68,7 @@
     ]
   },
   {
+    "localizationKey": "ruy_lopez",
     "title": "Ruy Lopez Opening",
     "players": "Classical opening sequence",
     "description": "The famous Spanish Opening showing classical development.",
@@ -83,6 +86,7 @@
     ]
   },
   {
+    "localizationKey": "italian",
     "title": "Italian Game",
     "players": "Classical Italian opening",
     "description": "The Italian Game showing early bishop development.",
@@ -100,6 +104,7 @@
     ]
   },
   {
+    "localizationKey": "french_defense",
     "title": "French Defense",
     "players": "French Defense demonstration",
     "description": "The solid French Defense system.",
@@ -116,6 +121,7 @@
     ]
   },
   {
+    "localizationKey": "sicilian_defense",
     "title": "Sicilian Defense",
     "players": "Sicilian Dragon variation",
     "description": "The sharp Sicilian Defense leading to tactical play.",
@@ -133,6 +139,7 @@
     ]
   },
   {
+    "localizationKey": "queens_gambit",
     "title": "Queen's Gambit",
     "players": "Classical Queen's Gambit",
     "description": "The famous Queen's Gambit opening system.",
@@ -150,6 +157,7 @@
     ]
   },
   {
+    "localizationKey": "english_opening",
     "title": "English Opening",
     "players": "English Opening system",
     "description": "The flexible English Opening with c4.",
@@ -167,6 +175,7 @@
     ]
   },
   {
+    "localizationKey": "kings_indian",
     "title": "King's Indian Defense",
     "players": "King's Indian setup",
     "description": "The hypermodern King's Indian Defense.",
@@ -184,6 +193,7 @@
     ]
   },
   {
+    "localizationKey": "caro_kann",
     "title": "Caro-Kann Defense",
     "players": "Caro-Kann demonstration",
     "description": "The solid Caro-Kann Defense system.",
@@ -199,6 +209,7 @@
     ]
   },
   {
+    "localizationKey": "opera",
     "title": "Opera Game (Morphy vs Duke/Count 1858)",
     "players": "Paul Morphy vs Duke Karl / Count Isouard (Paris 1858)",
     "description": "Famous miniature illustrating rapid development and tactics.",
@@ -206,6 +217,7 @@
     "pgn": "1.e4 e5 2.Nf3 d6 3.d4 Bg4 4.dxe5 Bxf3 5.Qxf3 dxe5 6.Bc4 Nf6 7.Qb3 Qe7 8.Nc3 c6 9.Bg5 b5 10.Nxb5 cxb5 11.Bxb5+ Nbd7 12.O-O-O Rd8 13.Rxd7 Rxd7 14.Rd1 Qe6 15.Bxd7+ Nxd7 16.Qb8+ Nxb8 17.Rd8#"
   },
   {
+    "localizationKey": "najdorf",
     "title": "Sicilian Najdorf Sample",
     "players": "Najdorf structure demo",
     "description": "Illustrative Najdorf move order with thematic ...e5 and ...Be6 ideas.",
@@ -213,6 +225,7 @@
     "pgn": "1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 a6 6.Bg5 e6 7.f4 Be7 8.Qf3 Qc7 9.O-O-O Nbd7 10.Bd3 b5"
   },
   {
+    "localizationKey": "london",
     "title": "London System Intro",
     "players": "London System pattern",
     "description": "Core London setup: d4, Nf3, Bf4, e3, c3, Nbd2, Bd3, O-O.",
@@ -220,6 +233,7 @@
     "pgn": "1.d4 d5 2.Nf3 Nf6 3.Bf4 e6 4.e3 c5 5.c3 Nc6 6.Nbd2 Bd6 7.Bxd6 Qxd6 8.Bd3 O-O"
   },
   {
+    "localizationKey": "scandinavian",
     "title": "Scandinavian Defense Mini",
     "players": "Scandinavian early queen activity",
     "description": "Basic Scandinavian: 1.e4 d5 2.exd5 Qxd5 3.Nc3 Qa5.",
@@ -227,6 +241,7 @@
     "pgn": "1.e4 d5 2.exd5 Qxd5 3.Nc3 Qa5 4.d4 Nf6 5.Nf3 c6 6.Bc4 Bf5"
   },
   {
+    "localizationKey": "evans_gambit",
     "title": "Evans Gambit Line",
     "players": "Evans Gambit attacking idea",
     "description": "Evans Gambit: 1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.b4.",
@@ -234,6 +249,7 @@
     "pgn": "1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.b4 Bxb4 5.c3 Ba5 6.d4 exd4 7.O-O d3 8.Qb3 Qf6"
   },
   {
+    "localizationKey": "benko_gambit",
     "title": "Benko Gambit Outline",
     "players": "Benko (Volga) Gambit",
     "description": "Typical Benko acceptance structure after ...b5 and ...a6.",

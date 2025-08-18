@@ -99,8 +99,9 @@ private extension GameScreenOverlays {
         }
         // Famous game load negotiation overlays
         if let incomingTitle = vm.incomingLoadGameRequestTitle {
+          let localizedTitle = FamousGamesLoader.shared.getLocalizedTitle(for: incomingTitle)
           IncomingResetRequestOverlay(
-            message: String.loc("opponent_requests_load_game", incomingTitle),
+            message: String.loc("opponent_requests_load_game", localizedTitle),
             acceptTitle: String.loc("load_game_accept_yes"),
             declineTitle: String.loc("load_game_accept_no"),
             onAccept: { vm.respondToLoadGameRequest(accept: true) },
