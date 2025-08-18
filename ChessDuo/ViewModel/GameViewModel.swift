@@ -5,7 +5,6 @@
 //  Created by Matthias Jüngel on 10.08.25.
 //
 
-
 import Foundation
 import Combine
 import SwiftUI
@@ -16,6 +15,9 @@ final class GameViewModel: ObservableObject {
   @AppStorage("playerName") private var storedPlayerName: String = ""
   @Published var playerName: String = UIDevice.current.name // default device name
   @Published var showInitialNamePrompt: Bool = false
+  // New onboarding sequencing: show an in-app explanation before triggering iOS local network permission prompt.
+  @AppStorage("hasSeenNetworkPermissionIntro") var hasSeenNetworkPermissionIntro: Bool = false
+  @Published var showNetworkPermissionIntro: Bool = false
   // Opponent name convenience (first connected friendly name if any)
   var opponentName: String? { otherDeviceNames.first }
   /// Assigned multiplayer color (nil in single-device mode). Persisted across reconnects
@@ -180,16 +182,41 @@ final class GameViewModel: ObservableObject {
   private var hasSentHello = false
   private var pendingInvitationDecision: ((Bool)->Void)? = nil
   enum GameOutcome: Equatable { case ongoing, win, loss, draw }
+  // Internal gate so we don't start Multipeer advertising/browsing (which triggers the iOS Local Network prompt)
+  // until the user has explicitly continued past the network permission intro.
+  private var networkingApproved: Bool = false
+  // Expose read-only flag for UI (e.g. menu) to conditionally show an "Enable Nearby Play" action.
+  var needsNetworkingApproval: Bool { !networkingApproved }
+  // Allow UI to re-present the intro if user postponed earlier (only when not yet approved).
+  func requestNetworkingApproval() {
+    guard !networkingApproved else { return }
+    if !showNetworkPermissionIntro { showNetworkPermissionIntro = true }
+  }
 
   init() {
-  // Initialize player name from storage or default
-  if storedPlayerName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-    playerName = UIDevice.current.name
-    // Show prompt allowing change (not mandatory)
-    showInitialNamePrompt = true
-  } else {
-    playerName = storedPlayerName
-  }
+  // 1. Determine initial player name & whether we must show the name chooser.
+    if storedPlayerName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+      playerName = UIDevice.current.name
+      showInitialNamePrompt = true // cold start without stored name -> show name chooser first
+      print("[VM] First launch: presenting name chooser before anything else")
+    } else {
+      playerName = storedPlayerName
+    }
+    // 2. If name already known AND user has NOT yet seen the network intro -> present intro next.
+    if !showInitialNamePrompt && !hasSeenNetworkPermissionIntro {
+      showNetworkPermissionIntro = true
+      print("[VM] Showing network permission intro (name already set)")
+    }
+  // Networking approval mirrors whether intro already seen (previous sessions). Only auto-start when approved.
+  networkingApproved = hasSeenNetworkPermissionIntro
+    // 3. Only start networking automatically if BOTH name is set AND intro already seen.
+  if !showInitialNamePrompt && networkingApproved {
+      peers.updateAdvertisedName(playerName)
+      peers.startAuto()
+      print("[VM] Auto-started networking (prerequisites satisfied)")
+    } else {
+      print("[VM] Networking start deferred (namePrompt=\(showInitialNamePrompt) introSeen=\(hasSeenNetworkPermissionIntro))")
+    }
   // Attempt to load persisted game before starting networking so board state is restored.
   loadGameIfAvailable()
   // Restore myColor from persistent storage if moves have been made and value exists
@@ -299,11 +326,8 @@ final class GameViewModel: ObservableObject {
       }
       .store(in: &cancellables)
 
-    // Automatically start symmetric discovery
-  // Ensure current playerName (stored or default) is used for advertisement before starting auto mode.
-  peers.updateAdvertisedName(playerName)
-  print("[VM] Initialized advertising with playerName=\(playerName)")
-  peers.startAuto()
+  // (Removed previous unconditional auto-start block; networking now only starts when both
+  // name chooser finished and intro acknowledged.)
 
     // Observe historyIndex changes to broadcast history view state (only when we initiate changes locally)
     $historyIndex
@@ -371,10 +395,25 @@ final class GameViewModel: ObservableObject {
     guard trimmed != playerName else { return }
     playerName = trimmed
     storedPlayerName = trimmed
-    // Update underlying advertising
-    peers.updateAdvertisedName(trimmed)
-    // Send updated hello so peer updates mapping
-    if peers.isConnected { sendHello(force: true) }
+    // Only propagate to Multipeer layer if networking has been approved (else defer until approval).
+    if networkingApproved {
+      peers.updateAdvertisedName(trimmed)
+      if peers.isConnected { sendHello(force: true) }
+    } else {
+      print("[VM] Deferred advertising name update until networking approved -> \(trimmed)")
+    }
+  }
+
+  /// Called when user explicitly approves networking (e.g. taps Continue on intro overlay).
+  func approveNetworkingAndStartIfNeeded() {
+    guard !networkingApproved else { return }
+    networkingApproved = true
+    hasSeenNetworkPermissionIntro = true
+    showNetworkPermissionIntro = false
+    // Begin advertising/browsing now; this is the first point iOS may show the Local Network permission alert.
+    peers.updateAdvertisedName(playerName)
+    peers.startAuto()
+    print("[VM] User approved networking; started auto mode")
   }
 
   private func sendHello(force: Bool = false) {

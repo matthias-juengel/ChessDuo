@@ -38,7 +38,8 @@ struct GameScreen: View {
   hasPeersToJoin: !vm.peers.isConnected && !vm.allBrowsedPeerFriendlyNames.isEmpty,
   // Use friendly advertised / chosen player names if available (already de-duplicated upstream)
   browsedPeerNames: vm.allBrowsedPeerFriendlyNames,
-      playerName: vm.playerName // new
+  playerName: vm.playerName, // new
+  needsNetworkingApproval: vm.needsNetworkingApproval // new
     )
   }
   private var menuAvailability: GameMenuButtonOverlay.Availability {
@@ -405,6 +406,8 @@ struct GameScreen: View {
       }
     case .changeName:
       showNameEditor = true
+    case .enableNetworking:
+      vm.requestNetworkingApproval()
     }
   }
 }

@@ -76,6 +76,7 @@
 "menu_accessibility_label" = "Open menu";
 "menu_join_section" = "Nearby Players";
 "menu_load_game" = "Load Game";
+"menu_enable_networking" = "Enable Nearby Play";
 "load_game_title" = "Famous Chess Games";
 "load_game_subtitle" = "Choose a game to load";
 "load_game_cancel" = "Cancel";
@@ -107,3 +108,12 @@
 "name_prompt_placeholder" = "Player Name";
 "name_prompt_later" = "Later";
 "name_prompt_save" = "Save";
+
+// Network permission intro
+"net_intro_title" = "Local Network Access";
+"net_intro_message" = "ChessDuo uses your local network to automatically discover a nearby opponent without accounts or servers. iOS will now ask for permission. This is only used for finding the other device on your Wi‑Fi / local network.";
+"net_intro_point_discovery" = "Automatic discovery: we advertise a short identifier so another device can find you.";
+"net_intro_point_privacy" = "Nothing leaves your local network; no game data is sent to external servers.";
+"net_intro_point_change_later" = "You can revoke permission later in Settings > Privacy & Security > Local Network.";
+"net_intro_not_now" = "Not Now";
+"net_intro_continue" = "Continue";

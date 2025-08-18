@@ -17,6 +17,7 @@ struct GameMenuView: View {
     var hasPeersToJoin: Bool
     var browsedPeerNames: [String]
     var playerName: String // new
+  var needsNetworkingApproval: Bool // new
   }
 
   enum Action: Equatable {
@@ -28,6 +29,7 @@ struct GameMenuView: View {
     case joinPeer(String)
     case showHistory
     case changeName // new
+  case enableNetworking // new
   }
 
   let state: State
@@ -105,6 +107,12 @@ struct GameMenuView: View {
     menuButton(icon: "pencil", text: String.loc("menu_change_name_title", state.playerName)) {
       dismiss()
       send(.changeName)
+    }
+    if state.needsNetworkingApproval {
+      menuButton(icon: "antenna.radiowaves.left.and.right", text: String.loc("menu_enable_networking")) {
+        dismiss()
+        send(.enableNetworking)
+      }
     }
     if !state.isConnected { // Rotate
       menuButton(icon: "arrow.triangle.2.circlepath", text: String.loc("menu_rotate_board")) {

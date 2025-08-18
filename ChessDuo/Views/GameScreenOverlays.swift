@@ -22,6 +22,7 @@ struct GameScreenOverlays: View {
 
   var body: some View {
     ZStack {
+  networkPermissionIntroLayer
       promotionLayer
       connectedResetLayers
   connectedHistoryRevertLayers
@@ -175,7 +176,7 @@ private extension GameScreenOverlays {
 
   var nameChangeLayer: some View {
     ZStack {
-      if showNameEditor || vm.showInitialNamePrompt {
+      if (showNameEditor || vm.showInitialNamePrompt) && !vm.showNetworkPermissionIntro {
         NameChangeOverlay(
           initialName: vm.playerName,
           isFirstLaunch: vm.showInitialNamePrompt,
@@ -183,13 +184,40 @@ private extension GameScreenOverlays {
             vm.updatePlayerName(newName)
             vm.showInitialNamePrompt = false
             showNameEditor = false
+            // After name is set, either show network intro (if not seen) or start networking now.
+            if !vm.hasSeenNetworkPermissionIntro {
+              vm.showNetworkPermissionIntro = true // will later trigger approveNetworkingAndStartIfNeeded on Continue
+            } else {
+              vm.approveNetworkingAndStartIfNeeded()
+            }
           },
           onLater: {
             vm.showInitialNamePrompt = false
             showNameEditor = false
+            if !vm.hasSeenNetworkPermissionIntro {
+              vm.showNetworkPermissionIntro = true
+            } // else: user already saw intro earlier in a prior session; networking will auto-start via VM init if approved.
           }
         )
         .zIndex(OverlayZIndex.menu + 3)
+      }
+    }
+  }
+
+  var networkPermissionIntroLayer: some View {
+    ZStack {
+      if vm.showNetworkPermissionIntro {
+        NetworkPermissionIntroOverlay(
+          onContinue: {
+            vm.approveNetworkingAndStartIfNeeded()
+          },
+          onLater: {
+            // User postponed enabling networking: dismiss intro TEMPORARILY but do NOT mark as seen.
+            // This allows us to ask again later (e.g. via a settings/menu action) or auto-present once they perform a network action.
+            vm.showNetworkPermissionIntro = false
+          }
+        )
+        .zIndex(OverlayZIndex.menu + 10)
       }
     }
   }
