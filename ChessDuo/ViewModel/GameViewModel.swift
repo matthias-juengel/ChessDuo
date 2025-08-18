@@ -89,6 +89,10 @@ final class GameViewModel: ObservableObject {
   private var legalDestCache: [String: Set<Square>] = [:]
   private var lastCacheBoardSignature: String? = nil
 
+  // Baseline (initial) board & side for current session (handles FEN starts for famous games)
+  private var baselineBoard: Board = Board.initial()
+  private var baselineSideToMove: PieceColor = .white
+
   // Export current game state as a textual snapshot (for debugging / tests)
   func exportText() -> String {
     // Ensure status is up to date before exporting (fallback safety)
@@ -249,6 +253,8 @@ final class GameViewModel: ObservableObject {
   }
   // Falls beim Laden (z.B. V1 ohne History) keine Snapshots erzeugt wurden, initialisieren wir minimal.
   if boardSnapshots.isEmpty { boardSnapshots = [engine.board] }
+    baselineBoard = engine.board
+    baselineSideToMove = engine.sideToMove
     peers.onMessage = { [weak self] msg in
       self?.handle(msg)
     }
@@ -776,6 +782,8 @@ final class GameViewModel: ObservableObject {
   historyIndex = nil
     sessionProgressed = false
   boardSnapshots = [engine.board]
+    baselineBoard = engine.board
+    baselineSideToMove = engine.sideToMove
     if send { peers.send(.init(kind: .reset)) }
   saveGame()
   }
@@ -812,7 +820,7 @@ final class GameViewModel: ObservableObject {
   func performHistoryRevert(to target: Int, send: Bool) {
     guard target >= 0, target <= moveHistory.count else { return }
     // Rebuild engine from first target moves
-    var e = ChessEngine()
+    var e = ChessEngine.fromSnapshot(board: baselineBoard, sideToMove: baselineSideToMove)
     var newCapturedByMe: [Piece] = []
     var newCapturedByOpponent: [Piece] = []
     var lastCapID: UUID? = nil
@@ -855,7 +863,7 @@ final class GameViewModel: ObservableObject {
   suppressHistoryViewBroadcast = prevSuppress
     // Rebuild snapshots for truncated history
     boardSnapshots = [ChessEngine().board]
-    var rebuildEngine = ChessEngine()
+    var rebuildEngine = ChessEngine.fromSnapshot(board: baselineBoard, sideToMove: baselineSideToMove)
     for mv in moveHistory { _ = rebuildEngine.tryMakeMove(mv); boardSnapshots.append(rebuildEngine.board) }
     // Persist
     saveGame()
@@ -898,12 +906,13 @@ final class GameViewModel: ObservableObject {
 
   /// Apply a famous game to local state, optionally broadcasting snapshot to peer via loadGameState.
   private func applyFamousGame(_ game: FamousGame, broadcast: Bool) {
-    // Reset existing state similar to loadFamousGame
     if let fen = game.initialFEN, let custom = ChessEngine.fromFEN(fen) {
       engine = custom
     } else {
       engine = ChessEngine()
     }
+    baselineBoard = engine.board
+    baselineSideToMove = engine.sideToMove
     moveHistory = []
     boardSnapshots = [engine.board]
     capturedByMe = []
@@ -1194,8 +1203,7 @@ extension GameViewModel {
   func boardAfterMoves(_ n: Int) -> Board {
   if n < boardSnapshots.count { return boardSnapshots[n] }
   if n == moveHistory.count { return engine.board }
-  // Sollte nicht vorkommen: Snapshots unvollständig. Rekonstruiere flüchtig ohne zu publishen (vermeidet Warning in View).
-  var e = ChessEngine()
+  var e = ChessEngine.fromSnapshot(board: baselineBoard, sideToMove: baselineSideToMove)
   for i in 0..<min(n, moveHistory.count) { _ = e.tryMakeMove(moveHistory[i]) }
   return e.board
   }
@@ -1271,9 +1279,8 @@ extension GameViewModel {
   // Calculate point advantage for historical positions
   func historicalPointAdvantage(forMe: Bool) -> Int {
     guard let idx = historyIndex else { return pointAdvantage(forMe: forMe) }
-
+    var engine = ChessEngine.fromSnapshot(board: baselineBoard, sideToMove: baselineSideToMove)
     // Reconstruct captured pieces up to idx moves
-    var engine = ChessEngine()
     var capsByWhite: [Piece] = []
     var capsByBlack: [Piece] = []
 
@@ -1449,7 +1456,7 @@ extension GameViewModel {
   func historicalCaptureHighlight(at historyIndex: Int) -> (pieceID: UUID, byMe: Bool)? {
     // historyIndex represents board AFTER that many moves. So the last applied move is moveHistory[historyIndex-1].
     guard historyIndex > 0, historyIndex <= moveHistory.count else { return nil }
-    var engine = ChessEngine()
+  var engine = ChessEngine.fromSnapshot(board: baselineBoard, sideToMove: baselineSideToMove)
     // Play moves up to before the last one to inspect capture result.
     for i in 0..<(historyIndex - 1) { _ = engine.tryMakeMove(moveHistory[i]) }
     let move = moveHistory[historyIndex - 1]
@@ -1483,20 +1490,12 @@ private extension GameViewModel {
   /// Rebuild `boardSnapshots` from `moveHistory` ensuring stable Piece.id continuity between successive boards.
   /// This should be called after loading persisted state or if snapshots are detected incomplete.
   func rebuildSnapshotsFromHistory() {
-    // If we already have a full snapshot sequence (count == moveHistory.count + 1) and first snapshot matches current initial board piece set, skip.
-    if boardSnapshots.count == moveHistory.count + 1 {
-      return
-    }
-    var e = ChessEngine()
-    var newSnapshots: [Board] = [e.board] // initial position
-    for mv in moveHistory {
-      _ = e.tryMakeMove(mv)
-      newSnapshots.append(e.board)
-    }
-    // Replace engine only if our current engine position mismatches last reconstructed (safety for loaded V1/V2)
+    if boardSnapshots.count == moveHistory.count + 1 { return }
+    var e = ChessEngine.fromSnapshot(board: baselineBoard, sideToMove: baselineSideToMove)
+    var newSnapshots: [Board] = [baselineBoard]
+    for mv in moveHistory { _ = e.tryMakeMove(mv); newSnapshots.append(e.board) }
     if let last = newSnapshots.last, !boardsEqual(last, engine.board) {
-      // Adopt reconstructed engine snapshot to align identities for future moves
-      engine = ChessEngine.fromSnapshot(board: last, sideToMove: (moveHistory.count % 2 == 0) ? .white : .black)
+      engine = ChessEngine.fromSnapshot(board: last, sideToMove: (moveHistory.count % 2 == 0) ? baselineSideToMove : baselineSideToMove.opposite)
     }
     boardSnapshots = newSnapshots
   }
