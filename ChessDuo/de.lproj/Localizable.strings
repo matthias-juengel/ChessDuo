@@ -83,3 +83,68 @@
 "load_game_accept_no" = "Aktuell behalten";
 "load_game_cancel_request" = "Aktuell behalten";
 "load_game_request_sent" = "Warte auf Bestätigung zum Laden...";
+
+/* Berühmte Schachpartien Lokalisierung */
+"famous_game_immortal_title" = "Unsterbliche Partie";
+"famous_game_immortal_players" = "Anderssen gegen Kieseritzky (London 1851)";
+"famous_game_immortal_description" = "Klassische unsterbliche Partie (verkürzt auf Schlüsselzüge bis 23.Le7#).";
+
+"famous_game_scholars_mate_title" = "Schäfermatt";
+"famous_game_scholars_mate_players" = "Schnelles Matt-Beispiel";
+"famous_game_scholars_mate_description" = "Ein einfaches 4-Zug-Matt-Muster zur Demonstration.";
+
+"famous_game_ruy_lopez_title" = "Spanische Eröffnung";
+"famous_game_ruy_lopez_players" = "Klassische Eröffnungssequenz";
+"famous_game_ruy_lopez_description" = "Die berühmte spanische Eröffnung mit klassischer Entwicklung.";
+
+"famous_game_italian_title" = "Italienische Partie";
+"famous_game_italian_players" = "Klassische italienische Eröffnung";
+"famous_game_italian_description" = "Die italienische Partie mit früher Läuferentwicklung.";
+
+"famous_game_french_defense_title" = "Französische Verteidigung";
+"famous_game_french_defense_players" = "Französische Verteidigung Demonstration";
+"famous_game_french_defense_description" = "Das solide französische Verteidigungssystem.";
+
+"famous_game_sicilian_defense_title" = "Sizilianische Verteidigung";
+"famous_game_sicilian_defense_players" = "Sizilianische Drachen-Variante";
+"famous_game_sicilian_defense_description" = "Die scharfe sizilianische Verteidigung führt zu taktischem Spiel.";
+
+"famous_game_queens_gambit_title" = "Damengambit";
+"famous_game_queens_gambit_players" = "Klassisches Damengambit";
+"famous_game_queens_gambit_description" = "Das berühmte Damengambit-Eröffnungssystem.";
+
+"famous_game_english_opening_title" = "Englische Eröffnung";
+"famous_game_english_opening_players" = "Englisches Eröffnungssystem";
+"famous_game_english_opening_description" = "Die flexible englische Eröffnung mit c4.";
+
+"famous_game_kings_indian_title" = "Königsindische Verteidigung";
+"famous_game_kings_indian_players" = "Königsindische Aufstellung";
+"famous_game_kings_indian_description" = "Die hypermoderne königsindische Verteidigung.";
+
+"famous_game_caro_kann_title" = "Caro-Kann-Verteidigung";
+"famous_game_caro_kann_players" = "Caro-Kann Demonstration";
+"famous_game_caro_kann_description" = "Das solide Caro-Kann-Verteidigungssystem.";
+
+"famous_game_opera_title" = "Opernpartie (Morphy gegen Herzog/Graf 1858)";
+"famous_game_opera_players" = "Paul Morphy gegen Herzog Karl / Graf Isouard (Paris 1858)";
+"famous_game_opera_description" = "Berühmte Miniatur zeigt schnelle Entwicklung und Taktiken.";
+
+"famous_game_najdorf_title" = "Sizilianisch Najdorf Beispiel";
+"famous_game_najdorf_players" = "Najdorf-Struktur Demo";
+"famous_game_najdorf_description" = "Illustrative Najdorf-Zugfolge mit thematischen ...e5 und ...Le6 Ideen.";
+
+"famous_game_london_title" = "Londoner System Einführung";
+"famous_game_london_players" = "Londoner System Muster";
+"famous_game_london_description" = "Kern des Londoner Systems: d4, Sf3, Lf4, e3, c3, Sbd2, Ld3, O-O.";
+
+"famous_game_scandinavian_title" = "Skandinavische Verteidigung Mini";
+"famous_game_scandinavian_players" = "Skandinavische frühe Damenaktivität";
+"famous_game_scandinavian_description" = "Grundlegende Skandinavische: 1.e4 d5 2.exd5 Dxd5 3.Sc3 Da5.";
+
+"famous_game_evans_gambit_title" = "Evans-Gambit Linie";
+"famous_game_evans_gambit_players" = "Evans-Gambit Angriffsidee";
+"famous_game_evans_gambit_description" = "Evans-Gambit: 1.e4 e5 2.Sf3 Sc6 3.Lc4 Lc5 4.b4.";
+
+"famous_game_benko_gambit_title" = "Benko-Gambit Grundriss";
+"famous_game_benko_gambit_players" = "Benko (Wolga) Gambit";
+"famous_game_benko_gambit_description" = "Typische Benko-Annahme-Struktur nach ...b5 und ...a6.";

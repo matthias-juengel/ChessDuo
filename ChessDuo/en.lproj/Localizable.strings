@@ -97,3 +97,68 @@
 "load_game_accept_no" = "Keep Current";
 "load_game_cancel_request" = "Keep Current";
 "load_game_request_sent" = "Waiting for other player to confirm load...";
+
+/* Famous Games Localization */
+"famous_game_immortal_title" = "Immortal Game";
+"famous_game_immortal_players" = "Anderssen vs Kieseritzky (London 1851)";
+"famous_game_immortal_description" = "Classic Immortal Game (compressed to key moves ending 23.Be7#).";
+
+"famous_game_scholars_mate_title" = "Scholar's Mate";
+"famous_game_scholars_mate_players" = "Quick checkmate example";
+"famous_game_scholars_mate_description" = "A simple 4-move checkmate pattern for demonstration.";
+
+"famous_game_ruy_lopez_title" = "Ruy Lopez Opening";
+"famous_game_ruy_lopez_players" = "Classical opening sequence";
+"famous_game_ruy_lopez_description" = "The famous Spanish Opening showing classical development.";
+
+"famous_game_italian_title" = "Italian Game";
+"famous_game_italian_players" = "Classical Italian opening";
+"famous_game_italian_description" = "The Italian Game showing early bishop development.";
+
+"famous_game_french_defense_title" = "French Defense";
+"famous_game_french_defense_players" = "French Defense demonstration";
+"famous_game_french_defense_description" = "The solid French Defense system.";
+
+"famous_game_sicilian_defense_title" = "Sicilian Defense";
+"famous_game_sicilian_defense_players" = "Sicilian Dragon variation";
+"famous_game_sicilian_defense_description" = "The sharp Sicilian Defense leading to tactical play.";
+
+"famous_game_queens_gambit_title" = "Queen's Gambit";
+"famous_game_queens_gambit_players" = "Classical Queen's Gambit";
+"famous_game_queens_gambit_description" = "The famous Queen's Gambit opening system.";
+
+"famous_game_english_opening_title" = "English Opening";
+"famous_game_english_opening_players" = "English Opening system";
+"famous_game_english_opening_description" = "The flexible English Opening with c4.";
+
+"famous_game_kings_indian_title" = "King's Indian Defense";
+"famous_game_kings_indian_players" = "King's Indian setup";
+"famous_game_kings_indian_description" = "The hypermodern King's Indian Defense.";
+
+"famous_game_caro_kann_title" = "Caro-Kann Defense";
+"famous_game_caro_kann_players" = "Caro-Kann demonstration";
+"famous_game_caro_kann_description" = "The solid Caro-Kann Defense system.";
+
+"famous_game_opera_title" = "Opera Game (Morphy vs Duke/Count 1858)";
+"famous_game_opera_players" = "Paul Morphy vs Duke Karl / Count Isouard (Paris 1858)";
+"famous_game_opera_description" = "Famous miniature illustrating rapid development and tactics.";
+
+"famous_game_najdorf_title" = "Sicilian Najdorf Sample";
+"famous_game_najdorf_players" = "Najdorf structure demo";
+"famous_game_najdorf_description" = "Illustrative Najdorf move order with thematic ...e5 and ...Be6 ideas.";
+
+"famous_game_london_title" = "London System Intro";
+"famous_game_london_players" = "London System pattern";
+"famous_game_london_description" = "Core London setup: d4, Nf3, Bf4, e3, c3, Nbd2, Bd3, O-O.";
+
+"famous_game_scandinavian_title" = "Scandinavian Defense Mini";
+"famous_game_scandinavian_players" = "Scandinavian early queen activity";
+"famous_game_scandinavian_description" = "Basic Scandinavian: 1.e4 d5 2.exd5 Qxd5 3.Nc3 Qa5.";
+
+"famous_game_evans_gambit_title" = "Evans Gambit Line";
+"famous_game_evans_gambit_players" = "Evans Gambit attacking idea";
+"famous_game_evans_gambit_description" = "Evans Gambit: 1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.b4.";
+
+"famous_game_benko_gambit_title" = "Benko Gambit Outline";
+"famous_game_benko_gambit_players" = "Benko (Volga) Gambit";
+"famous_game_benko_gambit_description" = "Typical Benko acceptance structure after ...b5 and ...a6.";
