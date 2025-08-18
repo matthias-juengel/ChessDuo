@@ -1,6 +1,5 @@
 //
 //  HistorySliderView.swift
-//  ChessDuo
 //
 //  Encapsulated slider to scrub through move history.
 //

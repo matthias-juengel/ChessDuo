@@ -93,3 +93,25 @@
 "name_prompt_placeholder" = "Nom du joueur";
 "name_prompt_later" = "Plus tard";
 "name_prompt_save" = "Enregistrer";
+
+// Activer jeu à proximité (même libellé pour les deux clés pour l'instant)
+"menu_enable_networking" = "Activer Jeu à Proximité";
+"menu_fix_network_permission" = "Activer Jeu à Proximité";
+
+// Introduction permission réseau local
+"net_intro_title" = "Accès Réseau Local";
+"net_intro_message" = "%@ utilise votre réseau local pour découvrir automatiquement des joueurs proches sans comptes ni serveurs. iOS va maintenant demander l'autorisation. C'est uniquement utilisé pour trouver d'autres appareils sur votre Wi‑Fi / réseau local.";
+"net_intro_point_discovery" = "Découverte automatique : nous annonçons un identifiant court pour qu'un autre appareil puisse vous trouver.";
+"net_intro_point_privacy" = "Rien ne quitte votre réseau local ; aucune donnée de partie n'est envoyée à des serveurs externes.";
+"net_intro_point_change_later" = "Vous pouvez révoquer l'autorisation plus tard dans Réglages > Confidentialité et sécurité > Réseau local.";
+"net_intro_not_now" = "Plus tard";
+"net_intro_continue" = "Continuer";
+
+// Overlay d'aide permission désactivée
+"ln_help_title" = "Activer l'Accès Réseau Local";
+"ln_help_message" = "Il semble que l'autorisation réseau local soit désactivée. %@ en a besoin pour découvrir automatiquement les joueurs à proximité. Vous pouvez l'activer dans les Réglages :";
+"ln_help_step_settings" = "Touchez 'Ouvrir Réglages'.";
+"ln_help_step_toggle" = "Activez l'accès réseau local pour %@.";
+"ln_help_step_return" = "Revenez dans l'app et connectez-vous à un joueur proche.";
+"ln_help_open" = "Ouvrir Réglages";
+"ln_help_dismiss" = "Fermer";

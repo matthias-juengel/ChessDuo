@@ -1,6 +1,4 @@
-//
 //  ContentView.swift
-//  ChessDuo
 //
 //  Created by Matthias Jüngel on 10.08.25.
 //

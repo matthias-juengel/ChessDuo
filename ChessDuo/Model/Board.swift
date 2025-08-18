@@ -1,6 +1,5 @@
 //
 //  Board.swift
-//  ChessDuo
 //
 //  Created by Matthias Jüngel on 10.08.25.
 //
@@ -10,14 +9,14 @@ import Foundation
 struct Board: Codable, Equatable {
   // 8x8, index = rank*8 + file
   private(set) var cells: [Piece?] = Array(repeating: nil, count: 64)
-  
+
   static func index(_ s: Square) -> Int { s.rank * 8 + s.file }
   func piece(at s: Square) -> Piece? { cells[Board.index(s)] }
-  
+
   mutating func set(_ p: Piece?, at s: Square) {
     cells[Board.index(s)] = p
   }
-  
+
   static func initial() -> Board {
     var b = Board()
     let back: [PieceType] = [.rook, .knight, .bishop, .queen, .king, .bishop, .knight, .rook]
@@ -33,7 +32,7 @@ struct Board: Codable, Equatable {
     }
     return b
   }
-  
+
   static func inBounds(_ s: Square) -> Bool {
     (0...7).contains(s.file) && (0...7).contains(s.rank)
   }

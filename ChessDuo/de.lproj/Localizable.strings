@@ -93,3 +93,25 @@
 "name_prompt_placeholder" = "Spielername";
 "name_prompt_later" = "Später";
 "name_prompt_save" = "Speichern";
+
+// Netzwerk aktivieren (Menüeinträge – gleicher Text für beide Schlüssel vorerst)
+"menu_enable_networking" = "Lokales Spiel aktivieren";
+"menu_fix_network_permission" = "Lokales Spiel aktivieren";
+
+// Netzwerkberechtigungs-Einführung
+"net_intro_title" = "Lokaler Netzwerkzugriff";
+"net_intro_message" = "%@ nutzt dein lokales Netzwerk, um automatisch Spieler in der Nähe zu finden – ohne Konten oder Server. iOS wird jetzt um Erlaubnis fragen. Dies wird nur zum Finden anderer Geräte in deinem WLAN / lokalen Netzwerk genutzt.";
+"net_intro_point_discovery" = "Automatische Erkennung: Wir senden nur eine kurze Kennung, damit dich ein anderes Gerät findet.";
+"net_intro_point_privacy" = "Nichts verlässt dein lokales Netzwerk; keine Spieldaten gehen an externe Server.";
+"net_intro_point_change_later" = "Du kannst die Erlaubnis später in Einstellungen > Datenschutz & Sicherheit > Lokales Netzwerk widerrufen.";
+"net_intro_not_now" = "Später";
+"net_intro_continue" = "Fortfahren";
+
+// Hilfeoverlay für deaktivierte Berechtigung
+"ln_help_title" = "Lokalen Netzwerkzugriff aktivieren";
+"ln_help_message" = "Anscheinend ist die Berechtigung für das lokale Netzwerk deaktiviert. %@ benötigt sie, um automatisch Spieler in der Nähe zu finden. Du kannst sie in den Einstellungen aktivieren:";
+"ln_help_step_settings" = "Tippe auf 'Einstellungen öffnen'.";
+"ln_help_step_toggle" = "Schalte den Zugriff auf das lokale Netzwerk für %@ EIN.";
+"ln_help_step_return" = "Kehre zur App zurück und verbinde dich mit einem Spieler in der Nähe.";
+"ln_help_open" = "Einstellungen öffnen";
+"ln_help_dismiss" = "Schließen";

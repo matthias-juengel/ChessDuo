@@ -1,6 +1,5 @@
 //
 //  GameViewModel.swift
-//  ChessDuo
 //
 //  Created by Matthias Jüngel on 10.08.25.
 //
@@ -95,7 +94,7 @@ final class GameViewModel: ObservableObject {
     // Ensure status is up to date before exporting (fallback safety)
 //    recomputeOutcomeIfNeeded()
     var lines: [String] = []
-    lines.append("ChessDuoExport v1")
+    lines.append("MyChessboardExport v1")
     // Board in FEN-style ranks 8..1
     lines.append("Board:")
     for rank in (0..<8).reversed() { // 7 down to 0
@@ -192,6 +191,30 @@ final class GameViewModel: ObservableObject {
     guard !networkingApproved else { return }
     if !showNetworkPermissionIntro { showNetworkPermissionIntro = true }
   }
+  // Heuristic: after starting networking, if no peers discovered/connected after a grace period, assume permission denied.
+  @Published var localNetworkPermissionLikelyDenied: Bool = false
+  @Published var showLocalNetworkPermissionHelp: Bool = false
+  private var permissionCheckWorkItem: DispatchWorkItem? = nil
+  /// Schedule a one-off heuristic check a few seconds after networking starts.
+  private func scheduleLocalNetworkPermissionHeuristic() {
+    permissionCheckWorkItem?.cancel()
+    guard networkingApproved else { return }
+    let work = DispatchWorkItem { [weak self] in
+      guard let self else { return }
+      // If still no activity (no connected peers, no discovered, no browsed) flag probable denial.
+      if self.peers.connectedPeers.isEmpty && self.otherDeviceNames.isEmpty && self.discoveredPeerNames.isEmpty && self.allBrowsedPeerNames.isEmpty {
+        // Avoid false positives for brand new sessions by requiring at least some time since approval.
+        self.localNetworkPermissionLikelyDenied = true
+      }
+    }
+    permissionCheckWorkItem = work
+    DispatchQueue.main.asyncAfter(deadline: .now() + 8, execute: work)
+  }
+  /// Open the app's Settings page so user can enable Local Network permission.
+  @MainActor func openAppSettings() {
+    guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+    UIApplication.shared.open(url, options: [:], completionHandler: nil)
+  }
 
   init() {
   // 1. Determine initial player name & whether we must show the name chooser.
@@ -210,10 +233,11 @@ final class GameViewModel: ObservableObject {
   // Networking approval mirrors whether intro already seen (previous sessions). Only auto-start when approved.
   networkingApproved = hasSeenNetworkPermissionIntro
     // 3. Only start networking automatically if BOTH name is set AND intro already seen.
-  if !showInitialNamePrompt && networkingApproved {
+    if !showInitialNamePrompt && networkingApproved {
       peers.updateAdvertisedName(playerName)
       peers.startAuto()
       print("[VM] Auto-started networking (prerequisites satisfied)")
+      scheduleLocalNetworkPermissionHeuristic()
     } else {
       print("[VM] Networking start deferred (namePrompt=\(showInitialNamePrompt) introSeen=\(hasSeenNetworkPermissionIntro))")
     }
@@ -414,6 +438,7 @@ final class GameViewModel: ObservableObject {
     peers.updateAdvertisedName(playerName)
     peers.startAuto()
     print("[VM] User approved networking; started auto mode")
+  scheduleLocalNetworkPermissionHeuristic()
   }
 
   private func sendHello(force: Bool = false) {

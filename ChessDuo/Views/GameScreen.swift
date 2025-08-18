@@ -1,6 +1,5 @@
 //
 //  GameScreen.swift
-//  ChessDuo
 //
 //  Encapsulates the main chess game UI previously in ContentView.
 //
@@ -39,7 +38,8 @@ struct GameScreen: View {
   // Use friendly advertised / chosen player names if available (already de-duplicated upstream)
   browsedPeerNames: vm.allBrowsedPeerFriendlyNames,
   playerName: vm.playerName, // new
-  needsNetworkingApproval: vm.needsNetworkingApproval // new
+  needsNetworkingApproval: vm.needsNetworkingApproval, // new
+  networkPermissionFixAvailable: (!vm.needsNetworkingApproval && vm.localNetworkPermissionLikelyDenied) // new
     )
   }
   private var menuAvailability: GameMenuButtonOverlay.Availability {
@@ -408,6 +408,9 @@ struct GameScreen: View {
       showNameEditor = true
     case .enableNetworking:
       vm.requestNetworkingApproval()
+    case .openLocalNetworkSettings:
+      // Show explanatory overlay; user can then deep link to settings.
+      vm.showLocalNetworkPermissionHelp = true
     }
   }
 }

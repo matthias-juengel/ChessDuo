@@ -93,3 +93,25 @@
 "name_prompt_placeholder" = "Nombre del jugador";
 "name_prompt_later" = "Después";
 "name_prompt_save" = "Guardar";
+
+// Activar juego cercano (mismo texto para ambas claves de menú por ahora)
+"menu_enable_networking" = "Activar Juego Cercano";
+"menu_fix_network_permission" = "Activar Juego Cercano";
+
+// Introducción de permiso de red local
+"net_intro_title" = "Acceso a la Red Local";
+"net_intro_message" = "%@ usa tu red local para descubrir automáticamente jugadores cercanos sin cuentas ni servidores. iOS ahora pedirá permiso. Solo se usa para encontrar otros dispositivos en tu Wi‑Fi / red local.";
+"net_intro_point_discovery" = "Descubrimiento automático: anunciamos un identificador corto para que otro dispositivo pueda encontrarte.";
+"net_intro_point_privacy" = "Nada sale de tu red local; no se envían datos de la partida a servidores externos.";
+"net_intro_point_change_later" = "Puedes revocar el permiso más tarde en Ajustes > Privacidad y seguridad > Red local.";
+"net_intro_not_now" = "Ahora no";
+"net_intro_continue" = "Continuar";
+
+// Overlay de ayuda para permiso desactivado
+"ln_help_title" = "Activar Acceso a la Red Local";
+"ln_help_message" = "Parece que el permiso de red local está desactivado. %@ lo necesita para descubrir automáticamente jugadores cercanos. Puedes activarlo en Ajustes:";
+"ln_help_step_settings" = "Toca 'Abrir Ajustes'.";
+"ln_help_step_toggle" = "Activa el acceso a la Red Local para %@.";
+"ln_help_step_return" = "Vuelve a la app y conéctate a un jugador cercano.";
+"ln_help_open" = "Abrir Ajustes";
+"ln_help_dismiss" = "Cerrar";

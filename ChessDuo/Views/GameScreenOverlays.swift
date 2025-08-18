@@ -30,6 +30,7 @@ struct GameScreenOverlays: View {
       newGameConfirmLayer
       loadGameLayer
       nameChangeLayer // new
+  localNetworkPermissionHelpLayer
     }
   }
 }
@@ -218,6 +219,20 @@ private extension GameScreenOverlays {
           }
         )
         .zIndex(OverlayZIndex.menu + 10)
+      }
+    }
+  }
+
+  var localNetworkPermissionHelpLayer: some View {
+    ZStack {
+      if vm.showLocalNetworkPermissionHelp {
+        LocalNetworkPermissionHelpOverlay(
+          onOpenSettings: {
+            Task { await vm.openAppSettings() }
+          },
+          onDismiss: { vm.showLocalNetworkPermissionHelp = false }
+        )
+        .zIndex(OverlayZIndex.menu + 11)
       }
     }
   }

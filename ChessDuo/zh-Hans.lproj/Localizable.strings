@@ -93,3 +93,25 @@
 "name_prompt_placeholder" = "玩家名称";
 "name_prompt_later" = "以后";
 "name_prompt_save" = "保存";
+
+// 启用附近对弈（两个键暂用同一文案）
+"menu_enable_networking" = "启用附近对弈";
+"menu_fix_network_permission" = "启用附近对弈";
+
+// 本地网络权限介绍
+"net_intro_title" = "本地网络访问";
+"net_intro_message" = "%@ 使用你的本地网络自动发现附近玩家，无需账号或服务器。iOS 现在会请求权限。此权限仅用于在你的 Wi‑Fi / 本地网络上发现其他设备。";
+"net_intro_point_discovery" = "自动发现：我们只广播一个短标识，让其他设备能找到你。";
+"net_intro_point_privacy" = "不会离开你的本地网络；不会将对局数据发送到外部服务器。";
+"net_intro_point_change_later" = "你可以稍后在 设置 > 隐私与安全 > 本地网络 中撤销。";
+"net_intro_not_now" = "暂不";
+"net_intro_continue" = "继续";
+
+// 本地网络权限帮助覆盖层
+"ln_help_title" = "启用本地网络访问";
+"ln_help_message" = "看起来本地网络权限已被关闭。%@ 需要此权限来自动发现附近玩家。你可以在“设置”中启用：";
+"ln_help_step_settings" = "点按‘打开设置’。";
+"ln_help_step_toggle" = "为 %@ 打开本地网络访问。";
+"ln_help_step_return" = "返回应用并连接附近的玩家。";
+"ln_help_open" = "打开设置";
+"ln_help_dismiss" = "关闭";

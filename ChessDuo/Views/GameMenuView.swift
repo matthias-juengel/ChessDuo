@@ -18,6 +18,7 @@ struct GameMenuView: View {
     var browsedPeerNames: [String]
     var playerName: String // new
   var needsNetworkingApproval: Bool // new
+  var networkPermissionFixAvailable: Bool // new (likely denied, can open settings)
   }
 
   enum Action: Equatable {
@@ -30,6 +31,7 @@ struct GameMenuView: View {
     case showHistory
     case changeName // new
   case enableNetworking // new
+  case openLocalNetworkSettings // new
   }
 
   let state: State
@@ -112,6 +114,12 @@ struct GameMenuView: View {
       menuButton(icon: "antenna.radiowaves.left.and.right", text: String.loc("menu_enable_networking")) {
         dismiss()
         send(.enableNetworking)
+      }
+    }
+    if state.networkPermissionFixAvailable {
+      menuButton(icon: "gear", text: String.loc("menu_fix_network_permission")) {
+        dismiss()
+        send(.openLocalNetworkSettings)
       }
     }
     if !state.isConnected { // Rotate

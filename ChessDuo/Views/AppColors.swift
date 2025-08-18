@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Central semantic color palette for ChessDuo.
+// Central semantic color palette
 // Adjust values here to theme the entire app.
 struct AppColors {
   // Compact grayscale generator. v: 0.0 (black) ... 1.0 (white)
