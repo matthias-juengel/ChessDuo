@@ -91,6 +91,8 @@ final class GameViewModel: ObservableObject {
 
   // Baseline (initial) board & side for current session (handles FEN starts for famous games)
   private var baselineBoard: Board = Board.initial()
+  // Baseline piece counts per color/type (used to compute captures for history & FEN starts)
+  private var baselineCounts: [PieceColor: [PieceType:Int]] = [.white: [:], .black: [:]]
   private var baselineSideToMove: PieceColor = .white
 
   // Export current game state as a textual snapshot (for debugging / tests)
@@ -143,6 +145,54 @@ final class GameViewModel: ObservableObject {
     let files = "abcdefgh"
     let fileChar = files[files.index(files.startIndex, offsetBy: sq.file)]
     return "\(fileChar)\(sq.rank + 1)"
+  }
+  // MARK: - Baseline-aware capture reconstruction (for history & FEN starts)
+  private func pieceCounts(on board: Board) -> [PieceColor: [PieceType:Int]] {
+    var counts: [PieceColor: [PieceType:Int]] = [.white: [:], .black: [:]]
+    for rank in 0..<8 {
+      for file in 0..<8 {
+        let sq = Square(file: file, rank: rank)
+        if let p = board.piece(at: sq) {
+          counts[p.color]![p.type, default: 0] += 1
+        }
+      }
+    }
+    return counts
+  }
+
+  /// Missing piece counts vs. baseline for each color
+  private func missingComparedToBaseline(current: Board) -> (whiteMissing: [PieceType:Int], blackMissing: [PieceType:Int]) {
+    let curr = pieceCounts(on: current)
+    var whiteMiss: [PieceType:Int] = [:], blackMiss: [PieceType:Int] = [:]
+    for t in [PieceType.king, .queen, .rook, .bishop, .knight, .pawn] {
+      let bW = baselineCounts[.white]?[t] ?? 0, cW = curr[.white]?[t] ?? 0
+      let bB = baselineCounts[.black]?[t] ?? 0, cB = curr[.black]?[t] ?? 0
+      if bW > cW { whiteMiss[t] = bW - cW }
+      if bB > cB { blackMiss[t] = bB - cB }
+    }
+    return (whiteMiss, blackMiss)
+  }
+
+  /// Rebuild published capture lists for a given board according to current perspective
+  private func rebuildCapturedLists(for board: Board) {
+    let (whiteMissing, blackMissing) = missingComparedToBaseline(current: board)
+    let perspective: PieceColor = myColor ?? preferredPerspective
+    let myOppColor: PieceColor = (perspective == .white) ? .black : .white
+    let myColorLocal: PieceColor = perspective
+
+    func buildList(for color: PieceColor, missing: [PieceType:Int]) -> [Piece] {
+      var arr: [Piece] = []
+      for t in [PieceType.queen, .rook, .bishop, .knight, .pawn] { // König wird nie geschlagen
+        for _ in 0..<(missing[t] ?? 0) { arr.append(Piece(type: t, color: color)) }
+      }
+      return arr
+    }
+
+    let oppMissing = (myOppColor == .white) ? whiteMissing : blackMissing
+    let mineMissing = (myColorLocal == .white) ? whiteMissing : blackMissing
+
+    capturedByMe = buildList(for: myOppColor, missing: oppMissing)
+    capturedByOpponent = buildList(for: myColorLocal, missing: mineMissing)
   }
   private func outcomeString(_ o: GameOutcome) -> String {
     switch o { case .ongoing: return "ongoing"; case .win: return "win"; case .loss: return "loss"; case .draw: return "draw" }
@@ -255,6 +305,8 @@ final class GameViewModel: ObservableObject {
   if boardSnapshots.isEmpty { boardSnapshots = [engine.board] }
     baselineBoard = engine.board
     baselineSideToMove = engine.sideToMove
+  baselineCounts = pieceCounts(on: baselineBoard)
+  rebuildCapturedLists(for: engine.board)
     peers.onMessage = { [weak self] msg in
       self?.handle(msg)
     }
@@ -369,6 +421,17 @@ final class GameViewModel: ObservableObject {
         guard self.peers.isConnected else { return }
         // Send message: if idx is nil -> live view, else index value.
         self.peers.send(.init(kind: .historyView, historyViewIndex: idx))
+      }
+      .store(in: &cancellables)
+
+    // Recompute capture lists whenever history index changes (baseline diff)
+    $historyIndex
+      .removeDuplicates { $0 == $1 }
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] idx in
+        guard let self = self else { return }
+        let board = idx.map { self.boardAfterMoves($0) } ?? self.engine.board
+        self.rebuildCapturedLists(for: board)
       }
       .store(in: &cancellables)
   }
@@ -486,21 +549,15 @@ final class GameViewModel: ObservableObject {
     if engine.tryMakeMove(move) {
       withAnimation(.easeInOut(duration: 0.35)) {
         peers.send(.init(kind: .move, move: move))
-        if let cap = capturedBefore {
-          capturedByMe.append(cap)
-          lastCapturedPieceID = cap.id
-          lastCaptureByMe = true
-        } else {
-          lastCapturedPieceID = nil
-          lastCaptureByMe = nil
-        }
-  movesMade += 1
-  sessionProgressed = true
+        if let cap = capturedBefore { lastCapturedPieceID = cap.id; lastCaptureByMe = true } else { lastCapturedPieceID = nil; lastCaptureByMe = nil }
+        movesMade += 1
+        sessionProgressed = true
         lastMove = move
-  moveHistory.append(move)
-  historyIndex = nil
-  boardSnapshots.append(engine.board)
-  saveGame()
+        moveHistory.append(move)
+        historyIndex = nil
+        boardSnapshots.append(engine.board)
+        saveGame()
+        rebuildCapturedLists(for: engine.board)
       }
       return true
     }
@@ -521,27 +578,15 @@ final class GameViewModel: ObservableObject {
   let capturedBefore = capturedPieceConsideringEnPassant(from: from, to: to, board: engine.board)
     if engine.tryMakeMove(move) {
       withAnimation(.easeInOut(duration: 0.35)) {
-        if let cap = capturedBefore {
-          // Attribute capture list based on mover color (white = my side list if we treat white bottom)
-          if moverColor == .white {
-            capturedByMe.append(cap)
-            lastCaptureByMe = true
-          } else {
-            capturedByOpponent.append(cap)
-            lastCaptureByMe = false
-          }
-          lastCapturedPieceID = cap.id
-        } else {
-          lastCapturedPieceID = nil
-          lastCaptureByMe = nil
-        }
-  movesMade += 1
-  sessionProgressed = true
+        if let cap = capturedBefore { lastCapturedPieceID = cap.id; lastCaptureByMe = (moverColor == .white) } else { lastCapturedPieceID = nil; lastCaptureByMe = nil }
+        movesMade += 1
+        sessionProgressed = true
         lastMove = move
-  moveHistory.append(move)
-  historyIndex = nil
-  boardSnapshots.append(engine.board)
-  saveGame()
+        moveHistory.append(move)
+        historyIndex = nil
+        boardSnapshots.append(engine.board)
+        saveGame()
+        rebuildCapturedLists(for: engine.board)
       }
       return true
     }
@@ -584,17 +629,10 @@ final class GameViewModel: ObservableObject {
   let capturedBefore = capturedPieceConsideringEnPassant(from: m.from, to: m.to, board: engine.board)
         if !gameIsOver, engine.tryMakeMove(m) {
           withAnimation(.easeInOut(duration: 0.35)) {
-            if let cap = capturedBefore, cap.color == myColor {
-              capturedByOpponent.append(cap)
+            if let cap = capturedBefore {
               lastCapturedPieceID = cap.id
-              lastCaptureByMe = false
-            } else if let cap = capturedBefore {
-              lastCapturedPieceID = cap.id
-              lastCaptureByMe = true
-            } else {
-              lastCapturedPieceID = nil
-              lastCaptureByMe = nil
-            }
+              if let my = myColor { lastCaptureByMe = (cap.color != my) } else { lastCaptureByMe = (cap.color == .black) }
+            } else { lastCapturedPieceID = nil; lastCaptureByMe = nil }
             movesMade += 1
             sessionProgressed = true
             lastMove = m
@@ -602,6 +640,7 @@ final class GameViewModel: ObservableObject {
             historyIndex = nil
             boardSnapshots.append(engine.board)
             saveGame()
+            rebuildCapturedLists(for: engine.board)
             // If it's now my turn after applying opponent's move, emit a subtle haptic.
             if peers.isConnected, let mine = myColor, engine.sideToMove == mine {
               Haptics.trigger(.moveNowMyTurn)
@@ -784,6 +823,8 @@ final class GameViewModel: ObservableObject {
   boardSnapshots = [engine.board]
     baselineBoard = engine.board
     baselineSideToMove = engine.sideToMove
+  baselineCounts = pieceCounts(on: baselineBoard)
+  rebuildCapturedLists(for: engine.board)
     if send { peers.send(.init(kind: .reset)) }
   saveGame()
   }
@@ -872,6 +913,7 @@ final class GameViewModel: ObservableObject {
   awaitingHistoryRevertConfirmation = false
   incomingHistoryRevertRequest = nil
   requestedHistoryRevertTarget = nil
+  rebuildCapturedLists(for: engine.board)
   }
 
   // MARK: - Famous Game Load Logic
@@ -904,8 +946,12 @@ final class GameViewModel: ObservableObject {
     incomingLoadGameRequestTitle = nil
   }
 
-  /// Apply a famous game to local state, optionally broadcasting snapshot to peer via loadGameState.
-  private func applyFamousGame(_ game: FamousGame, broadcast: Bool) {
+  /// Apply a famous game (optionally with an initial FEN) to local state, rebuilding baselines and history.
+  /// - Parameters:
+  ///   - game: FamousGame instance (moves or PGN parsed if moves empty).
+  ///   - broadcast: If true, sends a `.loadGameState` message to connected peer.
+  /// This is internal so tests (and future features) can load curated positions with production logic.
+  func applyFamousGame(_ game: FamousGame, broadcast: Bool) {
     if let fen = game.initialFEN, let custom = ChessEngine.fromFEN(fen) {
       engine = custom
     } else {
@@ -913,6 +959,7 @@ final class GameViewModel: ObservableObject {
     }
     baselineBoard = engine.board
     baselineSideToMove = engine.sideToMove
+  baselineCounts = pieceCounts(on: baselineBoard)
     moveHistory = []
     boardSnapshots = [engine.board]
     capturedByMe = []
@@ -932,10 +979,7 @@ final class GameViewModel: ObservableObject {
     for mv in sourceMoves {
       let capturedBefore = capturedPieceConsideringEnPassant(from: mv.from, to: mv.to, board: engine.board)
       if engine.tryMakeMove(mv) {
-        if let cap = capturedBefore {
-          if cap.color == .white { capturedByOpponent.append(cap); lastCapturedPieceID = cap.id; lastCaptureByMe = false }
-          else { capturedByMe.append(cap); lastCapturedPieceID = cap.id; lastCaptureByMe = true }
-        } else { lastCapturedPieceID = nil; lastCaptureByMe = nil }
+        if let cap = capturedBefore { lastCapturedPieceID = cap.id; lastCaptureByMe = (cap.color == .black) } else { lastCapturedPieceID = nil; lastCaptureByMe = nil }
         moveHistory.append(mv)
         boardSnapshots.append(engine.board)
         movesMade += 1
@@ -943,6 +987,7 @@ final class GameViewModel: ObservableObject {
       } else { break }
     }
     saveGame()
+  rebuildCapturedLists(for: engine.board)
     if broadcast {
       let msg = NetMessage(kind: .loadGameState,
                            move: nil,
@@ -1067,28 +1112,16 @@ final class GameViewModel: ObservableObject {
     let capturedBefore = engine.board.piece(at: base.to)
     if engine.tryMakeMove(base) {
       withAnimation(.easeInOut(duration: 0.35)) {
-        if let cap = capturedBefore {
-          if myColor == engine.sideToMove.opposite { // move just made by me
-            capturedByMe.append(cap)
-            lastCapturedPieceID = cap.id
-            lastCaptureByMe = true
-          } else if myColor != nil { // opponent capture path (unlikely here)
-            capturedByOpponent.append(cap)
-            lastCapturedPieceID = cap.id
-            lastCaptureByMe = false
-          }
-        } else {
-          lastCapturedPieceID = nil
-          lastCaptureByMe = nil
-        }
-  movesMade += 1
-  sessionProgressed = true
+        if let cap = capturedBefore { lastCapturedPieceID = cap.id; lastCaptureByMe = (myColor == engine.sideToMove.opposite) } else { lastCapturedPieceID = nil; lastCaptureByMe = nil }
+        movesMade += 1
+        sessionProgressed = true
         lastMove = base
         if peers.isConnected { peers.send(.init(kind: .move, move: base)) }
-  moveHistory.append(base)
-  historyIndex = nil
-  boardSnapshots.append(engine.board)
-  saveGame()
+        moveHistory.append(base)
+        historyIndex = nil
+        boardSnapshots.append(engine.board)
+        saveGame()
+        rebuildCapturedLists(for: engine.board)
       }
     }
     pendingPromotionMove = nil
@@ -1100,6 +1133,7 @@ final class GameViewModel: ObservableObject {
     showingPromotionPicker = false
   }
 }
+
 
 // MARK: - Persistence
 extension GameViewModel {
@@ -1279,46 +1313,29 @@ extension GameViewModel {
   // Calculate point advantage for historical positions
   func historicalPointAdvantage(forMe: Bool) -> Int {
     guard let idx = historyIndex else { return pointAdvantage(forMe: forMe) }
-    var engine = ChessEngine.fromSnapshot(board: baselineBoard, sideToMove: baselineSideToMove)
-    // Reconstruct captured pieces up to idx moves
-    var capsByWhite: [Piece] = []
-    var capsByBlack: [Piece] = []
-
-    for i in 0..<min(idx, moveHistory.count) {
-      let move = moveHistory[i]
-      // Detect capture before making move
-      if let piece = engine.board.piece(at: move.to) { // normal capture
-        if piece.color == .white { capsByBlack.append(piece) } else { capsByWhite.append(piece) }
-      } else {
-        // Possible en passant
-        if let moving = engine.board.piece(at: move.from), moving.type == .pawn, move.from.file != move.to.file, engine.board.piece(at: move.to) == nil {
-          // en passant target square is behind destination
-          let dir = moving.color == .white ? 1 : -1
-          let capturedSq = Square(file: move.to.file, rank: move.to.rank - dir)
-          if let epPawn = engine.board.piece(at: capturedSq), epPawn.color != moving.color, epPawn.type == .pawn {
-            if epPawn.color == .white { capsByBlack.append(epPawn) } else { capsByWhite.append(epPawn) }
-          }
-        }
+    let board = boardAfterMoves(idx)
+    // Derive missing piece counts from baseline -> captured pieces for each side
+    let (whiteMissing, blackMissing) = missingComparedToBaseline(current: board)
+    func points(from missing: [PieceType:Int]) -> Int {
+      missing.reduce(0) { partial, kv in
+        let (type, count) = kv
+        let value: Int
+        switch type { case .queen: value = 9; case .rook: value = 5; case .bishop, .knight: value = 3; case .pawn: value = 1; case .king: value = 0 }
+        return partial + value * count
       }
-      _ = engine.tryMakeMove(move)
     }
-
-    let myHistoricalPieces: [Piece]
-    let opponentHistoricalPieces: [Piece]
-
-    // Determine whose perspective 'forMe' refers to
-    if let my = myColor { // connected mode
-      myHistoricalPieces = my == .white ? capsByWhite : capsByBlack
-      opponentHistoricalPieces = my == .white ? capsByBlack : capsByWhite
-    } else { // single device: 'forMe' shows white's captures at bottom
-      myHistoricalPieces = forMe ? capsByWhite : capsByBlack
-      opponentHistoricalPieces = forMe ? capsByBlack : capsByWhite
+    // whiteMissing are pieces captured BY black; blackMissing -> captured by white.
+    let whiteCapturedPoints = points(from: blackMissing) // points white has taken (black's missing pieces)
+    let blackCapturedPoints = points(from: whiteMissing)
+    if let my = myColor { // multiplayer perspective
+      let myPts = (my == .white) ? whiteCapturedPoints : blackCapturedPoints
+      let oppPts = (my == .white) ? blackCapturedPoints : whiteCapturedPoints
+      return forMe ? (myPts - oppPts) : (oppPts - myPts)
+    } else { // single-device: bottom assumed white for 'forMe'
+      let myPts = forMe ? whiteCapturedPoints : blackCapturedPoints
+      let oppPts = forMe ? blackCapturedPoints : whiteCapturedPoints
+      return (myPts - oppPts)
     }
-
-    let myPoints = myHistoricalPieces.reduce(0) { $0 + pieceValue($1) }
-    let opponentPoints = opponentHistoricalPieces.reduce(0) { $0 + pieceValue($1) }
-
-    return forMe ? (myPoints - opponentPoints) : (opponentPoints - myPoints)
   }
 
   private func pieceValue(_ piece: Piece) -> Int {
@@ -1367,6 +1384,9 @@ extension GameViewModel {
     lastCapturedPieceID = nil
     lastCaptureByMe = nil
     historyIndex = nil
+  baselineBoard = engine.board
+  baselineSideToMove = engine.sideToMove
+  baselineCounts = pieceCounts(on: baselineBoard)
 
     // Determine source of moves: explicit array or PGN parsing fallback
     var sourceMoves: [Move] = game.moves
@@ -1380,37 +1400,21 @@ extension GameViewModel {
 
     // Apply all moves from the famous game (array or parsed PGN)
     for move in sourceMoves {
-      // Detect capture prior to making move (including en passant)
       let capturedBefore = capturedPieceConsideringEnPassant(from: move.from, to: move.to, board: engine.board)
       if engine.tryMakeMove(move) {
-        // Attribute capture lists: treat White as "me" for famous games (no multiplayer color context)
-        if let cap = capturedBefore {
-          if cap.color == .white { // black captured white piece
-            capturedByOpponent.append(cap)
-            lastCapturedPieceID = cap.id
-            lastCaptureByMe = false
-          } else { // white captured black piece
-            capturedByMe.append(cap)
-            lastCapturedPieceID = cap.id
-            lastCaptureByMe = true
-          }
-        } else {
-          lastCapturedPieceID = nil
-          lastCaptureByMe = nil
-        }
+        if let cap = capturedBefore { lastCapturedPieceID = cap.id; lastCaptureByMe = (cap.color == .black) } else { lastCapturedPieceID = nil; lastCaptureByMe = nil }
         moveHistory.append(move)
         boardSnapshots.append(engine.board)
         movesMade += 1
         lastMove = move
       } else {
-        // Log skipped illegal move for debugging (e.g. because source JSON sequence simplified or engine limitation)
         print("Skipped illegal famous game move from (f:\(move.from.file) r:\(move.from.rank)) to (f:\(move.to.file) r:\(move.to.rank))")
-        break // stop applying further moves once a move fails to preserve coherent state
+        break
       }
     }
-    // Keep historyIndex nil so UI displays live board (so turn indicator shows correct side to move)
-
-  // Save the loaded game state (also persists parsed PGN result via history)
+    rebuildCapturedLists(for: engine.board)
+  // Keep historyIndex nil so UI displays live board
+  rebuildCapturedLists(for: engine.board)
   saveGame()
   }
 }

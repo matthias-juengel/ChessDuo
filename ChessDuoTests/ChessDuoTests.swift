@@ -49,4 +49,85 @@ struct ChessDuoTests {
         }
     }
 
+    // MARK: - Captured Pieces Baseline/FEN Tests
+
+
+    @Test func capturedListsRemainEmptyInKQvKScenario() async throws {
+        let fen = "4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1" // KQ vs K
+        let vm = GameViewModel()
+        let game = FamousGame(title: "KQvK Test", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil)
+        vm.applyFamousGame(game, broadcast: false)
+        #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "Captured lists should be empty initially for KQvK FEN")
+    }
+
+    @Test func noPhantomCapturesAfterNonCaptureMoveInKQvK() async throws {
+        let fen = "4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1"
+        let vm = GameViewModel()
+        let game = FamousGame(title: "KQvK Test", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil)
+        vm.applyFamousGame(game, broadcast: false)
+        // Find the queen at d2 (file 3 rank 1) and move it to e2 (file 4 rank 1) if legal (horizontal slide)
+        let from = Square(file: 3, rank: 1)
+        let to = Square(file: 4, rank: 1)
+        // Attempt move (white to move)
+        _ = vm.makeLocalMove(from: from, to: to)
+        #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "Captured lists should still be empty after quiet queen move")
+        // Simulate history slider: go back to 0 then forward to 1
+        vm.historyIndex = 0
+        #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "Captured lists should be empty at historyIndex 0")
+        vm.historyIndex = 1
+        #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "Captured lists should be empty at historyIndex 1")
+    }
+
+    @Test func revertHistoryKeepsCapturedListsEmptyInKQvK() async throws {
+        let fen = "4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1"
+        let vm = GameViewModel()
+        let game = FamousGame(title: "KQvK Test", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil)
+        vm.applyFamousGame(game, broadcast: false)
+        // Quiet move
+        let from = Square(file: 3, rank: 1)
+        let to = Square(file: 4, rank: 1)
+        _ = vm.makeLocalMove(from: from, to: to)
+        #expect(vm.moveHistory.count == 1)
+        #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "Captured lists should be empty after quiet move")
+        // Revert to 0
+        vm.performHistoryRevert(to: 0, send: false)
+        #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "Captured lists should remain empty after revert")
+    }
+
+    @Test func loadingRealKQvKMateAfterResetShowsNoCaptures() async throws {
+        let vm = GameViewModel()
+        vm.performLocalReset(send: false) // explicit New Game
+        #expect(vm.moveHistory.isEmpty && vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty)
+        let games = FamousGamesLoader.shared.getAllGames()
+        guard let realGame = games.first(where: { $0.title == "K+Q vs K Mate" }) else {
+            #expect(Bool(false), "'K+Q vs K Mate' not found in FamousGames.json")
+            return
+        }
+        vm.applyFamousGame(realGame, broadcast: false)
+        #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "No captures expected immediately after loading K+Q vs K Mate")
+    // Quiet queen move Qe1->Qf2 (diagonal; f2 is empty in baseline FEN) ensures legality
+    let from = Square(file: 4, rank: 0) // e1
+    let to = Square(file: 5, rank: 1)   // f2
+    let moveOk = vm.makeLocalMove(from: from, to: to)
+    #expect(moveOk, "Expected queen move e1->f2 to be legal")
+    #expect(vm.moveHistory.count == 1, "Move history should have exactly 1 move after quiet queen move")
+    #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "Quiet queen move must not introduce captures")
+    // Black king reply: from d4 (file 3 rank 3) to e4 (file 4 rank 3)
+    let blackFrom = Square(file: 3, rank: 3) // d4
+    let blackTo = Square(file: 4, rank: 3) // e4
+    let blackMoveOk = vm.makeLocalMove(from: blackFrom, to: blackTo)
+    #expect(blackMoveOk, "Expected black king move d4->e4 to be legal")
+    #expect(vm.moveHistory.count == 2, "After two quiet moves history count should be 2")
+    #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "Still no captures after black reply")
+    // History indices: 0 (initial), 1 (after white move), 2 (after black move)
+    vm.historyIndex = 0
+    #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "History index 0 should have no captures")
+    vm.historyIndex = 1
+    #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "History index 1 should have no captures")
+    vm.historyIndex = 2
+    #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "History index 2 should have no captures")
+    // Return to live
+    vm.historyIndex = nil
+    #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "Live view should still have no captures")
+    }
 }
