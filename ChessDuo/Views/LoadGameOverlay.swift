@@ -78,7 +78,7 @@ struct GameRow: View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text(game.title)
+                    Text(game.displayTitle)
                         .font(.title3.weight(.semibold))
                         .foregroundColor(AppColors.textPrimary)
                     Spacer()
@@ -87,11 +87,11 @@ struct GameRow: View {
                         .foregroundColor(AppColors.textSecondary)
                 }
 
-                Text(game.players)
+                Text(game.displayPlayers)
                     .font(.subheadline.weight(.medium))
                     .foregroundColor(AppColors.textSecondary)
 
-                Text(game.description)
+                Text(game.displayDescription)
                     .font(.caption)
                     .foregroundColor(AppColors.textSecondary)
                     .multilineTextAlignment(.leading)

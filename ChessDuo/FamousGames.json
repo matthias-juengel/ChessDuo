@@ -3,6 +3,12 @@
     "title": "Immortal Game",
     "players": "Anderssen vs Kieseritzky (London 1851)",
     "description": "Classic Immortal Game (compressed to key moves ending 23.Be7#).",
+    "localizations": {
+      "de": {"title": "Unsterbliche Partie", "players": "Anderssen gegen Kieseritzky (London 1851)", "description": "Klassische Unsterbliche Partie (auf Schlüsselmomente verkürzt bis 23.Be7#)."},
+      "es": {"title": "Partida Inmortal", "players": "Anderssen vs Kieseritzky (Londres 1851)", "description": "Clásica Partida Inmortal (reducida a jugadas clave hasta 23.Be7#)."},
+      "fr": {"title": "Partie Immortelle", "players": "Anderssen vs Kieseritzky (Londres 1851)", "description": "Classique Partie Immortelle (condensée aux coups clés jusqu’à 23.Be7#)."},
+      "zh-Hans": {"title": "不朽之局", "players": "安德森 vs 基泽里茨基 (伦敦 1851)", "description": "经典不朽之局（精简至关键着 23.Be7#）。"}
+    },
     "moves": [
   {"from": {"file": 4, "rank": 1}, "to": {"file": 4, "rank": 3}},
   {"from": {"file": 4, "rank": 6}, "to": {"file": 4, "rank": 4}},
@@ -55,6 +61,12 @@
     "title": "Scholar's Mate",
     "players": "Quick checkmate example",
     "description": "A simple 4-move checkmate pattern for demonstration.",
+    "localizations": {
+      "de": {"title": "Schäfermatt", "players": "Schnelles Matt-Beispiel", "description": "Ein einfaches 4-Züge-Matt als Demonstration."},
+      "es": {"title": "Mate del Pastor", "players": "Ejemplo de jaque mate rápido", "description": "Patrón sencillo de mate en 4 jugadas para demostrar."},
+      "fr": {"title": "Mat du Berger", "players": "Exemple de mat rapide", "description": "Un motif de mat en 4 coups pour démonstration."},
+      "zh-Hans": {"title": "牧师杀", "players": "快速将死示例", "description": "一个简单的四步将死示范。"}
+    },
     "moves": [
       {"from": {"file": 4, "rank": 1}, "to": {"file": 4, "rank": 3}},
       {"from": {"file": 4, "rank": 6}, "to": {"file": 4, "rank": 4}},
@@ -69,6 +81,12 @@
     "title": "Ruy Lopez Opening",
     "players": "Classical opening sequence",
     "description": "The famous Spanish Opening showing classical development.",
+    "localizations": {
+      "de": {"title": "Spanische Partie", "players": "Klassische Eröffnungssequenz", "description": "Die berühmte Spanische Eröffnung mit klassischer Entwicklung."},
+      "es": {"title": "Apertura Española", "players": "Secuencia clásica de apertura", "description": "La famosa Apertura Española mostrando desarrollo clásico."},
+      "fr": {"title": "Ouverture Espagnole", "players": "Séquence d’ouverture classique", "description": "La célèbre ouverture espagnole montrant un développement classique."},
+      "zh-Hans": {"title": "西班牙开局", "players": "经典开局序列", "description": "著名的西班牙开局，展示经典发展。"}
+    },
     "moves": [
       {"from": {"file": 4, "rank": 1}, "to": {"file": 4, "rank": 3}},
       {"from": {"file": 4, "rank": 6}, "to": {"file": 4, "rank": 4}},
@@ -86,6 +104,12 @@
     "title": "Italian Game",
     "players": "Classical Italian opening",
     "description": "The Italian Game showing early bishop development.",
+    "localizations": {
+      "de": {"title": "Italienische Partie", "players": "Klassische italienische Eröffnung", "description": "Die Italienische Partie mit frühem Läufereinsatz."},
+      "es": {"title": "Partida Italiana", "players": "Clásica apertura italiana", "description": "La Partida Italiana mostrando el temprano desarrollo del alfil."},
+      "fr": {"title": "Partie Italienne", "players": "Ouverture italienne classique", "description": "La Partie Italienne montrant le développement précoce du fou."},
+      "zh-Hans": {"title": "意大利开局", "players": "经典意大利开局", "description": "意大利开局展示主教早期出动。"}
+    },
     "moves": [
       {"from": {"file": 4, "rank": 1}, "to": {"file": 4, "rank": 3}},
       {"from": {"file": 4, "rank": 6}, "to": {"file": 4, "rank": 4}},
@@ -103,6 +127,12 @@
     "title": "French Defense",
     "players": "French Defense demonstration",
     "description": "The solid French Defense system.",
+    "localizations": {
+      "de": {"title": "Französische Verteidigung", "players": "Demonstration der Französischen Verteidigung", "description": "Das solide System der Französischen Verteidigung."},
+      "es": {"title": "Defensa Francesa", "players": "Demostración de la Defensa Francesa", "description": "El sólido sistema de la Defensa Francesa."},
+      "fr": {"title": "Défense Française", "players": "Démonstration de la Défense Française", "description": "Le système solide de la Défense Française."},
+      "zh-Hans": {"title": "法兰西防御", "players": "法兰西防御示例", "description": "稳固的法兰西防御体系。"}
+    },
     "moves": [
       {"from": {"file": 4, "rank": 1}, "to": {"file": 4, "rank": 3}},
       {"from": {"file": 4, "rank": 6}, "to": {"file": 4, "rank": 5}},
@@ -119,6 +149,12 @@
     "title": "Sicilian Defense",
     "players": "Sicilian Dragon variation",
     "description": "The sharp Sicilian Defense leading to tactical play.",
+    "localizations": {
+      "de": {"title": "Sizilianische Verteidigung", "players": "Sizilianische Drachen-Variante", "description": "Die scharfe Sizilianische Verteidigung mit taktischem Spiel."},
+      "es": {"title": "Defensa Siciliana", "players": "Variante Dragón de la Siciliana", "description": "La aguda Defensa Siciliana que conduce a juego táctico."},
+      "fr": {"title": "Défense Sicilienne", "players": "Variante du Dragon Sicilien", "description": "La tranchante Défense Sicilienne menant à un jeu tactique."},
+      "zh-Hans": {"title": "西西里防御", "players": "西西里龙式变化", "description": "锐利的西西里防御，引向战术性对局。"}
+    },
     "moves": [
       {"from": {"file": 4, "rank": 1}, "to": {"file": 4, "rank": 3}},
       {"from": {"file": 2, "rank": 6}, "to": {"file": 2, "rank": 4}},
@@ -136,6 +172,12 @@
     "title": "Queen's Gambit",
     "players": "Classical Queen's Gambit",
     "description": "The famous Queen's Gambit opening system.",
+    "localizations": {
+      "de": {"title": "Damengambit", "players": "Klassisches Damengambit", "description": "Das berühmte Damengambit-Eröffnungssystem."},
+      "es": {"title": "Gambito de Dama", "players": "Gambito de Dama clásico", "description": "El famoso sistema de apertura del Gambito de Dama."},
+      "fr": {"title": "Gambit de la Dame", "players": "Gambit de la Dame classique", "description": "Le célèbre système d'ouverture du Gambit de la Dame."},
+      "zh-Hans": {"title": "后翼弃兵", "players": "经典后翼弃兵", "description": "著名的后翼弃兵开局体系。"}
+    },
     "moves": [
       {"from": {"file": 3, "rank": 1}, "to": {"file": 3, "rank": 3}},
       {"from": {"file": 3, "rank": 6}, "to": {"file": 3, "rank": 4}},
@@ -153,6 +195,12 @@
     "title": "English Opening",
     "players": "English Opening system",
     "description": "The flexible English Opening with c4.",
+    "localizations": {
+      "de": {"title": "Englische Eröffnung", "players": "Englisches System", "description": "Die flexible Englische Eröffnung mit c4."},
+      "es": {"title": "Apertura Inglesa", "players": "Sistema de la Inglesa", "description": "La flexible Apertura Inglesa con c4."},
+      "fr": {"title": "Ouverture Anglaise", "players": "Système de l'Anglaise", "description": "La flexible Ouverture Anglaise avec c4."},
+      "zh-Hans": {"title": "英国式开局", "players": "英国式开局体系", "description": "灵活的英国式开局（c4）。"}
+    },
     "moves": [
       {"from": {"file": 2, "rank": 1}, "to": {"file": 2, "rank": 3}},
       {"from": {"file": 4, "rank": 6}, "to": {"file": 4, "rank": 4}},
@@ -170,6 +218,12 @@
     "title": "King's Indian Defense",
     "players": "King's Indian setup",
     "description": "The hypermodern King's Indian Defense.",
+    "localizations": {
+      "de": {"title": "Königsindische Verteidigung", "players": "Königsindischer Aufbau", "description": "Die hypermoderne Königsindische Verteidigung."},
+      "es": {"title": "Defensa India de Rey", "players": "Estructura de la India de Rey", "description": "La hiper-moderna Defensa India de Rey."},
+      "fr": {"title": "Défense Indienne du Roi", "players": "Structure Indienne du Roi", "description": "L'hypermoderne Défense Indienne du Roi."},
+      "zh-Hans": {"title": "王印第安防御", "players": "王印第安布局", "description": "超现代的王印第安防御。"}
+    },
     "moves": [
       {"from": {"file": 3, "rank": 1}, "to": {"file": 3, "rank": 3}},
       {"from": {"file": 6, "rank": 7}, "to": {"file": 5, "rank": 5}},
@@ -187,6 +241,12 @@
     "title": "Caro-Kann Defense",
     "players": "Caro-Kann demonstration",
     "description": "The solid Caro-Kann Defense system.",
+    "localizations": {
+      "de": {"title": "Caro-Kann-Verteidigung", "players": "Caro-Kann-Demonstration", "description": "Das solide System der Caro-Kann-Verteidigung."},
+      "es": {"title": "Defensa Caro-Kann", "players": "Demostración Caro-Kann", "description": "El sólido sistema de la Defensa Caro-Kann."},
+      "fr": {"title": "Défense Caro-Kann", "players": "Démonstration Caro-Kann", "description": "Le système solide de la Défense Caro-Kann."},
+      "zh-Hans": {"title": "卡罗康防御", "players": "卡罗康示例", "description": "稳固的卡罗康防御体系。"}
+    },
     "moves": [
       {"from": {"file": 4, "rank": 1}, "to": {"file": 4, "rank": 3}},
       {"from": {"file": 2, "rank": 6}, "to": {"file": 2, "rank": 5}},
@@ -202,6 +262,12 @@
     "title": "Opera Game (Morphy vs Duke/Count 1858)",
     "players": "Paul Morphy vs Duke Karl / Count Isouard (Paris 1858)",
     "description": "Famous miniature illustrating rapid development and tactics.",
+    "localizations": {
+      "de": {"title": "Opernpartie (Morphy vs Herzog/ Graf 1858)", "players": "Paul Morphy vs Herzog Karl / Graf Isouard (Paris 1858)", "description": "Berühmte Miniatur mit schnellem Entwicklungstempo und Taktik."},
+      "es": {"title": "Partida de la Ópera (Morphy vs Duque/Conde 1858)", "players": "Paul Morphy vs Duque Karl / Conde Isouard (París 1858)", "description": "Miniatura famosa que ilustra rápido desarrollo y táctica."},
+      "fr": {"title": "Partie de l'Opéra (Morphy vs Duc/Comte 1858)", "players": "Paul Morphy vs Duc Karl / Comte Isouard (Paris 1858)", "description": "Miniature célèbre illustrant développement rapide et tactiques."},
+      "zh-Hans": {"title": "歌剧院之战 (莫菲 1858)", "players": "莫菲 vs 卡尔公爵 / 伊苏阿尔伯爵 (巴黎 1858)", "description": "著名的速胜小品，展示快速发展与战术。"}
+    },
     "moves": [],
     "pgn": "1.e4 e5 2.Nf3 d6 3.d4 Bg4 4.dxe5 Bxf3 5.Qxf3 dxe5 6.Bc4 Nf6 7.Qb3 Qe7 8.Nc3 c6 9.Bg5 b5 10.Nxb5 cxb5 11.Bxb5+ Nbd7 12.O-O-O Rd8 13.Rxd7 Rxd7 14.Rd1 Qe6 15.Bxd7+ Nxd7 16.Qb8+ Nxb8 17.Rd8#"
   },
@@ -209,6 +275,12 @@
     "title": "Sicilian Najdorf Sample",
     "players": "Najdorf structure demo",
     "description": "Illustrative Najdorf move order with thematic ...e5 and ...Be6 ideas.",
+    "localizations": {
+      "de": {"title": "Sizilianisch Najdorf Beispiel", "players": "Najdorf-Struktur Demo", "description": "Veranschaulichende Najdorf-Zugfolge mit thematischen ...e5 und ...Le6 Ideen."},
+      "es": {"title": "Ejemplo Najdorf Siciliana", "players": "Demostración de la estructura Najdorf", "description": "Orden de jugadas ilustrativo Najdorf con ideas temáticas ...e5 y ...Ae6."},
+      "fr": {"title": "Exemple Najdorf Sicilienne", "players": "Démo structure Najdorf", "description": "Ordre de coups Najdorf illustratif avec les idées ...e5 et ...Be6."},
+      "zh-Hans": {"title": "西西里奈杰道夫示例", "players": "奈杰道夫结构演示", "description": "演示奈杰道夫典型着法顺序及 ...e5 与 ...Be6 主题。"}
+    },
     "moves": [],
     "pgn": "1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 a6 6.Bg5 e6 7.f4 Be7 8.Qf3 Qc7 9.O-O-O Nbd7 10.Bd3 b5"
   },
@@ -216,6 +288,12 @@
     "title": "London System Intro",
     "players": "London System pattern",
     "description": "Core London setup: d4, Nf3, Bf4, e3, c3, Nbd2, Bd3, O-O.",
+    "localizations": {
+      "de": {"title": "London-System Einführung", "players": "London-System Muster", "description": "Kernaufbau: d4, Sf3, Lf4, e3, c3, Sbd2, Ld3, O-O."},
+      "es": {"title": "Introducción al Sistema Londres", "players": "Patrón del Sistema Londres", "description": "Configuración núcleo: d4, Cf3, Af4, e3, c3, Cbd2, Ad3, O-O."},
+      "fr": {"title": "Intro Système de Londres", "players": "Motif Système de Londres", "description": "Structure cœur: d4, Cf3, Ff4, e3, c3, Cbd2, Fd3, O-O."},
+      "zh-Hans": {"title": "伦敦体系入门", "players": "伦敦体系模式", "description": "核心布局：d4, Nf3, Bf4, e3, c3, Nbd2, Bd3, O-O."}
+    },
     "moves": [],
     "pgn": "1.d4 d5 2.Nf3 Nf6 3.Bf4 e6 4.e3 c5 5.c3 Nc6 6.Nbd2 Bd6 7.Bxd6 Qxd6 8.Bd3 O-O"
   },
@@ -223,6 +301,12 @@
     "title": "Scandinavian Defense Mini",
     "players": "Scandinavian early queen activity",
     "description": "Basic Scandinavian: 1.e4 d5 2.exd5 Qxd5 3.Nc3 Qa5.",
+    "localizations": {
+      "de": {"title": "Skandinavisch Mini", "players": "Frühe Damenaktivität", "description": "Grundlegendes Skandinavisch: 1.e4 d5 2.exd5 Dxd5 3.Nc3 Da5."},
+      "es": {"title": "Defensa Escandinava Mini", "players": "Actividad temprana de la dama", "description": "Escandinava básica: 1.e4 d5 2.exd5 Dxd5 3.Cc3 Da5."},
+      "fr": {"title": "Scandinave Mini", "players": "Activité précoce de la dame", "description": "Scandinave de base : 1.e4 d5 2.exd5 Qxd5 3.Nc3 Qa5."},
+      "zh-Hans": {"title": "斯堪的纳维亚防御迷你", "players": "皇后早期活动", "description": "基本斯堪的纳维亚：1.e4 d5 2.exd5 Qxd5 3.Nc3 Qa5."}
+    },
     "moves": [],
     "pgn": "1.e4 d5 2.exd5 Qxd5 3.Nc3 Qa5 4.d4 Nf6 5.Nf3 c6 6.Bc4 Bf5"
   },
@@ -230,6 +314,12 @@
     "title": "Evans Gambit Line",
     "players": "Evans Gambit attacking idea",
     "description": "Evans Gambit: 1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.b4.",
+    "localizations": {
+      "de": {"title": "Evans-Gambit Variante", "players": "Evans-Gambit Angriffs-Idee", "description": "Evans-Gambit: 1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.b4."},
+      "es": {"title": "Línea del Gambito Evans", "players": "Idea atacante del Evans", "description": "Gambito Evans: 1.e4 e5 2.Nf3 Cc6 3.Bc4 Bc5 4.b4."},
+      "fr": {"title": "Variante Gambit Evans", "players": "Idée d'attaque Evans", "description": "Gambit Evans : 1.e4 e5 2.Nf3 Cc6 3.Bc4 Bc5 4.b4."},
+      "zh-Hans": {"title": "埃文斯弃兵线路", "players": "埃文斯弃兵攻击思路", "description": "埃文斯弃兵：1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.b4."}
+    },
     "moves": [],
     "pgn": "1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.b4 Bxb4 5.c3 Ba5 6.d4 exd4 7.O-O d3 8.Qb3 Qf6"
   },
@@ -237,6 +327,12 @@
     "title": "Benko Gambit Outline",
     "players": "Benko (Volga) Gambit",
     "description": "Typical Benko acceptance structure after ...b5 and ...a6.",
+    "localizations": {
+      "de": {"title": "Benko-Gambit Überblick", "players": "Benko (Wolga) Gambit", "description": "Typische Benko-Annahme-Struktur nach ...b5 und ...a6."},
+      "es": {"title": "Esquema Gambito Benko", "players": "Gambito Benko (Volga)", "description": "Estructura típica aceptada Benko tras ...b5 y ...a6."},
+      "fr": {"title": "Schéma Gambit Benko", "players": "Gambit Benko (Volga)", "description": "Structure typique acceptée du Benko après ...b5 et ...a6."},
+      "zh-Hans": {"title": "本科弃兵概要", "players": "本科（伏尔加）弃兵", "description": "本科弃兵接受后典型结构：...b5 和 ...a6 之后。"}
+    },
     "moves": [],
     "pgn": "1.d4 Nf6 2.c4 c5 3.d5 b5 4.cxb5 a6 5.bxa6 Bxa6 6.Nc3 d6 7.Nf3 g6 8.g3 Bg7"
   }
