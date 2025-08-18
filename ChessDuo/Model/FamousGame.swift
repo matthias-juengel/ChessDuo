@@ -13,10 +13,11 @@ struct FamousGame: Codable, Identifiable {
     let description: String
     let moves: [Move]
     let pgn: String? // optional raw PGN main line (used if moves array empty or for future dynamic generation)
+    let initialFEN: String? // optional starting position (FEN); if nil, standard initial chess position is assumed
     let localizations: [String: LocalizationBlock]? // e.g. "de", "es", "fr", "zh-Hans"
 
     private enum CodingKeys: String, CodingKey {
-        case title, players, description, moves, pgn, localizations
+        case title, players, description, moves, pgn, initialFEN, localizations
     }
 
     // MARK: - Localized accessors

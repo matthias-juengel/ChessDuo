@@ -11,16 +11,16 @@ import Foundation
 struct ChessEngine: Codable {
     private(set) var board: Board = .initial()
     private(set) var sideToMove: PieceColor = .white
-    
+
     // Castling rights tracking
-    private var whiteCanCastleKingside = true
-    private var whiteCanCastleQueenside = true
-    private var blackCanCastleKingside = true
-    private var blackCanCastleQueenside = true
+    var whiteCanCastleKingside = true
+    var whiteCanCastleQueenside = true
+    var blackCanCastleKingside = true
+    var blackCanCastleQueenside = true
     // En-passant target square (square that can be captured onto this ply)
-    private var enPassantTarget: Square? = nil
+    var enPassantTarget: Square? = nil
     // Position repetition tracking (key -> count)
-    private var positionCounts: [String:Int] = [:]
+    var positionCounts: [String:Int] = [:]
 
     init() {
         // Ensure initial position recorded
@@ -37,6 +37,72 @@ struct ChessEngine: Codable {
     enPassantTarget = nil
     positionCounts = [:]
     recordInitialPosition()
+    }
+
+    // Initialize engine from a (simplified) FEN string. Supported fields: piece placement, side to move, castling rights, en-passant square.
+    // Halfmove/fullmove counters are ignored for now.
+    static func fromFEN(_ fen: String) -> ChessEngine? {
+        // Expected at least 4 space-separated fields
+        let parts = fen.split(separator: " ")
+        guard parts.count >= 4 else { return nil }
+        let placement = parts[0]
+        let side = parts[1]
+        let castling = parts[2]
+        let epField = parts[3]
+        var engine = ChessEngine()
+        // Clear board before applying FEN placement (avoid leaving initial pieces)
+        for rank in 0..<8 {
+            for file in 0..<8 {
+                engine.board.set(nil, at: Square(file: file, rank: rank))
+            }
+        }
+        // Parse placement
+        var rank = 7
+        for rankSeg in placement.split(separator: "/") {
+            var file = 0
+            for ch in rankSeg {
+                if let d = ch.wholeNumberValue { file += d; continue }
+                guard file < 8 else { return nil }
+                let color: PieceColor = ch.isUppercase ? .white : .black
+                let typeChar = ch.lowercased()
+                let type: PieceType
+                switch typeChar {
+                case "k": type = .king
+                case "q": type = .queen
+                case "r": type = .rook
+                case "b": type = .bishop
+                case "n": type = .knight
+                case "p": type = .pawn
+                default: return nil
+                }
+                engine.board.set(Piece(type: type, color: color), at: Square(file: file, rank: rank))
+                file += 1
+            }
+            if file != 8 { return nil }
+            rank -= 1
+        }
+        // Sanity check: FEN must provide 8 ranks
+        if rank != -1 { return nil }
+        // Side to move
+        engine.sideToMove = (side == "w") ? .white : .black
+        // Castling rights
+        engine.whiteCanCastleKingside = castling.contains("K")
+        engine.whiteCanCastleQueenside = castling.contains("Q")
+        engine.blackCanCastleKingside = castling.contains("k")
+        engine.blackCanCastleQueenside = castling.contains("q")
+        // En passant target
+        if epField != "-" {
+            let files = "abcdefgh"
+            if epField.count == 2, let fChar = epField.first, let rChar = epField.last,
+               let fIdx = files.firstIndex(of: fChar), let r = Int(String(rChar)), (1...8).contains(r) {
+                let file = files.distance(from: files.startIndex, to: fIdx)
+                engine.enPassantTarget = Square(file: file, rank: r - 1)
+            }
+        }
+        // Reset repetition tracking & record
+        engine.positionCounts = [:]
+        engine.recordPosition()
+        return engine
     }
 
     // Apply snapshot received from network (castling rights are conservatively reset)
@@ -77,10 +143,10 @@ struct ChessEngine: Codable {
         guard var piece = board.piece(at: m.from) else { return false }
         guard piece.color == sideToMove else { return false }
         if !isPseudoLegal(piece: piece, from: m.from, to: m.to) { return false }
-        
+
         // Check if this is a castling move
         let isCastling = piece.type == .king && abs(m.to.file - m.from.file) == 2
-        
+
         if isCastling {
             // Special validation for castling
             if !isValidCastling(from: m.from, to: m.to, color: piece.color) { return false }
@@ -98,7 +164,7 @@ struct ChessEngine: Codable {
         var sim = board
         var simCastlingRights = (whiteCanCastleKingside, whiteCanCastleQueenside, blackCanCastleKingside, blackCanCastleQueenside)
         applyCastlingMove(m, promotingFrom: &piece, on: &sim, castlingRights: &simCastlingRights)
-        
+
         // Wenn eigener König im Schach bleibt/kommt, ist der Zug illegal
         if isKingInCheck(piece.color, on: sim) { return false }
 
@@ -116,23 +182,23 @@ struct ChessEngine: Codable {
     recordPosition()
         return true
     }
-    
+
     private func isValidCastling(from: Square, to: Square, color: PieceColor) -> Bool {
         // King must not be in check currently
         if isKingInCheck(color, on: board) { return false }
-        
+
         // Check that the king doesn't pass through or land on a square attacked by opponent
         let isKingside = to.file == 6
         let squaresToCheck = isKingside ? [5, 6] : [2, 3]
-        
+
         for file in squaresToCheck {
             let square = Square(file: file, rank: from.rank)
             if isSquareAttacked(square, by: color.opposite, on: board) { return false }
         }
-        
+
         return true
     }
-    
+
     private mutating func updateCastlingRights(move: Move, piece: Piece) {
         // If king moves, lose all castling rights for that color
         if piece.type == .king {
@@ -144,7 +210,7 @@ struct ChessEngine: Codable {
                 blackCanCastleQueenside = false
             }
         }
-        
+
         // If rook moves from its starting position, lose castling rights for that side
         if piece.type == .rook {
             if piece.color == .white && move.from.rank == 0 {
@@ -155,7 +221,7 @@ struct ChessEngine: Codable {
                 if move.from.file == 7 { blackCanCastleKingside = false }
             }
         }
-        
+
         // If a rook is captured, lose castling rights for that side
         if let capturedPiece = board.piece(at: move.to), capturedPiece.type == .rook {
             if capturedPiece.color == .white && move.to.rank == 0 {
@@ -198,10 +264,10 @@ struct ChessEngine: Codable {
                         // Mirror logic from tryMakeMove, but without mutating state
                         if !Board.inBounds(m.from) || !Board.inBounds(m.to) { continue }
                         if !isPseudoLegal(piece: piece, from: m.from, to: m.to) { continue }
-                        
+
                         // Check if this is a castling move
                         let isCastling = piece.type == .king && abs(m.to.file - m.from.file) == 2
-                        
+
                         if isCastling {
                             // Special validation for castling
                             if !isValidCastling(from: m.from, to: m.to, color: piece.color) { continue }
@@ -211,7 +277,7 @@ struct ChessEngine: Codable {
                                 if !isPathClear(m.from, m.to, on: board) { continue }
                             }
                         }
-                        
+
                         var sim = board
                         var p = piece
                         var simCastlingRights = (whiteCanCastleKingside, whiteCanCastleQueenside, blackCanCastleKingside, blackCanCastleQueenside)
@@ -271,7 +337,7 @@ struct ChessEngine: Codable {
         case .king:
             // Normal king moves (one square in any direction)
             if max(adf, adr) == 1 { return true }
-            
+
             // Castling moves (king moves two squares horizontally)
             if dr == 0 && adf == 2 {
                 return isCastlingPseudoLegal(piece: piece, from: from, to: to)
@@ -312,24 +378,24 @@ struct ChessEngine: Codable {
             }
         }
     }
-    
+
     private func isCastlingPseudoLegal(piece: Piece, from: Square, to: Square) -> Bool {
         // Only kings can castle
         guard piece.type == .king else { return false }
-        
+
         let color = piece.color
         let expectedKingRank = (color == .white) ? 0 : 7
-        
+
         // King must be on its starting square
         guard from.rank == expectedKingRank && from.file == 4 else { return false }
-        
+
         // Determine if this is kingside or queenside castling
         let isKingside = to.file == 6
         let isQueenside = to.file == 2
-        
+
         guard isKingside || isQueenside else { return false }
         guard to.rank == expectedKingRank else { return false }
-        
+
         // Check if castling rights are still available
         if color == .white {
             if isKingside && !whiteCanCastleKingside { return false }
@@ -338,14 +404,14 @@ struct ChessEngine: Codable {
             if isKingside && !blackCanCastleKingside { return false }
             if isQueenside && !blackCanCastleQueenside { return false }
         }
-        
+
         // Check if the rook is in the correct position
         let rookFile = isKingside ? 7 : 0
         let rookSquare = Square(file: rookFile, rank: expectedKingRank)
         guard let rook = board.piece(at: rookSquare),
               rook.type == .rook,
               rook.color == color else { return false }
-        
+
         // Check if squares between king and rook are empty
         let startFile = min(from.file, rookFile)
         let endFile = max(from.file, rookFile)
@@ -353,7 +419,7 @@ struct ChessEngine: Codable {
             let square = Square(file: file, rank: expectedKingRank)
             if board.piece(at: square) != nil { return false }
         }
-        
+
         return true
     }
 
@@ -475,11 +541,11 @@ struct ChessEngine: Codable {
         b.set(piece, at: m.to)
         pieceRef = piece
     }
-    
+
     // Apply a move that could be castling or regular move
     private func applyCastlingMove(_ m: Move, promotingFrom pieceRef: inout Piece, on b: inout Board, castlingRights: inout (Bool, Bool, Bool, Bool)) {
         let piece = pieceRef
-        
+
         // Check if this is a castling move
         if piece.type == .king && abs(m.to.file - m.from.file) == 2 {
             // This is castling - move both king and rook
@@ -487,11 +553,11 @@ struct ChessEngine: Codable {
             let rookFromFile = isKingside ? 7 : 0
             let rookToFile = isKingside ? 5 : 3
             let rank = m.from.rank
-            
+
             // Move the king
             b.set(nil, at: m.from)
             b.set(piece, at: m.to)
-            
+
             // Move the rook
             let rookFrom = Square(file: rookFromFile, rank: rank)
             let rookTo = Square(file: rookToFile, rank: rank)

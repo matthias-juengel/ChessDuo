@@ -899,7 +899,11 @@ final class GameViewModel: ObservableObject {
   /// Apply a famous game to local state, optionally broadcasting snapshot to peer via loadGameState.
   private func applyFamousGame(_ game: FamousGame, broadcast: Bool) {
     // Reset existing state similar to loadFamousGame
-    engine = ChessEngine()
+    if let fen = game.initialFEN, let custom = ChessEngine.fromFEN(fen) {
+      engine = custom
+    } else {
+      engine = ChessEngine()
+    }
     moveHistory = []
     boardSnapshots = [engine.board]
     capturedByMe = []
