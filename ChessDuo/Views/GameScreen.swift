@@ -141,30 +141,12 @@ struct GameScreen: View {
 
   // MARK: Capture context
   private func captureContext() -> CaptureContext {
-    if let idx = vm.historyIndex { // history reconstruction
-      var engine = ChessEngine()
-      var capsByWhite: [Piece] = []
-      var capsByBlack: [Piece] = []
-      var lastCapID: UUID? = nil
-      var capturingSide: PieceColor? = nil
-      let upto = min(idx, vm.moveHistory.count)
-      for i in 0..<upto {
-        let move = vm.moveHistory[i]
-        var capturedPiece: Piece? = nil
-        if let piece = engine.board.piece(at: move.to) {
-          capturedPiece = piece
-        } else if let moving = engine.board.piece(at: move.from), moving.type == .pawn, move.from.file != move.to.file, engine.board.piece(at: move.to) == nil {
-          let dir = moving.color == .white ? 1 : -1
-          let capturedSq = Square(file: move.to.file, rank: move.to.rank - dir)
-          if let epPawn = engine.board.piece(at: capturedSq), epPawn.color != moving.color, epPawn.type == .pawn { capturedPiece = epPawn }
-        }
-        if let cap = capturedPiece {
-          if cap.color == .white { capsByBlack.append(cap); lastCapID = cap.id; capturingSide = .black }
-          else { capsByWhite.append(cap); lastCapID = cap.id; capturingSide = .white }
-        }
-        _ = engine.tryMakeMove(move)
-      }
-      return CaptureContext(whiteCaptures: capsByWhite, blackCaptures: capsByBlack, lastCapturePieceID: lastCapID, lastCapturingSide: capturingSide)
+    if let idx = vm.historyIndex { // history reconstruction based on baseline FEN (avoids phantom captures)
+      let recon = vm.captureReconstruction(at: idx)
+      return CaptureContext(whiteCaptures: recon.whiteCaptures,
+                            blackCaptures: recon.blackCaptures,
+                            lastCapturePieceID: recon.lastCapturePieceID,
+                            lastCapturingSide: recon.lastCapturingSide)
     }
     if let my = vm.myColor { // connected
       let whiteCaps = (my == .white) ? vm.capturedByMe : vm.capturedByOpponent

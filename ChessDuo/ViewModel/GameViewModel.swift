@@ -1487,6 +1487,44 @@ extension GameViewModel {
     }()
     return (cap.id, byMe)
   }
+
+  /// Reconstruct capture lists and last capture info for a given history index (0..moveHistory.count) using the baseline board.
+  /// - Parameter historyIndex: number of half-moves to apply (board state after that many moves). 0 represents initial baseline.
+  /// - Returns: Tuple of captures from white's perspective and black's perspective plus last capture metadata.
+  func captureReconstruction(at historyIndex: Int) -> (whiteCaptures: [Piece], blackCaptures: [Piece], lastCapturePieceID: UUID?, lastCapturingSide: PieceColor?) {
+    let clamped = max(0, min(historyIndex, moveHistory.count))
+    var engine = ChessEngine.fromSnapshot(board: baselineBoard, sideToMove: baselineSideToMove)
+    var capsByWhite: [Piece] = [] // pieces captured BY white (i.e. missing black pieces)
+    var capsByBlack: [Piece] = [] // pieces captured BY black
+    var lastCapID: UUID? = nil
+    var lastCapturingSide: PieceColor? = nil
+    if clamped == 0 { return (capsByWhite, capsByBlack, nil, nil) }
+    for i in 0..<clamped {
+      let mv = moveHistory[i]
+      // Detect capture before applying move (normal or en-passant)
+      let captured: Piece? = {
+        if let piece = engine.board.piece(at: mv.to) { return piece }
+        if let moving = engine.board.piece(at: mv.from), moving.type == .pawn, mv.from.file != mv.to.file, engine.board.piece(at: mv.to) == nil {
+          let dir = moving.color == .white ? 1 : -1
+          let capturedSq = Square(file: mv.to.file, rank: mv.to.rank - dir)
+            if let epPawn = engine.board.piece(at: capturedSq), epPawn.color != moving.color, epPawn.type == .pawn { return epPawn }
+        }
+        return nil
+      }()
+      _ = engine.tryMakeMove(mv)
+      if let cap = captured {
+        if cap.color == .white { // black captured a white piece
+          capsByBlack.append(cap)
+          lastCapturingSide = .black
+        } else { // white captured a black piece
+          capsByWhite.append(cap)
+          lastCapturingSide = .white
+        }
+        lastCapID = cap.id
+      }
+    }
+    return (capsByWhite, capsByBlack, lastCapID, lastCapturingSide)
+  }
 }
 
 // MARK: - Snapshot Rebuild

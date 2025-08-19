@@ -119,15 +119,14 @@ struct ChessDuoTests {
     #expect(blackMoveOk, "Expected black king move d4->e4 to be legal")
     #expect(vm.moveHistory.count == 2, "After two quiet moves history count should be 2")
     #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "Still no captures after black reply")
-    // History indices: 0 (initial), 1 (after white move), 2 (after black move)
+    // History indices (UI semantics): 0 (initial), 1 (after white move).
+    // After both moves the live view is represented by historyIndex == nil (not 2 == moveHistory.count).
     vm.historyIndex = 0
     #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "History index 0 should have no captures")
     vm.historyIndex = 1
     #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "History index 1 should have no captures")
-    vm.historyIndex = 2
-    #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "History index 2 should have no captures")
-    // Return to live
+    // Return to live (after both moves). UI never assigns historyIndex == moveHistory.count.
     vm.historyIndex = nil
-    #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "Live view should still have no captures")
+    #expect(vm.moveHistory.count == 2 && vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "Live view (nil) should still have no captures and reflect both moves applied")
     }
 }
