@@ -50,8 +50,8 @@ extension GameViewModel {
   }
 
   func pointAdvantage(forMe: Bool) -> Int {
-    let myPoints = capturedByMe.reduce(0) { $0 + pieceValue($1) }
-    let opponentPoints = capturedByOpponent.reduce(0) { $0 + pieceValue($1) }
+  let myPoints = capturedByMe.reduce(0) { $0 + GameViewModel.materialValue($1) }
+  let opponentPoints = capturedByOpponent.reduce(0) { $0 + GameViewModel.materialValue($1) }
     return forMe ? (myPoints - opponentPoints) : (opponentPoints - myPoints)
   }
 
@@ -80,14 +80,5 @@ extension GameViewModel {
     }
   }
 
-  // Kept fileprivate scope already available in base file; duplicate left internal here for clarity.
-  private func pieceValue(_ piece: Piece) -> Int {
-    switch piece.type {
-    case .queen: return 9
-    case .rook: return 5
-    case .bishop, .knight: return 3
-    case .pawn: return 1
-    case .king: return 0
-    }
-  }
+  // (pieceValue logic centralized in GameViewModel.materialValue)
 }

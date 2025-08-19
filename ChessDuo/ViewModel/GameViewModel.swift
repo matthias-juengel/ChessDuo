@@ -148,6 +148,17 @@ final class GameViewModel: ObservableObject {
     return composite
   }
 
+  // Centralized piece material valuation (king = 0 for advantage math)
+  static func materialValue(_ piece: Piece) -> Int {
+    switch piece.type {
+    case .queen: return 9
+    case .rook: return 5
+    case .bishop, .knight: return 3
+    case .pawn: return 1
+    case .king: return 0
+    }
+  }
+
   private func pieceChar(_ p: Piece) -> String {
     let map: [PieceType:String] = [.king:"k", .queen:"q", .rook:"r", .bishop:"b", .knight:"n", .pawn:"p"]
     let base = map[p.type] ?? "?"

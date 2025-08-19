@@ -25,38 +25,8 @@ extension GameViewModel {
   }
 
   func loadFamousGame(_ game: FamousGame) {
-    engine = ChessEngine()
-    moveHistory = []
-    boardSnapshots = [engine.board]
-    capturedByMe = []
-    capturedByOpponent = []
-    movesMade = 0
-    lastMove = nil
-    lastCapturedPieceID = nil
-    lastCaptureByMe = nil
-    historyIndex = nil
-    baselineBoard = engine.board
-    baselineSideToMove = engine.sideToMove
-    baselineCounts = pieceCounts(on: baselineBoard)
-    var sourceMoves: [Move] = game.moves
-    if sourceMoves.isEmpty, let pgn = game.pgn {
-      switch PGNParser.parseMoves(pgn: pgn) {
-      case .success(let parsed): sourceMoves = parsed
-      case .failure(let err): print("PGN parse failed for game \(game.title): \(err)") }
-    }
-    for move in sourceMoves {
-      let capturedBefore = capturedPieceConsideringEnPassant(from: move.from, to: move.to, board: engine.board)
-      if engine.tryMakeMove(move) {
-        if let cap = capturedBefore { lastCapturedPieceID = cap.id; lastCaptureByMe = (cap.color == .black) } else { lastCapturedPieceID = nil; lastCaptureByMe = nil }
-        moveHistory.append(move)
-        boardSnapshots.append(engine.board)
-        movesMade += 1
-        lastMove = move
-      } else { break }
-    }
-    rebuildCapturedLists(for: engine.board)
-    rebuildCapturedLists(for: engine.board)
-    saveGame()
+  // Delegate to unified famous game loader (no broadcast from this legacy entry point)
+  applyFamousGame(game, broadcast: false)
   }
 }
 
