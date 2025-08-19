@@ -441,16 +441,5 @@ private struct StateChangeHandlers: ViewModifier {
   }
 }
 
-// MARK: Piece values (UI-level)
-// (Removed local pieceValue in favor of GameViewModel.materialValue)
-
-private func symbol(for p: Piece) -> String {
-  switch p.type {
-  case .king:   return "♚"
-  case .queen:  return "♛"
-  case .rook:   return "♜"
-  case .bishop: return "♝"
-  case .knight: return "♞"
-  case .pawn:   return "♟︎"
-  }
-}
+// MARK: Piece / Material helpers
+// Local symbol(for:) removed; use p.symbol (neutral) or p.symbol(forColorAware:) if color-specific glyphs desired.

@@ -27,7 +27,7 @@ struct SquareView: View {
       }
       if let p = piece {
         GeometryReader { geo in
-          Text(symbol(for: p))
+          Text(p.symbol)
             .font(.system(size: min(geo.size.width, geo.size.height) * 0.75))
             .foregroundColor(p.color == .white ? .white : .black)
             .rotationEffect(rotateForOpponent ? .degrees(180) : .degrees(0))
@@ -41,7 +41,5 @@ struct SquareView: View {
   private func baseColor() -> Color {
   return ((square.file + square.rank) % 2 == 0) ? AppColors.boardDark : AppColors.boardLight
   }
-  private func symbol(for p: Piece) -> String {
-    switch p.type { case .king: return "♚"; case .queen: return "♛"; case .rook: return "♜"; case .bishop: return "♝"; case .knight: return "♞"; case .pawn: return "♟︎" }
-  }
+  // symbol(for:) removed; using Piece.symbol extension
 }

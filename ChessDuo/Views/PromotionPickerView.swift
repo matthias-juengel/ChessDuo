@@ -21,7 +21,7 @@ struct PromotionPickerView: View {
             }) {
               // Enlarged piece symbol; slightly reduced container to decrease empty padding.
               // Layout math (smallest width target ~320): 4 * 52 + 3 * 14 = 250 + card horizontal padding (2*24) = 298 < 320.
-              Text(symbol(for: pt, color: color))
+              Text(pt.symbol(for: color))
                 .font(.system(size: 34))
                 .minimumScaleFactor(0.6) // allow slight shrink on very small accessibility sizes
                 .frame(width: 52, height: 52)
@@ -40,16 +40,7 @@ struct PromotionPickerView: View {
   .padding(.top, 6)
     .rotationEffect(rotate180 ? .degrees(180) : .degrees(0))
   }
-  private func symbol(for t: PieceType, color: PieceColor) -> String {
-    switch t {
-    case .queen: return color == .white ? "♕" : "♛"
-    case .rook: return color == .white ? "♖" : "♜"
-    case .bishop: return color == .white ? "♗" : "♝"
-    case .knight: return color == .white ? "♘" : "♞"
-    case .king: return color == .white ? "♔" : "♚"
-    case .pawn: return color == .white ? "♙" : "♟︎"
-    }
-  }
+  // symbol(for:color:) removed; using PieceType.symbol(for:) extension
 
   private func accessibilityLabel(for t: PieceType) -> String {
     let pieceName: String

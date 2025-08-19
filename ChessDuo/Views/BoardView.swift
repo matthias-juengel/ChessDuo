@@ -234,7 +234,7 @@ struct BoardView: View {
           .stroke(AppColors.highlightLight, lineWidth: 2)
           .padding(2)
       }
-      Text(symbol(for: item.piece))
+  Text(item.piece.symbol)
         .font(.system(size: squareSize * 0.75))
         .foregroundColor(item.piece.color == .white ? AppColors.pieceWhite : AppColors.pieceBlack)
         // In single-device (hot-seat) mode rotate the TOP side pieces so they face that player.
@@ -325,16 +325,7 @@ struct BoardView: View {
     return list
   }
 
-  private func symbol(for p: Piece) -> String {
-    switch p.type {
-    case .king: return "♚"
-    case .queen: return "♛"
-    case .rook: return "♜"
-    case .bishop: return "♝"
-    case .knight: return "♞"
-    case .pawn: return "♟︎"
-    }
-  }
+  // symbol(for:) removed in favor of Piece.symbol extension
 
   private func square(at point: CGPoint,
                       boardSide: CGFloat,

@@ -17,7 +17,7 @@ struct CapturedRow: View {
       let size = max(minSize, idealSize)
       HStack(spacing: spacing) {
         ForEach(sorted, id: \.id) { p in
-          Text(symbol(for: p))
+          Text(p.symbol)
             .font(.system(size: size))
             .foregroundStyle(p.color == .white ? .white : .black)
             .rotationEffect(rotatePieces ? .degrees(180) : .degrees(0))
@@ -70,9 +70,5 @@ struct CapturedRow: View {
     case .king: return 5
     }
   }
-  // (Removed local pieceValue; ordering logic now derives from GameViewModel.materialValue with king override)
-  private func symbol(for p: Piece) -> String {
-    switch p.type {
-    case .king: return "♚"; case .queen: return "♛"; case .rook: return "♜"; case .bishop: return "♝"; case .knight: return "♞"; case .pawn: return "♟︎" }
-  }
+  // (Removed local symbol(for:); using Piece.symbol from central extension)
 }
