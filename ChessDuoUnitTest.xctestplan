@@ -17,19 +17,11 @@
   },
   "testTargets" : [
     {
-      "parallelizable" : true,
+      "parallelizable" : false,
       "target" : {
         "containerPath" : "container:ChessDuo.xcodeproj",
         "identifier" : "7DAE26462E4870EE006F9BFE",
         "name" : "ChessDuoTests"
-      }
-    },
-    {
-      "parallelizable" : true,
-      "target" : {
-        "containerPath" : "container:ChessDuo.xcodeproj",
-        "identifier" : "7DAE26502E4870EE006F9BFE",
-        "name" : "ChessDuoUITests"
       }
     }
   ],

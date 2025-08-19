@@ -27,7 +27,7 @@
 		7DAE263A2E4870ED006F9BFE /* ChessDuo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ChessDuo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7DAE26472E4870EE006F9BFE /* ChessDuoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ChessDuoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7DAE26512E4870EE006F9BFE /* ChessDuoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ChessDuoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		7DD822FE2E55068700CFEDFE /* ChessDuo.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = ChessDuo.xctestplan; sourceTree = "<group>"; };
+		7DD822FE2E55068700CFEDFE /* ChessDuoUnitTest.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = ChessDuoUnitTest.xctestplan; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -89,7 +89,7 @@
 		7DAE26312E4870ED006F9BFE = {
 			isa = PBXGroup;
 			children = (
-				7DD822FE2E55068700CFEDFE /* ChessDuo.xctestplan */,
+				7DD822FE2E55068700CFEDFE /* ChessDuoUnitTest.xctestplan */,
 				7DAE26862E487204006F9BFE /* ChessDuo */,
 				7DAE264A2E4870EE006F9BFE /* ChessDuoTests */,
 				7DAE26542E4870EE006F9BFE /* ChessDuoUITests */,
