@@ -43,6 +43,22 @@ extension GameViewModel {
     let baselineBoard: Board
     let baselineSideToMove: PieceColor
   }
+  struct GamePersistedV4: Codable { // adds stable captured archives
+    let version: Int
+    let engine: ChessEngine
+    let myColor: PieceColor?
+    let capturedByMe: [Piece]
+    let capturedByOpponent: [Piece]
+    let movesMade: Int
+    let lastMove: Move?
+    let lastCapturedPieceID: UUID?
+    let lastCaptureByMe: Bool?
+    let moveHistory: [Move]
+    let baselineBoard: Board
+    let baselineSideToMove: PieceColor
+    let whiteCapturedPieces: [Piece]
+    let blackCapturedPieces: [Piece]
+  }
 
   var saveURL: URL {
     let fm = FileManager.default
@@ -55,18 +71,20 @@ extension GameViewModel {
   }
 
   func saveGame() {
-    let snapshot = GamePersistedV3(version: 3,
-                                   engine: engine,
-                                   myColor: myColor,
-                                   capturedByMe: capturedByMe,
-                                   capturedByOpponent: capturedByOpponent,
-                                   movesMade: movesMade,
-                                   lastMove: lastMove,
-                                   lastCapturedPieceID: lastCapturedPieceID,
-                                   lastCaptureByMe: lastCaptureByMe,
-                                   moveHistory: moveHistory,
-                                   baselineBoard: baselineBoard,
-                                   baselineSideToMove: baselineSideToMove)
+  let snapshot = GamePersistedV4(version: 4,
+                   engine: engine,
+                   myColor: myColor,
+                   capturedByMe: capturedByMe,
+                   capturedByOpponent: capturedByOpponent,
+                   movesMade: movesMade,
+                   lastMove: lastMove,
+                   lastCapturedPieceID: lastCapturedPieceID,
+                   lastCaptureByMe: lastCaptureByMe,
+                   moveHistory: moveHistory,
+                   baselineBoard: baselineBoard,
+                   baselineSideToMove: baselineSideToMove,
+                   whiteCapturedPieces: whiteCapturedPieces,
+                   blackCapturedPieces: blackCapturedPieces)
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.withoutEscapingSlashes]
     do {
@@ -84,7 +102,24 @@ extension GameViewModel {
     let url = saveURL
     guard let data = try? Data(contentsOf: url) else { return }
     let decoder = JSONDecoder()
-    if let v3 = try? decoder.decode(GamePersistedV3.self, from: data) {
+    if let v4 = try? decoder.decode(GamePersistedV4.self, from: data) {
+      engine = v4.engine
+      myColor = v4.myColor
+      capturedByMe = v4.capturedByMe
+      capturedByOpponent = v4.capturedByOpponent
+      movesMade = v4.movesMade
+      lastMove = v4.lastMove
+      lastCapturedPieceID = v4.lastCapturedPieceID
+      lastCaptureByMe = v4.lastCaptureByMe
+      moveHistory = v4.moveHistory
+      baselineBoard = v4.baselineBoard
+      baselineSideToMove = v4.baselineSideToMove
+      baselineCounts = pieceCounts(on: baselineBoard)
+      baselineTrusted = true
+      boardSnapshots = []
+      whiteCapturedPieces = v4.whiteCapturedPieces
+      blackCapturedPieces = v4.blackCapturedPieces
+    } else if let v3 = try? decoder.decode(GamePersistedV3.self, from: data) {
       engine = v3.engine
       myColor = v3.myColor
       capturedByMe = v3.capturedByMe

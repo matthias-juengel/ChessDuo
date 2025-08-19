@@ -56,6 +56,19 @@ final class GameViewModel: ObservableObject {
   // blackCapturedPieces = pieces originally belonging to Black that have been captured.
   var whiteCapturedPieces: [Piece] = []
   var blackCapturedPieces: [Piece] = []
+  // Track which archived captured pieces are fabricated placeholders (no original id) so UI can ignore for highlighting if desired later.
+  var fabricatedCapturedPieceIDs: Set<UUID> = []
+  /// Captured piece archive design:
+  /// We previously regenerated captured piece lists strictly from material differentials which produced
+  /// fresh UUIDs every rebuild, breaking UI highlight animations (which rely on stable ids) and making it
+  /// impossible to highlight the most recently captured piece in the live view immediately.
+  ///
+  /// Now we maintain chronological archives of actual captured pieces per original owner color. When a capture
+  /// occurs we append the exact captured Piece (retaining its original id). Rebuild logic then derives the
+  /// perspective-relative `capturedByMe` / `capturedByOpponent` lists by trimming these archives to the current
+  /// missing piece counts. If a game starts from a FEN with already-missing material, synthetic placeholder pieces
+  /// (marked in `fabricatedCapturedPieceIDs`) are created only to fill the deficit; these placeholders are never
+  /// considered “last captured” so they won't get a highlight.
   @Published var movesMade: Int = 0
   @Published var awaitingResetConfirmation: Bool = false
   @Published var incomingResetRequest: Bool = false
@@ -217,14 +230,14 @@ final class GameViewModel: ObservableObject {
   func rebuildCapturedLists(for board: Board) {
     let (whiteMissing, blackMissing) = missingComparedToBaseline(current: board)
     // Ensure archives contain at least the number of missing pieces per color (if we started mid-game via FEN we may fabricate placeholders once).
-    func ensureArchive(color: PieceColor, missing: [PieceType:Int]) {
+  func ensureArchive(color: PieceColor, missing: [PieceType:Int]) {
       for t in [PieceType.queen, .rook, .bishop, .knight, .pawn] {
         let needed = missing[t] ?? 0
         var archive = (color == .white) ? whiteCapturedPieces : blackCapturedPieces
         let existingOfType = archive.filter { $0.type == t }.count
         if existingOfType < needed {
           // Fabricate placeholders only for deficit (no original IDs available). These won't highlight as current capture.
-          for _ in existingOfType..<needed { archive.append(Piece(type: t, color: color)) }
+      for _ in existingOfType..<needed { let placeholder = Piece(type: t, color: color); archive.append(placeholder); fabricatedCapturedPieceIDs.insert(placeholder.id) }
           if color == .white { whiteCapturedPieces = archive } else { blackCapturedPieces = archive }
         }
       }
