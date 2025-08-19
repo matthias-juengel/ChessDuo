@@ -4,6 +4,10 @@
 //
 //  Created by Matthias Jüngel on 10.08.25.
 //
+// Example test command
+/// xcodebuild test -project ChessDuo.xcodeproj -scheme ChessDuo -testPlan ChessDuoUnitTest -destination 'id=D77147FD-9784-450E-A13F-C194B7AD0D16' > full_test_output.txt 2>&1; tail -n 200 full_test_output.txt
+
+
 
 import Testing
 @testable import ChessDuo
@@ -141,12 +145,11 @@ struct ChessDuoTests {
         let qFrom = Square(file: 3, rank: 1) // d2
         let qTo = Square(file: 4, rank: 1)   // e2
         _ = vm.makeLocalMove(from: qFrom, to: qTo)
-        let kFrom = Square(file: 4, rank: 0) // e1
-        let kTo = Square(file: 4, rank: 0)   // (stay put - no-op illegal) choose another quiet move: move queen again
-        // Instead move queen e2 -> f2
-        let q2From = qTo
-        let q2To = Square(file: 5, rank: 1) // f2
-        _ = vm.makeLocalMove(from: q2From, to: q2To)
+    // Black to move now; perform a quiet black king move e8 -> d8 (legal and not into check)
+    let bkFrom = Square(file: 4, rank: 7) // e8
+    let bkTo = Square(file: 3, rank: 7)   // d8
+    let blackMoveOk = vm.makeLocalMove(from: bkFrom, to: bkTo)
+    #expect(blackMoveOk, "Expected black king move e8->d8 to be legal")
         #expect(vm.moveHistory.count == 2)
         // Navigate history and ensure reconstruction shows no captures
         let recon0 = vm.captureReconstruction(at: 0)
@@ -173,9 +176,10 @@ struct ChessDuoTests {
             let q1From = Square(file: 3, rank: 1)
             let q1To = Square(file: 4, rank: 1)
             _ = vm.makeLocalMove(from: q1From, to: q1To)
-            let q2From = q1To
-            let q2To = Square(file: 5, rank: 1)
-            _ = vm.makeLocalMove(from: q2From, to: q2To)
+            let bkFrom = Square(file: 4, rank: 7) // e8
+            let bkTo = Square(file: 3, rank: 7)   // d8
+            let blackMoveOk = vm.makeLocalMove(from: bkFrom, to: bkTo)
+            #expect(blackMoveOk, "Expected black king move e8->d8 to be legal")
             #expect(vm.moveHistory.count == 2)
             #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty)
             // Force save (already called internally on move, but explicit for clarity)
