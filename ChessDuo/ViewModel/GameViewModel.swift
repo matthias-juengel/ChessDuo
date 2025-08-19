@@ -159,6 +159,17 @@ final class GameViewModel: ObservableObject {
     }
   }
 
+  // Lightweight internal board equality used during initialization to detect persistence load differences
+  private func boardsEqualInternal(_ a: Board, _ b: Board) -> Bool {
+    for rank in 0..<8 { for file in 0..<8 {
+      let sq = Square(file: file, rank: rank)
+      let pa = a.piece(at: sq)
+      let pb = b.piece(at: sq)
+      if pa?.type != pb?.type || pa?.color != pb?.color { return false }
+    }}
+    return true
+  }
+
   private func pieceChar(_ p: Piece) -> String {
     let map: [PieceType:String] = [.king:"k", .queen:"q", .rook:"r", .bishop:"b", .knight:"n", .pawn:"p"]
     let base = map[p.type] ?? "?"
@@ -297,17 +308,24 @@ final class GameViewModel: ObservableObject {
       print("[VM] Networking start deferred (namePrompt=\(showInitialNamePrompt) introSeen=\(hasSeenNetworkPermissionIntro))")
     }
   // Attempt to load persisted game before starting networking so board state is restored.
+  // NOTE: We must not overwrite the restored baseline (baselineBoard, baselineSideToMove, baselineCounts, baselineTrusted)
+  // after this call. We'll capture whether load succeeded via a local flag.
+  let preLoadEngine = engine
   loadGameIfAvailable()
+  let loadedFromPersistence = (movesMade > 0 || baselineTrusted == true) && !boardsEqualInternal(preLoadEngine.board, engine.board)
   // Restore myColor from persistent storage if moves have been made and value exists
   if movesMade > 0, let stored = PieceColor(rawValue: persistedMyColorRaw), myColor == nil {
     myColor = stored
   }
-  // Falls beim Laden (z.B. V1 ohne History) keine Snapshots erzeugt wurden, initialisieren wir minimal.
+  // Falls beim Laden (z.B. V1/V2 ohne History snapshots) keine Snapshots erzeugt wurden, initialisieren wir minimal.
   if boardSnapshots.isEmpty { boardSnapshots = [engine.board] }
+  // Only set baseline for a brand-new session (no persistence load or famous game applied yet).
+  if !loadedFromPersistence {
     baselineBoard = engine.board
     baselineSideToMove = engine.sideToMove
-  baselineCounts = pieceCounts(on: baselineBoard)
-  baselineTrusted = true
+    baselineCounts = pieceCounts(on: baselineBoard)
+    baselineTrusted = true
+  }
   rebuildCapturedLists(for: engine.board)
     peers.onMessage = { [weak self] msg in
       self?.handle(msg)
