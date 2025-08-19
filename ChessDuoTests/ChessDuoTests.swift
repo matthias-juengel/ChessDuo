@@ -129,4 +129,34 @@ struct ChessDuoTests {
     vm.historyIndex = nil
     #expect(vm.moveHistory.count == 2 && vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "Live view (nil) should still have no captures and reflect both moves applied")
     }
+
+    @Test func noPhantomHistoryCapturesInKQvKAfterQuietMoves() async throws {
+        // Start from KQ vs K FEN (no pawns should appear)
+        let fen = "4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1"
+        let vm = GameViewModel()
+        let game = FamousGame(title: "KQvK Quiet Test", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil)
+        vm.applyFamousGame(game, broadcast: false)
+        #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty)
+        // Make two quiet moves (queen then king) ensuring no captures occur
+        let qFrom = Square(file: 3, rank: 1) // d2
+        let qTo = Square(file: 4, rank: 1)   // e2
+        _ = vm.makeLocalMove(from: qFrom, to: qTo)
+        let kFrom = Square(file: 4, rank: 0) // e1
+        let kTo = Square(file: 4, rank: 0)   // (stay put - no-op illegal) choose another quiet move: move queen again
+        // Instead move queen e2 -> f2
+        let q2From = qTo
+        let q2To = Square(file: 5, rank: 1) // f2
+        _ = vm.makeLocalMove(from: q2From, to: q2To)
+        #expect(vm.moveHistory.count == 2)
+        // Navigate history and ensure reconstruction shows no captures
+        let recon0 = vm.captureReconstruction(at: 0)
+        #expect(recon0.whiteCaptures.isEmpty && recon0.blackCaptures.isEmpty && recon0.lastCapturePieceID == nil)
+        let recon1 = vm.captureReconstruction(at: 1)
+        #expect(recon1.whiteCaptures.isEmpty && recon1.blackCaptures.isEmpty && recon1.lastCapturePieceID == nil)
+        let recon2 = vm.captureReconstruction(at: 2)
+        #expect(recon2.whiteCaptures.isEmpty && recon2.blackCaptures.isEmpty && recon2.lastCapturePieceID == nil)
+        // historicalCaptureHighlight should be nil for indices 1 and 2 because no captures occurred
+        #expect(vm.historicalCaptureHighlight(at: 1) == nil)
+        #expect(vm.historicalCaptureHighlight(at: 2) == nil)
+    }
 }

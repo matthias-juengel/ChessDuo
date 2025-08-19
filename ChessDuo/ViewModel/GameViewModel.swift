@@ -1460,29 +1460,15 @@ extension GameViewModel {
   func historicalCaptureHighlight(at historyIndex: Int) -> (pieceID: UUID, byMe: Bool)? {
     // historyIndex represents board AFTER that many moves. So the last applied move is moveHistory[historyIndex-1].
     guard historyIndex > 0, historyIndex <= moveHistory.count else { return nil }
-  var engine = ChessEngine.fromSnapshot(board: baselineBoard, sideToMove: baselineSideToMove)
-    // Play moves up to before the last one to inspect capture result.
+    var engine = ChessEngine.fromSnapshot(board: baselineBoard, sideToMove: baselineSideToMove)
     for i in 0..<(historyIndex - 1) { _ = engine.tryMakeMove(moveHistory[i]) }
     let move = moveHistory[historyIndex - 1]
-    // Determine captured piece of that move similar to live logic (includes en passant)
-    let captured: Piece? = {
-      // Normal capture: piece on destination in pre-move board
-      if let piece = engine.board.piece(at: move.to) { return piece }
-      // En passant possibility
-      if let moving = engine.board.piece(at: move.from), moving.type == .pawn, move.from.file != move.to.file, engine.board.piece(at: move.to) == nil {
-        let dir = moving.color == .white ? 1 : -1
-        let capturedSq = Square(file: move.to.file, rank: move.to.rank - dir)
-        if let epPawn = engine.board.piece(at: capturedSq), epPawn.color != moving.color, epPawn.type == .pawn { return epPawn }
-      }
-      return nil
-    }()
-    // Apply the move to advance engine (not strictly needed for highlight decision)
+    guard let cap = capturedPiece(beforeApplying: move, on: engine.board) else { return nil }
+    // Apply move (not strictly necessary for result, but consistent side effects if extended later)
     _ = engine.tryMakeMove(move)
-    guard let cap = captured else { return nil }
-    let capturedByWhite = cap.color == .black // if black piece captured -> by white
+    let capturedByWhite = cap.color == .black
     let byMe: Bool = {
-      if let my = myColor { return (my == .white) == capturedByWhite } // if my color white and capture by white -> byMe
-      // single-device: bottom (capturedByMe list) corresponds to white's captures
+      if let my = myColor { return (my == .white) == capturedByWhite }
       return capturedByWhite
     }()
     return (cap.id, byMe)
@@ -1502,15 +1488,7 @@ extension GameViewModel {
     for i in 0..<clamped {
       let mv = moveHistory[i]
       // Detect capture before applying move (normal or en-passant)
-      let captured: Piece? = {
-        if let piece = engine.board.piece(at: mv.to) { return piece }
-        if let moving = engine.board.piece(at: mv.from), moving.type == .pawn, mv.from.file != mv.to.file, engine.board.piece(at: mv.to) == nil {
-          let dir = moving.color == .white ? 1 : -1
-          let capturedSq = Square(file: mv.to.file, rank: mv.to.rank - dir)
-            if let epPawn = engine.board.piece(at: capturedSq), epPawn.color != moving.color, epPawn.type == .pawn { return epPawn }
-        }
-        return nil
-      }()
+      let captured = capturedPiece(beforeApplying: mv, on: engine.board)
       _ = engine.tryMakeMove(mv)
       if let cap = captured {
         if cap.color == .white { // black captured a white piece
@@ -1524,6 +1502,20 @@ extension GameViewModel {
       }
     }
     return (capsByWhite, capsByBlack, lastCapID, lastCapturingSide)
+  }
+}
+
+// MARK: - Shared capture detection helper
+private extension GameViewModel {
+  /// Determine the piece captured (including en passant) by `move` on `board` before applying the move.
+  func capturedPiece(beforeApplying move: Move, on board: Board) -> Piece? {
+    if let piece = board.piece(at: move.to) { return piece }
+    if let moving = board.piece(at: move.from), moving.type == .pawn, move.from.file != move.to.file, board.piece(at: move.to) == nil {
+      let dir = moving.color == .white ? 1 : -1
+      let capturedSq = Square(file: move.to.file, rank: move.to.rank - dir)
+      if let epPawn = board.piece(at: capturedSq), epPawn.color != moving.color, epPawn.type == .pawn { return epPawn }
+    }
+    return nil
   }
 }
 
