@@ -9,7 +9,8 @@ import Combine
 import SwiftUI
 
 final class GameViewModel: ObservableObject {
-  @Published private(set) var engine = ChessEngine()
+  // Was @Published private(set); relaxed to allow extension-based persistence & loaders to assign.
+  @Published var engine = ChessEngine()
   // New: Player name persistence and publication
   @AppStorage("playerName") private var storedPlayerName: String = ""
   @Published var playerName: String = UIDevice.current.name // default device name
@@ -78,24 +79,27 @@ final class GameViewModel: ObservableObject {
   @Published var historyIndex: Int? = nil
   // Board snapshots after each applied move (index 0 = initial position, i = board after i moves).
   // Provides stable Piece.id continuity across adjacent history states for matchedGeometryEffect animations.
-  @Published private(set) var boardSnapshots: [Board] = []
+  @Published var boardSnapshots: [Board] = []
   // Remote history view sync
   @Published var remoteIsDrivingHistoryView: Bool = false // true while we reflect a peer's slider movement
   private var suppressHistoryViewBroadcast = false
   // Tracks whether any live moves have been made since last reset or famous game load
-  private var sessionProgressed: Bool = false
+  // Was private; split extensions need to update it (persistence load)
+  var sessionProgressed: Bool = false
 
   // Cache for legal destination queries: key = (boardSignature, originSquare)
-  private var legalDestCache: [String: Set<Square>] = [:]
-  private var lastCacheBoardSignature: String? = nil
+  // Was private; widened to fileprivate for extension access after file split.
+  var legalDestCache: [String: Set<Square>] = [:]
+  var lastCacheBoardSignature: String? = nil
 
   // Baseline (initial) board & side for current session (handles FEN starts for famous games)
-  private var baselineBoard: Board = Board.initial()
+  // Widened to fileprivate for history / capture / persistence extensions.
+  var baselineBoard: Board = Board.initial()
   // Baseline piece counts per color/type (used to compute captures for history & FEN starts)
-  private var baselineCounts: [PieceColor: [PieceType:Int]] = [.white: [:], .black: [:]]
-  private var baselineSideToMove: PieceColor = .white
+  var baselineCounts: [PieceColor: [PieceType:Int]] = [.white: [:], .black: [:]]
+  var baselineSideToMove: PieceColor = .white
   // Whether the baseline is trusted as the true starting state for moveHistory (v3 persistence or fresh session)
-  private var baselineTrusted: Bool = true
+  var baselineTrusted: Bool = true
 
   // Export current game state as a textual snapshot (for debugging / tests)
   func exportText() -> String {
@@ -138,6 +142,12 @@ final class GameViewModel: ObservableObject {
     return lines.joined(separator: "\n")
   }
 
+  // Static helper needed by multiple extensions / observers after file split.
+  static func baseName(from composite: String) -> String {
+    if let idx = composite.firstIndex(of: "#") { return String(composite[..<idx]) }
+    return composite
+  }
+
   private func pieceChar(_ p: Piece) -> String {
     let map: [PieceType:String] = [.king:"k", .queen:"q", .rook:"r", .bishop:"b", .knight:"n", .pawn:"p"]
     let base = map[p.type] ?? "?"
@@ -149,7 +159,8 @@ final class GameViewModel: ObservableObject {
     return "\(fileChar)\(sq.rank + 1)"
   }
   // MARK: - Baseline-aware capture reconstruction (for history & FEN starts)
-  private func pieceCounts(on board: Board) -> [PieceColor: [PieceType:Int]] {
+  // Widened to fileprivate so persistence & capture reconstruction can reuse.
+  func pieceCounts(on board: Board) -> [PieceColor: [PieceType:Int]] {
     var counts: [PieceColor: [PieceType:Int]] = [.white: [:], .black: [:]]
     for rank in 0..<8 {
       for file in 0..<8 {
@@ -163,7 +174,7 @@ final class GameViewModel: ObservableObject {
   }
 
   /// Missing piece counts vs. baseline for each color
-  private func missingComparedToBaseline(current: Board) -> (whiteMissing: [PieceType:Int], blackMissing: [PieceType:Int]) {
+  func missingComparedToBaseline(current: Board) -> (whiteMissing: [PieceType:Int], blackMissing: [PieceType:Int]) {
     let curr = pieceCounts(on: current)
     var whiteMiss: [PieceType:Int] = [:], blackMiss: [PieceType:Int] = [:]
     for t in [PieceType.king, .queen, .rook, .bishop, .knight, .pawn] {
@@ -176,7 +187,7 @@ final class GameViewModel: ObservableObject {
   }
 
   /// Rebuild published capture lists for a given board according to current perspective
-  private func rebuildCapturedLists(for board: Board) {
+  func rebuildCapturedLists(for board: Board) {
     let (whiteMissing, blackMissing) = missingComparedToBaseline(current: board)
     let perspective: PieceColor = myColor ?? preferredPerspective
     let myOppColor: PieceColor = (perspective == .white) ? .black : .white
@@ -1097,7 +1108,7 @@ final class GameViewModel: ObservableObject {
   }
 
   // Detect en-passant captured pawn before engine.tryMakeMove mutates board.
-  private func capturedPieceConsideringEnPassant(from: Square, to: Square, board: Board) -> Piece? {
+  func capturedPieceConsideringEnPassant(from: Square, to: Square, board: Board) -> Piece? {
     if let mover = board.piece(at: from), mover.type == .pawn {
       let df = abs(to.file - from.file)
       if df == 1, to.rank != from.rank, board.piece(at: to) == nil { // diagonal move to empty square
@@ -1139,453 +1150,5 @@ final class GameViewModel: ObservableObject {
   }
 }
 
-
+// (Implementation split into multiple extension files: see GameViewModel+*.swift)
 // MARK: - Persistence
-extension GameViewModel {
-  struct GamePersistedV1: Codable { // legacy without moveHistory
-    let version: Int
-    let engine: ChessEngine
-    let myColor: PieceColor?
-    let capturedByMe: [Piece]
-    let capturedByOpponent: [Piece]
-    let movesMade: Int
-    let lastMove: Move?
-    let lastCapturedPieceID: UUID?
-    let lastCaptureByMe: Bool?
-  }
-  struct GamePersistedV2: Codable { // adds moveHistory
-    let version: Int
-    let engine: ChessEngine
-    let myColor: PieceColor?
-    let capturedByMe: [Piece]
-    let capturedByOpponent: [Piece]
-    let movesMade: Int
-    let lastMove: Move?
-    let lastCapturedPieceID: UUID?
-    let lastCaptureByMe: Bool?
-    let moveHistory: [Move]
-  }
-  struct GamePersistedV3: Codable { // adds baseline board & side
-    let version: Int
-    let engine: ChessEngine
-    let myColor: PieceColor?
-    let capturedByMe: [Piece]
-    let capturedByOpponent: [Piece]
-    let movesMade: Int
-    let lastMove: Move?
-    let lastCapturedPieceID: UUID?
-    let lastCaptureByMe: Bool?
-    let moveHistory: [Move]
-    let baselineBoard: Board
-    let baselineSideToMove: PieceColor
-  }
-
-  var saveURL: URL {
-    let fm = FileManager.default
-    let base = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-    let dir = base.appendingPathComponent("ChessDuo", isDirectory: true)
-    if !fm.fileExists(atPath: dir.path) {
-      try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
-    }
-    return dir.appendingPathComponent("game.json")
-  }
-
-  func saveGame() {
-  let snapshot = GamePersistedV3(version: 3,
-                   engine: engine,
-                   myColor: myColor,
-                   capturedByMe: capturedByMe,
-                   capturedByOpponent: capturedByOpponent,
-                   movesMade: movesMade,
-                   lastMove: lastMove,
-                   lastCapturedPieceID: lastCapturedPieceID,
-                   lastCaptureByMe: lastCaptureByMe,
-                   moveHistory: moveHistory,
-                   baselineBoard: baselineBoard,
-                   baselineSideToMove: baselineSideToMove)
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = [.withoutEscapingSlashes]
-    do {
-      let data = try encoder.encode(snapshot)
-      let tmp = saveURL.appendingPathExtension("tmp")
-      try data.write(to: tmp, options: .atomic)
-      // Atomic replace
-      try? FileManager.default.removeItem(at: saveURL)
-      try FileManager.default.moveItem(at: tmp, to: saveURL)
-    } catch {
-      // Silent fail; could add logging
-      print("Save failed", error)
-    }
-  }
-
-  func loadGameIfAvailable() {
-    let url = saveURL
-    guard let data = try? Data(contentsOf: url) else { return }
-    let decoder = JSONDecoder()
-    if let v3 = try? decoder.decode(GamePersistedV3.self, from: data) {
-      engine = v3.engine
-      myColor = v3.myColor
-      capturedByMe = v3.capturedByMe
-      capturedByOpponent = v3.capturedByOpponent
-      movesMade = v3.movesMade
-      lastMove = v3.lastMove
-      lastCapturedPieceID = v3.lastCapturedPieceID
-      lastCaptureByMe = v3.lastCaptureByMe
-      moveHistory = v3.moveHistory
-      baselineBoard = v3.baselineBoard
-      baselineSideToMove = v3.baselineSideToMove
-      baselineCounts = pieceCounts(on: baselineBoard)
-      baselineTrusted = true
-      boardSnapshots = []
-    } else if let v2 = try? decoder.decode(GamePersistedV2.self, from: data) {
-      engine = v2.engine
-      myColor = v2.myColor
-      capturedByMe = v2.capturedByMe
-      capturedByOpponent = v2.capturedByOpponent
-      movesMade = v2.movesMade
-      lastMove = v2.lastMove
-      lastCapturedPieceID = v2.lastCapturedPieceID
-      lastCaptureByMe = v2.lastCaptureByMe
-      moveHistory = v2.moveHistory
-      // We'll rebuild snapshots below (including initial) to preserve stable piece identity for animations
-      boardSnapshots = []
-      // Baseline unknown, derive from current engine board
-      baselineBoard = engine.board
-      baselineSideToMove = engine.sideToMove
-      baselineCounts = pieceCounts(on: baselineBoard)
-      baselineTrusted = false
-    } else if let v1 = try? decoder.decode(GamePersistedV1.self, from: data) {
-      engine = v1.engine
-      myColor = v1.myColor
-      capturedByMe = v1.capturedByMe
-      capturedByOpponent = v1.capturedByOpponent
-      movesMade = v1.movesMade
-      lastMove = v1.lastMove
-      lastCapturedPieceID = v1.lastCapturedPieceID
-      lastCaptureByMe = v1.lastCaptureByMe
-      moveHistory = []
-      // Rebuild snapshots from engine current board only (no move history available in V1)
-      boardSnapshots = []
-      baselineBoard = engine.board
-      baselineSideToMove = engine.sideToMove
-      baselineCounts = pieceCounts(on: baselineBoard)
-      baselineTrusted = false
-    }
-    // After loading any version, rebuild snapshots to enable history animations.
-    rebuildSnapshotsFromHistory()
-  // Align preferred perspective with current multiplayer color if connected previously
-  if let mine = myColor { preferredPerspective = mine }
-    sessionProgressed = movesMade > 0
-  }
-
-  // Reconstruct a board state after n moves from history (n in 0...moveHistory.count)
-  func boardAfterMoves(_ n: Int) -> Board {
-  if n < boardSnapshots.count { return boardSnapshots[n] }
-  if n == moveHistory.count { return engine.board }
-  var e = ChessEngine.fromSnapshot(board: baselineBoard, sideToMove: baselineSideToMove)
-  for i in 0..<min(n, moveHistory.count) { _ = e.tryMakeMove(moveHistory[i]) }
-  return e.board
-  }
-
-  var displayedBoard: Board { historyIndex.map { boardAfterMoves($0) } ?? engine.board }
-  var inHistoryView: Bool { historyIndex != nil }
-
-  // Get the side to move for the displayed board (historical or current)
-  var displayedSideToMove: PieceColor {
-    guard let idx = historyIndex else { return engine.sideToMove }
-    // Side to move alternates with each move, starting with white
-    return (idx % 2 == 0) ? .white : .black
-  }
-
-  // Check if the current side is in check on the displayed board
-  func isDisplayedSideInCheck() -> Bool {
-    let board = displayedBoard
-    let sideToMove = displayedSideToMove
-
-    // Create a temporary engine to use the check detection methods
-    let tempEngine = ChessEngine.fromSnapshot(board: board, sideToMove: sideToMove)
-    return tempEngine.isInCheck(sideToMove)
-  }
-
-  // Check if the current side is checkmated on the displayed board
-  func isDisplayedSideCheckmated() -> Bool {
-    let board = displayedBoard
-    let sideToMove = displayedSideToMove
-
-    // Create a temporary engine to use the checkmate detection methods
-    let tempEngine = ChessEngine.fromSnapshot(board: board, sideToMove: sideToMove)
-    return tempEngine.isCheckmate(for: sideToMove)
-  }
-
-  // Get the game outcome for the displayed board (historical or current)
-  func displayedOutcomeForSide(_ side: PieceColor) -> GameOutcome {
-    // If we're not in history view, use the current outcome
-    guard historyIndex != nil else { return outcomeForSide(side) }
-
-    let board = displayedBoard
-    let sideToMove = displayedSideToMove
-
-    // Create a temporary engine to use the outcome detection methods
-    let tempEngine = ChessEngine.fromSnapshot(board: board, sideToMove: sideToMove)
-
-    let isMate = tempEngine.isCheckmate(for: side)
-    let isStale = tempEngine.isStalemate(for: side)
-    // Note: threefold repetition is complex for historical positions, so we skip it in history view
-
-    if isMate { return .loss }
-    else if isStale { return .draw }
-
-    let otherSide = side == .white ? PieceColor.black : PieceColor.white
-
-    if tempEngine.isCheckmate(for: otherSide) {
-      return .win
-    } else {
-      return .ongoing
-    }
-  }
-
-  // Calculate point advantage based on captured pieces
-  func pointAdvantage(forMe: Bool) -> Int {
-    let myPieces = capturedByMe
-    let opponentPieces = capturedByOpponent
-
-    let myPoints = myPieces.reduce(0) { $0 + pieceValue($1) }
-    let opponentPoints = opponentPieces.reduce(0) { $0 + pieceValue($1) }
-
-    return forMe ? (myPoints - opponentPoints) : (opponentPoints - myPoints)
-  }
-
-  // Calculate point advantage for historical positions
-  func historicalPointAdvantage(forMe: Bool) -> Int {
-    guard let idx = historyIndex else { return pointAdvantage(forMe: forMe) }
-    let board = boardAfterMoves(idx)
-    // Derive missing piece counts from baseline -> captured pieces for each side
-    let (whiteMissing, blackMissing) = missingComparedToBaseline(current: board)
-    func points(from missing: [PieceType:Int]) -> Int {
-      missing.reduce(0) { partial, kv in
-        let (type, count) = kv
-        let value: Int
-        switch type { case .queen: value = 9; case .rook: value = 5; case .bishop, .knight: value = 3; case .pawn: value = 1; case .king: value = 0 }
-        return partial + value * count
-      }
-    }
-    // whiteMissing are pieces captured BY black; blackMissing -> captured by white.
-    let whiteCapturedPoints = points(from: blackMissing) // points white has taken (black's missing pieces)
-    let blackCapturedPoints = points(from: whiteMissing)
-    if let my = myColor { // multiplayer perspective
-      let myPts = (my == .white) ? whiteCapturedPoints : blackCapturedPoints
-      let oppPts = (my == .white) ? blackCapturedPoints : whiteCapturedPoints
-      return forMe ? (myPts - oppPts) : (oppPts - myPts)
-    } else { // single-device: bottom assumed white for 'forMe'
-      let myPts = forMe ? whiteCapturedPoints : blackCapturedPoints
-      let oppPts = forMe ? blackCapturedPoints : whiteCapturedPoints
-      return (myPts - oppPts)
-    }
-  }
-
-  private func pieceValue(_ piece: Piece) -> Int {
-    switch piece.type {
-    case .queen: return 9
-    case .rook: return 5
-    case .bishop, .knight: return 3
-    case .pawn: return 1
-    case .king: return 0 // should not normally appear
-    }
-  }
-}
-
-// MARK: - Legal Move Query (UI helpers)
-extension GameViewModel {
-  /// Returns the set of legal destination squares for a piece on `from` in the current live position.
-  /// If history view is active or no piece / wrong color, returns empty set.
-  func legalDestinations(from: Square) -> Set<Square> {
-    if historyIndex != nil { return [] }
-    guard let piece = engine.board.piece(at: from) else { return [] }
-    if peers.isConnected, let mine = myColor, engine.sideToMove != mine { return [] }
-    if piece.color != engine.sideToMove { return [] }
-    let sig = boardSignature()
-    if lastCacheBoardSignature != sig { // board changed -> clear cache
-      legalDestCache.removeAll()
-      lastCacheBoardSignature = sig
-    }
-    let cacheKey = sig + "|f" + String(from.file) + "r" + String(from.rank)
-    if let cached = legalDestCache[cacheKey] { return cached }
-    let moves = engine.generateLegalMoves(for: engine.sideToMove)
-    let dests = Set(moves.filter { $0.from == from }.map { $0.to })
-    legalDestCache[cacheKey] = dests
-    return dests
-  }
-
-  // Load a famous game - replaces current game state
-  func loadFamousGame(_ game: FamousGame) {
-    // Reset to initial state
-    engine = ChessEngine()
-    moveHistory = []
-    boardSnapshots = [engine.board] // Initial position
-    capturedByMe = []
-    capturedByOpponent = []
-    movesMade = 0
-    lastMove = nil
-    lastCapturedPieceID = nil
-    lastCaptureByMe = nil
-    historyIndex = nil
-  baselineBoard = engine.board
-  baselineSideToMove = engine.sideToMove
-  baselineCounts = pieceCounts(on: baselineBoard)
-
-    // Determine source of moves: explicit array or PGN parsing fallback
-    var sourceMoves: [Move] = game.moves
-    if sourceMoves.isEmpty, let pgn = game.pgn {
-      switch PGNParser.parseMoves(pgn: pgn) {
-      case .success(let parsed): sourceMoves = parsed
-      case .failure(let err):
-        print("PGN parse failed for game \(game.title): \(err)")
-      }
-    }
-
-    // Apply all moves from the famous game (array or parsed PGN)
-    for move in sourceMoves {
-      let capturedBefore = capturedPieceConsideringEnPassant(from: move.from, to: move.to, board: engine.board)
-      if engine.tryMakeMove(move) {
-        if let cap = capturedBefore { lastCapturedPieceID = cap.id; lastCaptureByMe = (cap.color == .black) } else { lastCapturedPieceID = nil; lastCaptureByMe = nil }
-        moveHistory.append(move)
-        boardSnapshots.append(engine.board)
-        movesMade += 1
-        lastMove = move
-      } else {
-        print("Skipped illegal famous game move from (f:\(move.from.file) r:\(move.from.rank)) to (f:\(move.to.file) r:\(move.to.rank))")
-        break
-      }
-    }
-    rebuildCapturedLists(for: engine.board)
-  // Keep historyIndex nil so UI displays live board
-  rebuildCapturedLists(for: engine.board)
-  saveGame()
-  }
-}
-
-// MARK: - Board Signature (for legal move cache invalidation)
-private extension GameViewModel {
-  /// Lightweight signature representing current board layout + side to move.
-  /// Not a full Zobrist hash; sufficient to know when any piece configuration changes.
-  func boardSignature() -> String {
-    var s = String(); s.reserveCapacity(8*8*2 + 1)
-    for rank in 0..<8 {
-      for file in 0..<8 {
-        let sq = Square(file: file, rank: rank)
-        if let p = engine.board.piece(at: sq) {
-          // Color letter + piece type first char
-            let c = (p.color == .white ? "W" : "B")
-            let t = String(p.type.rawValue.first!)
-            s.append(c); s.append(t)
-        } else {
-          s.append("__")
-        }
-      }
-    }
-    s.append(engine.sideToMove == .white ? "w" : "b")
-    return s
-  }
-}
-
-private extension GameViewModel {
-  var isSingleDeviceMode: Bool { !peers.isConnected }
-  static func baseName(from composite: String) -> String {
-    // Split at first '#' only; if absent return full string
-    if let idx = composite.firstIndex(of: "#") {
-      return String(composite[..<idx])
-    }
-    return composite
-  }
-}
-
-extension GameViewModel {
-  // For a given historyIndex (non-nil, 1...moveHistory.count) return the piece id captured on the PREVIOUS move (the move that produced this position),
-  // and whether it was captured by me (from myColor perspective / or white in single-device when myColor == nil).
-  func historicalCaptureHighlight(at historyIndex: Int) -> (pieceID: UUID, byMe: Bool)? {
-    // historyIndex represents board AFTER that many moves. So the last applied move is moveHistory[historyIndex-1].
-    guard historyIndex > 0, historyIndex <= moveHistory.count else { return nil }
-    var engine = ChessEngine.fromSnapshot(board: baselineBoard, sideToMove: baselineSideToMove)
-    for i in 0..<(historyIndex - 1) { _ = engine.tryMakeMove(moveHistory[i]) }
-    let move = moveHistory[historyIndex - 1]
-    guard let cap = capturedPiece(beforeApplying: move, on: engine.board) else { return nil }
-    // Apply move (not strictly necessary for result, but consistent side effects if extended later)
-    _ = engine.tryMakeMove(move)
-    let capturedByWhite = cap.color == .black
-    let byMe: Bool = {
-      if let my = myColor { return (my == .white) == capturedByWhite }
-      return capturedByWhite
-    }()
-    return (cap.id, byMe)
-  }
-
-  /// Reconstruct capture lists and last capture info for a given history index (0..moveHistory.count) using the baseline board.
-  /// - Parameter historyIndex: number of half-moves to apply (board state after that many moves). 0 represents initial baseline.
-  /// - Returns: Tuple of captures from white's perspective and black's perspective plus last capture metadata.
-  func captureReconstruction(at historyIndex: Int) -> (whiteCaptures: [Piece], blackCaptures: [Piece], lastCapturePieceID: UUID?, lastCapturingSide: PieceColor?) {
-    let clamped = max(0, min(historyIndex, moveHistory.count))
-    var engine = ChessEngine.fromSnapshot(board: baselineBoard, sideToMove: baselineSideToMove)
-    var capsByWhite: [Piece] = [] // pieces captured BY white (i.e. missing black pieces)
-    var capsByBlack: [Piece] = [] // pieces captured BY black
-    var lastCapID: UUID? = nil
-    var lastCapturingSide: PieceColor? = nil
-    if clamped == 0 { return (capsByWhite, capsByBlack, nil, nil) }
-    for i in 0..<clamped {
-      let mv = moveHistory[i]
-      // Detect capture before applying move (normal or en-passant)
-      let captured = capturedPiece(beforeApplying: mv, on: engine.board)
-      _ = engine.tryMakeMove(mv)
-      if let cap = captured {
-        if cap.color == .white { // black captured a white piece
-          capsByBlack.append(cap)
-          lastCapturingSide = .black
-        } else { // white captured a black piece
-          capsByWhite.append(cap)
-          lastCapturingSide = .white
-        }
-        lastCapID = cap.id
-      }
-    }
-    return (capsByWhite, capsByBlack, lastCapID, lastCapturingSide)
-  }
-}
-
-// MARK: - Shared capture detection helper
-private extension GameViewModel {
-  /// Determine the piece captured (including en passant) by `move` on `board` before applying the move.
-  func capturedPiece(beforeApplying move: Move, on board: Board) -> Piece? {
-    if let piece = board.piece(at: move.to) { return piece }
-    if let moving = board.piece(at: move.from), moving.type == .pawn, move.from.file != move.to.file, board.piece(at: move.to) == nil {
-      let dir = moving.color == .white ? 1 : -1
-      let capturedSq = Square(file: move.to.file, rank: move.to.rank - dir)
-      if let epPawn = board.piece(at: capturedSq), epPawn.color != moving.color, epPawn.type == .pawn { return epPawn }
-    }
-    return nil
-  }
-}
-
-// MARK: - Snapshot Rebuild
-private extension GameViewModel {
-  /// Rebuild `boardSnapshots` from `moveHistory` ensuring stable Piece.id continuity between successive boards.
-  /// This should be called after loading persisted state or if snapshots are detected incomplete.
-  func rebuildSnapshotsFromHistory() {
-    if boardSnapshots.count == moveHistory.count + 1 { return }
-    guard baselineTrusted else {
-      if boardSnapshots.isEmpty { boardSnapshots = [engine.board] }
-      return
-    }
-    var e = ChessEngine.fromSnapshot(board: baselineBoard, sideToMove: baselineSideToMove)
-    var newSnapshots: [Board] = [baselineBoard]
-    for mv in moveHistory { _ = e.tryMakeMove(mv); newSnapshots.append(e.board) }
-    if let last = newSnapshots.last, !boardsEqual(last, engine.board) {
-      engine = ChessEngine.fromSnapshot(board: last, sideToMove: (moveHistory.count % 2 == 0) ? baselineSideToMove : baselineSideToMove.opposite)
-    }
-    boardSnapshots = newSnapshots
-  }
-
-  /// Lightweight board equality (piece type & color at each square)
-  private func boardsEqual(_ a: Board, _ b: Board) -> Bool {
-    for rank in 0..<8 { for file in 0..<8 { let sq = Square(file: file, rank: rank); let pa = a.piece(at: sq); let pb = b.piece(at: sq); if pa?.type != pb?.type || pa?.color != pb?.color { return false } } }
-    return true
-  }
-}
