@@ -1,0 +1,37 @@
+{
+  "configurations" : [
+    {
+      "id" : "319D3309-7B8C-4964-9C1A-9431B45BBA2F",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:ChessDuo.xcodeproj",
+      "identifier" : "7DAE26392E4870ED006F9BFE",
+      "name" : "ChessDuo"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:ChessDuo.xcodeproj",
+        "identifier" : "7DAE26462E4870EE006F9BFE",
+        "name" : "ChessDuoTests"
+      }
+    },
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:ChessDuo.xcodeproj",
+        "identifier" : "7DAE26502E4870EE006F9BFE",
+        "name" : "ChessDuoUITests"
+      }
+    }
+  ],
+  "version" : 1
+}
