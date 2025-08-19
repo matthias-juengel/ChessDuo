@@ -44,8 +44,11 @@ struct CapturedRow: View {
   }
   private func sortedPieces() -> [Piece] {
     pieces.sorted { a, b in
-      let va = pieceValue(a)
-      let vb = pieceValue(b)
+  // Use unified material value (king treated specially for ordering by inflating its score)
+  let baseA = GameViewModel.materialValue(a)
+  let baseB = GameViewModel.materialValue(b)
+  let va = (a.type == .king ? 100 : baseA)
+  let vb = (b.type == .king ? 100 : baseB)
       if va != vb { return va > vb }
       // Tie-breaker for same value (specifically bishop vs knight): bishops first
       if va == 3 {
@@ -67,9 +70,7 @@ struct CapturedRow: View {
     case .king: return 5
     }
   }
-  private func pieceValue(_ p: Piece) -> Int {
-    switch p.type { case .queen: return 9; case .rook: return 5; case .bishop, .knight: return 3; case .pawn: return 1; case .king: return 100 }
-  }
+  // (Removed local pieceValue; ordering logic now derives from GameViewModel.materialValue with king override)
   private func symbol(for p: Piece) -> String {
     switch p.type {
     case .king: return "♚"; case .queen: return "♛"; case .rook: return "♜"; case .bishop: return "♝"; case .knight: return "♞"; case .pawn: return "♟︎" }

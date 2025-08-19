@@ -328,7 +328,7 @@ struct GameScreen: View {
 
   private func materialDiff(on board: Board) -> Int {
     var w = 0, b = 0
-    for rank in 0..<8 { for file in 0..<8 { let sq = Square(file: file, rank: rank); if let p = board.piece(at: sq) { let v = pieceValue(p); if p.color == .white { w += v } else { b += v } } } }
+  for rank in 0..<8 { for file in 0..<8 { let sq = Square(file: file, rank: rank); if let p = board.piece(at: sq) { let v = GameViewModel.materialValue(p); if p.color == .white { w += v } else { b += v } } } }
     return w - b
   }
 
@@ -442,15 +442,7 @@ private struct StateChangeHandlers: ViewModifier {
 }
 
 // MARK: Piece values (UI-level)
-private func pieceValue(_ p: Piece) -> Int {
-  switch p.type {
-  case .queen: return 9
-  case .rook: return 5
-  case .bishop, .knight: return 3
-  case .pawn: return 1
-  case .king: return 0
-  }
-}
+// (Removed local pieceValue in favor of GameViewModel.materialValue)
 
 private func symbol(for p: Piece) -> String {
   switch p.type {
