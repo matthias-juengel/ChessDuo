@@ -159,4 +159,53 @@ struct ChessDuoTests {
         #expect(vm.historicalCaptureHighlight(at: 1) == nil)
         #expect(vm.historicalCaptureHighlight(at: 2) == nil)
     }
+
+    @Test func persistedQuietEndgameHasNoPhantomCaptures() async throws {
+        // Use KQ vs K FEN with white to move; make quiet moves; save & reload; ensure no captures appear historically.
+        let fen = "4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1"
+        // Session 1
+        do {
+            let vm = GameViewModel()
+            let game = FamousGame(title: "KQvK Persist Test", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil)
+            vm.applyFamousGame(game, broadcast: false)
+            #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty)
+            // Two quiet queen moves: d2->e2, e2->f2
+            let q1From = Square(file: 3, rank: 1)
+            let q1To = Square(file: 4, rank: 1)
+            _ = vm.makeLocalMove(from: q1From, to: q1To)
+            let q2From = q1To
+            let q2To = Square(file: 5, rank: 1)
+            _ = vm.makeLocalMove(from: q2From, to: q2To)
+            #expect(vm.moveHistory.count == 2)
+            #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty)
+            // Force save (already called internally on move, but explicit for clarity)
+            vm.saveGame()
+            // Reconstruction pre-persist
+            for i in 0...2 {
+                let recon = vm.captureReconstruction(at: i)
+                #expect(recon.whiteCaptures.isEmpty && recon.blackCaptures.isEmpty && recon.lastCapturePieceID == nil, "Pre-persist recon at index \(i) should have no captures")
+            }
+        }
+        // Session 2 (fresh instance reads persisted game)
+        do {
+            let vm2 = GameViewModel()
+            vm2.loadGameIfAvailable()
+            #expect(vm2.moveHistory.count == 2, "Reloaded history should have 2 moves")
+            #expect(vm2.capturedByMe.isEmpty && vm2.capturedByOpponent.isEmpty, "Reloaded capture lists should be empty")
+            for i in 0...2 {
+                let recon = vm2.captureReconstruction(at: i)
+                #expect(recon.whiteCaptures.isEmpty && recon.blackCaptures.isEmpty && recon.lastCapturePieceID == nil, "Post-load recon at index \(i) should have no captures")
+            }
+            // Scrub using historyIndex semantics (0,1,nil)
+            vm2.historyIndex = 0
+            let r0 = vm2.captureReconstruction(at: 0)
+            #expect(r0.whiteCaptures.isEmpty && r0.blackCaptures.isEmpty)
+            vm2.historyIndex = 1
+            let r1 = vm2.captureReconstruction(at: 1)
+            #expect(r1.whiteCaptures.isEmpty && r1.blackCaptures.isEmpty)
+            vm2.historyIndex = nil
+            let rLive = vm2.captureReconstruction(at: vm2.moveHistory.count)
+            #expect(rLive.whiteCaptures.isEmpty && rLive.blackCaptures.isEmpty)
+        }
+    }
 }

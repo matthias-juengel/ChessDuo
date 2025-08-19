@@ -94,6 +94,8 @@ final class GameViewModel: ObservableObject {
   // Baseline piece counts per color/type (used to compute captures for history & FEN starts)
   private var baselineCounts: [PieceColor: [PieceType:Int]] = [.white: [:], .black: [:]]
   private var baselineSideToMove: PieceColor = .white
+  // Whether the baseline is trusted as the true starting state for moveHistory (v3 persistence or fresh session)
+  private var baselineTrusted: Bool = true
 
   // Export current game state as a textual snapshot (for debugging / tests)
   func exportText() -> String {
@@ -306,6 +308,7 @@ final class GameViewModel: ObservableObject {
     baselineBoard = engine.board
     baselineSideToMove = engine.sideToMove
   baselineCounts = pieceCounts(on: baselineBoard)
+  baselineTrusted = true
   rebuildCapturedLists(for: engine.board)
     peers.onMessage = { [weak self] msg in
       self?.handle(msg)
@@ -824,6 +827,7 @@ final class GameViewModel: ObservableObject {
     baselineBoard = engine.board
     baselineSideToMove = engine.sideToMove
   baselineCounts = pieceCounts(on: baselineBoard)
+  baselineTrusted = true
   rebuildCapturedLists(for: engine.board)
     if send { peers.send(.init(kind: .reset)) }
   saveGame()
@@ -960,6 +964,7 @@ final class GameViewModel: ObservableObject {
     baselineBoard = engine.board
     baselineSideToMove = engine.sideToMove
   baselineCounts = pieceCounts(on: baselineBoard)
+  baselineTrusted = true
     moveHistory = []
     boardSnapshots = [engine.board]
     capturedByMe = []
@@ -1160,6 +1165,20 @@ extension GameViewModel {
     let lastCaptureByMe: Bool?
     let moveHistory: [Move]
   }
+  struct GamePersistedV3: Codable { // adds baseline board & side
+    let version: Int
+    let engine: ChessEngine
+    let myColor: PieceColor?
+    let capturedByMe: [Piece]
+    let capturedByOpponent: [Piece]
+    let movesMade: Int
+    let lastMove: Move?
+    let lastCapturedPieceID: UUID?
+    let lastCaptureByMe: Bool?
+    let moveHistory: [Move]
+    let baselineBoard: Board
+    let baselineSideToMove: PieceColor
+  }
 
   var saveURL: URL {
     let fm = FileManager.default
@@ -1172,7 +1191,7 @@ extension GameViewModel {
   }
 
   func saveGame() {
-  let snapshot = GamePersistedV2(version: 2,
+  let snapshot = GamePersistedV3(version: 3,
                    engine: engine,
                    myColor: myColor,
                    capturedByMe: capturedByMe,
@@ -1181,7 +1200,9 @@ extension GameViewModel {
                    lastMove: lastMove,
                    lastCapturedPieceID: lastCapturedPieceID,
                    lastCaptureByMe: lastCaptureByMe,
-                   moveHistory: moveHistory)
+                   moveHistory: moveHistory,
+                   baselineBoard: baselineBoard,
+                   baselineSideToMove: baselineSideToMove)
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.withoutEscapingSlashes]
     do {
@@ -1201,7 +1222,22 @@ extension GameViewModel {
     let url = saveURL
     guard let data = try? Data(contentsOf: url) else { return }
     let decoder = JSONDecoder()
-    if let v2 = try? decoder.decode(GamePersistedV2.self, from: data) {
+    if let v3 = try? decoder.decode(GamePersistedV3.self, from: data) {
+      engine = v3.engine
+      myColor = v3.myColor
+      capturedByMe = v3.capturedByMe
+      capturedByOpponent = v3.capturedByOpponent
+      movesMade = v3.movesMade
+      lastMove = v3.lastMove
+      lastCapturedPieceID = v3.lastCapturedPieceID
+      lastCaptureByMe = v3.lastCaptureByMe
+      moveHistory = v3.moveHistory
+      baselineBoard = v3.baselineBoard
+      baselineSideToMove = v3.baselineSideToMove
+      baselineCounts = pieceCounts(on: baselineBoard)
+      baselineTrusted = true
+      boardSnapshots = []
+    } else if let v2 = try? decoder.decode(GamePersistedV2.self, from: data) {
       engine = v2.engine
       myColor = v2.myColor
       capturedByMe = v2.capturedByMe
@@ -1213,6 +1249,11 @@ extension GameViewModel {
       moveHistory = v2.moveHistory
       // We'll rebuild snapshots below (including initial) to preserve stable piece identity for animations
       boardSnapshots = []
+      // Baseline unknown, derive from current engine board
+      baselineBoard = engine.board
+      baselineSideToMove = engine.sideToMove
+      baselineCounts = pieceCounts(on: baselineBoard)
+      baselineTrusted = false
     } else if let v1 = try? decoder.decode(GamePersistedV1.self, from: data) {
       engine = v1.engine
       myColor = v1.myColor
@@ -1225,6 +1266,10 @@ extension GameViewModel {
       moveHistory = []
       // Rebuild snapshots from engine current board only (no move history available in V1)
       boardSnapshots = []
+      baselineBoard = engine.board
+      baselineSideToMove = engine.sideToMove
+      baselineCounts = pieceCounts(on: baselineBoard)
+      baselineTrusted = false
     }
     // After loading any version, rebuild snapshots to enable history animations.
     rebuildSnapshotsFromHistory()
@@ -1525,6 +1570,10 @@ private extension GameViewModel {
   /// This should be called after loading persisted state or if snapshots are detected incomplete.
   func rebuildSnapshotsFromHistory() {
     if boardSnapshots.count == moveHistory.count + 1 { return }
+    guard baselineTrusted else {
+      if boardSnapshots.isEmpty { boardSnapshots = [engine.board] }
+      return
+    }
     var e = ChessEngine.fromSnapshot(board: baselineBoard, sideToMove: baselineSideToMove)
     var newSnapshots: [Board] = [baselineBoard]
     for mv in moveHistory { _ = e.tryMakeMove(mv); newSnapshots.append(e.board) }
