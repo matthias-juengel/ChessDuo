@@ -228,7 +228,8 @@ private extension GameScreenOverlays {
       if vm.showLocalNetworkPermissionHelp {
         LocalNetworkPermissionHelpOverlay(
           onOpenSettings: {
-            Task { await vm.openAppSettings() }
+            // Direct call; function is @MainActor sync so no need for Task/await.
+            vm.openAppSettings()
           },
           onDismiss: { vm.showLocalNetworkPermissionHelp = false }
         )
