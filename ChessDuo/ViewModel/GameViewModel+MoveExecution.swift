@@ -45,7 +45,21 @@ extension GameViewModel {
     if engine.tryMakeMove(move) {
       withAnimation(.easeInOut(duration: 0.35)) {
         peers.send(.init(kind: .move, move: move))
-        if let cap = capturedBefore { lastCapturedPieceID = cap.id; lastCaptureByMe = true } else { lastCapturedPieceID = nil; lastCaptureByMe = nil }
+        if let cap = capturedBefore {
+          // Preserve original captured piece identity immediately for UI highlight (before rebuildCapturedLists runs)
+          lastCapturedPieceID = cap.id
+          lastCaptureByMe = true
+          // Inject into captured lists early (rebuildCapturedLists will recompute but this makes highlighting immediate)
+          if !capturedByMe.contains(where: { $0.id == cap.id }) {
+            capturedByMe.append(cap)
+          }
+          // Archive by original owner color
+          if cap.color == .white {
+            if !whiteCapturedPieces.contains(where: { $0.id == cap.id }) { whiteCapturedPieces.append(cap) }
+          } else {
+            if !blackCapturedPieces.contains(where: { $0.id == cap.id }) { blackCapturedPieces.append(cap) }
+          }
+        } else { lastCapturedPieceID = nil; lastCaptureByMe = nil }
         movesMade += 1
         sessionProgressed = true
         lastMove = move
@@ -74,7 +88,20 @@ extension GameViewModel {
     let capturedBefore = capturedPieceConsideringEnPassant(from: from, to: to, board: engine.board)
     if engine.tryMakeMove(move) {
       withAnimation(.easeInOut(duration: 0.35)) {
-        if let cap = capturedBefore { lastCapturedPieceID = cap.id; lastCaptureByMe = (moverColor == .white) } else { lastCapturedPieceID = nil; lastCaptureByMe = nil }
+        if let cap = capturedBefore {
+          lastCapturedPieceID = cap.id
+          lastCaptureByMe = (moverColor == .white)
+          if moverColor == .white {
+            if !capturedByMe.contains(where: { $0.id == cap.id }) { capturedByMe.append(cap) }
+          } else {
+            if !capturedByOpponent.contains(where: { $0.id == cap.id }) { capturedByOpponent.append(cap) }
+          }
+          if cap.color == .white {
+            if !whiteCapturedPieces.contains(where: { $0.id == cap.id }) { whiteCapturedPieces.append(cap) }
+          } else {
+            if !blackCapturedPieces.contains(where: { $0.id == cap.id }) { blackCapturedPieces.append(cap) }
+          }
+        } else { lastCapturedPieceID = nil; lastCaptureByMe = nil }
         movesMade += 1
         sessionProgressed = true
         lastMove = move

@@ -51,6 +51,11 @@ final class GameViewModel: ObservableObject {
   @Published var allBrowsedPeerFriendlyNames: [String] = []
   @Published var capturedByMe: [Piece] = []
   @Published var capturedByOpponent: [Piece] = []
+  // Stable archives of actual captured piece objects, order of capture.
+  // whiteCapturedPieces = pieces originally belonging to White that have been captured.
+  // blackCapturedPieces = pieces originally belonging to Black that have been captured.
+  var whiteCapturedPieces: [Piece] = []
+  var blackCapturedPieces: [Piece] = []
   @Published var movesMade: Int = 0
   @Published var awaitingResetConfirmation: Bool = false
   @Published var incomingResetRequest: Bool = false
@@ -211,23 +216,47 @@ final class GameViewModel: ObservableObject {
   /// Rebuild published capture lists for a given board according to current perspective
   func rebuildCapturedLists(for board: Board) {
     let (whiteMissing, blackMissing) = missingComparedToBaseline(current: board)
-    let perspective: PieceColor = myColor ?? preferredPerspective
-    let myOppColor: PieceColor = (perspective == .white) ? .black : .white
-    let myColorLocal: PieceColor = perspective
-
-    func buildList(for color: PieceColor, missing: [PieceType:Int]) -> [Piece] {
-      var arr: [Piece] = []
-      for t in [PieceType.queen, .rook, .bishop, .knight, .pawn] { // König wird nie geschlagen
-        for _ in 0..<(missing[t] ?? 0) { arr.append(Piece(type: t, color: color)) }
+    // Ensure archives contain at least the number of missing pieces per color (if we started mid-game via FEN we may fabricate placeholders once).
+    func ensureArchive(color: PieceColor, missing: [PieceType:Int]) {
+      for t in [PieceType.queen, .rook, .bishop, .knight, .pawn] {
+        let needed = missing[t] ?? 0
+        var archive = (color == .white) ? whiteCapturedPieces : blackCapturedPieces
+        let existingOfType = archive.filter { $0.type == t }.count
+        if existingOfType < needed {
+          // Fabricate placeholders only for deficit (no original IDs available). These won't highlight as current capture.
+          for _ in existingOfType..<needed { archive.append(Piece(type: t, color: color)) }
+          if color == .white { whiteCapturedPieces = archive } else { blackCapturedPieces = archive }
+        }
       }
-      return arr
+    }
+    ensureArchive(color: .white, missing: whiteMissing)
+    ensureArchive(color: .black, missing: blackMissing)
+
+    let perspective: PieceColor = myColor ?? preferredPerspective
+    let opponentColor: PieceColor = perspective.opposite
+
+    // Build perspective-relative lists from archives, trimming to the missing counts per type (ordered by capture chronology)
+    func listFor(color: PieceColor, missing: [PieceType:Int]) -> [Piece] {
+      let archive = (color == .white) ? whiteCapturedPieces : blackCapturedPieces
+      var result: [Piece] = []
+      // Keep chronological order but limit per type counts so stale fabricated overflow after piece returns (shouldn't happen) is ignored.
+      var remainingPerType: [PieceType:Int] = missing
+      for piece in archive {
+        let left = remainingPerType[piece.type] ?? 0
+        if left > 0 {
+          result.append(piece)
+          remainingPerType[piece.type] = left - 1
+        }
+      }
+      return result
     }
 
-    let oppMissing = (myOppColor == .white) ? whiteMissing : blackMissing
-    let mineMissing = (myColorLocal == .white) ? whiteMissing : blackMissing
+    let whiteList = listFor(color: .white, missing: whiteMissing)
+    let blackList = listFor(color: .black, missing: blackMissing)
 
-    capturedByMe = buildList(for: myOppColor, missing: oppMissing)
-    capturedByOpponent = buildList(for: myColorLocal, missing: mineMissing)
+    // Map to perspective-specific published arrays
+    capturedByMe = (perspective == .white) ? blackList : whiteList
+    capturedByOpponent = (perspective == .white) ? whiteList : blackList
   }
   private func outcomeString(_ o: GameOutcome) -> String {
     switch o { case .ongoing: return "ongoing"; case .win: return "win"; case .loss: return "loss"; case .draw: return "draw" }
