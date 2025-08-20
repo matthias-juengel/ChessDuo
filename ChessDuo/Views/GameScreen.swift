@@ -284,12 +284,30 @@ struct GameScreen: View {
   }
 
   private func capturedRow(for side: PieceColor, pieces: [Piece], ctx: CaptureContext, whiteLead: Int, blackLead: Int, rotate: Bool) -> some View {
+    // Highlight logic:
+    //  - In history view: highlight ONLY if the most recent displayed move (historyIndex) was a capture.
+    //    Previously we used the reconstructed "last capture" across all prior moves, which caused the
+    //    highlight to persist into subsequent non-capturing moves. We now query
+    //    historicalCaptureHighlight(at:) which returns info only if the move at historyIndex was itself
+    //    a capture. (historyIndex corresponds to the position AFTER that move.)
+    //  - In live play: retain the previous behavior (show highlight for last capture made by the
+    //    relevant side, based on local perspective flags).
     let highlight: UUID? = {
-      if vm.historyIndex != nil, let pid = ctx.lastCapturePieceID, let captSide = ctx.lastCapturingSide, captSide == side { return pid }
-      if vm.historyIndex == nil {
-        if (vm.lastCaptureByMe == true && side == (vm.myColor ?? .white)) || (vm.lastCaptureByMe == false && side == (vm.myColor?.opposite ?? .black)) { return vm.lastCapturedPieceID }
+      if let idx = vm.historyIndex { // history mode
+        if let hist = vm.historicalCaptureHighlight(at: idx) {
+          // Determine which side performed the capture by inspecting the captured piece's color.
+          if let capturedPiece = (ctx.whiteCaptures + ctx.blackCaptures).first(where: { $0.id == hist.pieceID }) {
+            let capturingSide: PieceColor = (capturedPiece.color == .white ? .black : .white)
+            if capturingSide == side { return hist.pieceID }
+          }
+        }
+        return nil
+      } else { // live mode
+        if (vm.lastCaptureByMe == true && side == (vm.myColor ?? .white)) || (vm.lastCaptureByMe == false && side == (vm.myColor?.opposite ?? .black)) {
+          return vm.lastCapturedPieceID
+        }
+        return nil
       }
-      return nil
     }()
     let advantage = side == .white ? whiteLead : blackLead
     return CapturedRow(pieces: pieces, rotatePieces: rotate, highlightPieceID: highlight, pointAdvantage: advantage)
