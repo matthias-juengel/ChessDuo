@@ -78,7 +78,8 @@ extension GameViewModel {
                            lastCaptureByMe: lastCaptureByMe,
                            moveHistory: moveHistory,
                            historyViewIndex: nil,
-                           gameTitle: game.title)
+                           gameTitle: game.title,
+                           initialFEN: game.initialFEN)
       peers.send(msg)
     }
   }

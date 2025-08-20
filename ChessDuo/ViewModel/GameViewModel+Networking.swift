@@ -183,6 +183,24 @@ extension GameViewModel {
          let remoteCapturedBySender = msg.capturedByMe,
          let remoteCapturedByOpponent = msg.capturedByOpponent,
          let remoteHistory = msg.moveHistory {
+        // If an initialFEN was provided, use it to reconstruct baseline (even if board snapshot is also sent) so
+        // subsequent history reconstruction & capture logic align with sender's baseline.
+        if let fen = msg.initialFEN, let baselineEngine = ChessEngine.fromFEN(fen) {
+          baselineBoard = baselineEngine.board
+          baselineSideToMove = baselineEngine.sideToMove
+          baselineCounts = pieceCounts(on: baselineBoard)
+          baselineTrusted = true
+        } else {
+          // Fallback: treat incoming board AFTER all moves as authoritative and derive baseline from applying history to a fresh engine.
+          // (Existing logic below rebuilds snapshots from moveHistory and will preserve baseline fields if already set.)
+          // If we had no moves yet, set a standard baseline so rebuild logic is consistent.
+          if remoteHistory.isEmpty {
+            baselineBoard = Board.initial()
+            baselineSideToMove = .white
+            baselineCounts = pieceCounts(on: baselineBoard)
+            baselineTrusted = true
+          }
+        }
         engine = ChessEngine.fromSnapshot(board: b, sideToMove: stm)
         capturedByOpponent = remoteCapturedBySender
         capturedByMe = remoteCapturedByOpponent

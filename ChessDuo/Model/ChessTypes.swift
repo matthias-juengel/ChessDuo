@@ -97,4 +97,6 @@ struct NetMessage: Codable {
     var historyViewIndex: Int? = nil
     // Famous game metadata (title) for load negotiation/reference
     var gameTitle: String? = nil
+    // For famous games or custom starts: include initial FEN so receiver can set baseline identically
+    var initialFEN: String? = nil
 }
