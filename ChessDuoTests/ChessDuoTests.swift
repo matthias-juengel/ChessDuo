@@ -71,6 +71,20 @@ struct ChessDuoTests {
             #expect(exampleGroup.localizedName == "Example Games")
         }
     }
+    
+    @Test func endgameMovesAreLoadedFromPGN() async throws {
+        let loader = FamousGamesLoader.shared
+        let all = loader.getAllGames()
+        guard let endgameWithMoves = all.first(where: { $0.category == .endgame && $0.pgn != nil && !$0.pgn!.isEmpty }) else {
+            #expect(Bool(false), "No endgame with PGN found")
+            return
+        }
+        let vm = GameViewModel()
+        vm.applyFamousGame(endgameWithMoves, broadcast: false)
+        // After applying the game, move history should contain the moves from PGN
+        #expect(vm.moveHistory.count > 0, "Endgame should have loaded moves from PGN, got \(vm.moveHistory.count) moves")
+        #expect(vm.movesMade == vm.moveHistory.count, "movesMade should match moveHistory count")
+    }
 
     // MARK: - Captured Pieces Baseline/FEN Tests
 
