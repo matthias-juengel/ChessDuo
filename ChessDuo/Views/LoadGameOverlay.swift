@@ -4,7 +4,9 @@ struct LoadGameOverlay: View {
     @ObservedObject var vm: GameViewModel
     @Binding var showLoadGame: Bool
 
-    private let games = FamousGamesLoader.shared.getAllGames()
+    // Group games by category (already localized inside grouping helper)
+    private let groups = FamousGamesLoader.shared.gamesGroupedByCategory()
+    @State private var expanded: Set<FamousGame.Category> = Set(FamousGame.Category.allCases)
 
     var body: some View {
         VStack(spacing: 0) {
@@ -42,14 +44,22 @@ struct LoadGameOverlay: View {
                 .foregroundColor(AppColors.textSecondary)
                 .padding(.bottom, 16)
 
-            // Games List
+            // Games List grouped by category
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 12) {
-                    ForEach(games) { game in
-                        GameRow(game: game) {
-                            withAnimation(.easeInOut(duration: 0.25)) {
-                                showLoadGame = false
+                VStack(spacing: 16) {
+                    ForEach(groups, id: \.category) { tuple in
+                        let category = tuple.category
+                        let localizedName = tuple.localizedName
+                        let games = tuple.games
+                        CategorySection(category: category,
+                                         localizedName: localizedName,
+                                         games: games,
+                                         expanded: expanded.contains(category)) { cat in
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                if expanded.contains(cat) { expanded.remove(cat) } else { expanded.insert(cat) }
                             }
+                        } onSelect: { game in
+                            withAnimation(.easeInOut(duration: 0.25)) { showLoadGame = false }
                             vm.userSelectedFamousGame(game)
                         }
                     }
@@ -67,6 +77,53 @@ struct LoadGameOverlay: View {
         .padding(.horizontal, 28)
         .frame(maxWidth: 440)
         .modalTransition(animatedWith: showLoadGame)
+    }
+}
+
+private struct CategorySection: View {
+    let category: FamousGame.Category
+    let localizedName: String
+    let games: [FamousGame]
+    let expanded: Bool
+    let toggle: (FamousGame.Category) -> Void
+    let onSelect: (FamousGame) -> Void
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Button(action: { toggle(category) }) {
+                HStack(spacing: 12) {
+                    Image(systemName: expanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(AppColors.textSecondary)
+                        .frame(width: 20)
+                    Text(localizedName)
+                        .font(.headline.weight(.semibold))
+                        .foregroundColor(AppColors.textPrimary)
+                    Spacer(minLength: 0)
+                    Text("\(games.count)")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(AppColors.textSecondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(AppColors.buttonListBG, in: Capsule())
+                }
+                .padding(.horizontal, 4)
+                .padding(.vertical, 6)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(localizedName)
+            if expanded {
+                VStack(spacing: 12) {
+                    ForEach(games) { game in
+                        GameRow(game: game) {
+                            onSelect(game)
+                        }
+                    }
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
     }
 }
 

@@ -7,7 +7,7 @@ struct CapturePersistenceTests {
     // Session 1: perform capture
     do {
       let vm = GameViewModel()
-      let game = FamousGame(title: "Persist Capture", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil)
+      let game = FamousGame(title: "Persist Capture", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil, category: .endgame)
       vm.applyFamousGame(game, broadcast: false)
       let from = Square(file: 0, rank: 0)
       let to = Square(file: 0, rank: 7)

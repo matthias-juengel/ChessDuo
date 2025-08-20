@@ -10,7 +10,7 @@ struct CaptureHighlightTests {
     // FEN layout ranks 8..1: a8 knight black, a1 rook white; kings e1/e8.
     let fen = "r3k3/8/8/8/8/8/8/R3K3 w - - 0 1" // white rook a1 can not directly capture a8 (blocked by empty? needs vertical travel). Actually path is clear.
     let vm = GameViewModel()
-    let game = FamousGame(title: "Capture Test", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil)
+    let game = FamousGame(title: "Capture Test", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil, category: .endgame)
     vm.applyFamousGame(game, broadcast: false)
     // Move rook a1 -> a8 capturing knight
     let from = Square(file: 0, rank: 0) // a1

@@ -15,9 +15,19 @@ struct FamousGame: Codable, Identifiable {
     let pgn: String? // optional raw PGN main line (used if moves array empty or for future dynamic generation)
     let initialFEN: String? // optional starting position (FEN); if nil, standard initial chess position is assumed
     let localizations: [String: LocalizationBlock]? // e.g. "de", "es", "fr", "zh-Hans"
+    let category: Category
+
+    enum Category: String, Codable, CaseIterable {
+        case exampleGame      // classic or illustrative full/miniature games
+        case opening          // opening sequences
+        case endgame          // endgame technique / theoretical positions
+        case tactic           // short tactical motifs / miniatures
+        case promotion        // promotion patterns
+        case matingNet        // mating nets / technique (subset of endgames, separated for clarity)
+    }
 
     private enum CodingKeys: String, CodingKey {
-        case title, players, description, moves, pgn, initialFEN, localizations
+        case title, players, description, moves, pgn, initialFEN, localizations, category
     }
 
     // MARK: - Localized accessors
@@ -43,6 +53,24 @@ struct FamousGame: Codable, Identifiable {
     var displayTitle: String { localizedValue(base: title) { $0.title } }
     var displayPlayers: String { localizedValue(base: players) { $0.players } }
     var displayDescription: String { localizedValue(base: description) { $0.description } }
+    static func localizedCategoryName(_ cat: Category, locale: Locale = .current) -> String {
+        let lang = locale.identifier
+        let key: String
+        if lang.hasPrefix("de") { key = "de" }
+        else if lang.hasPrefix("es") { key = "es" }
+        else if lang.hasPrefix("fr") { key = "fr" }
+        else if lang.hasPrefix("zh") { key = "zh-Hans" }
+        else { key = "en" }
+        let table: [Category:[String:String]] = [
+            .exampleGame: ["en":"Example Games","de":"Beispielpartien","es":"Partidas Ejemplo","fr":"Parties Exemple","zh-Hans":"示例对局"],
+            .opening: ["en":"Openings","de":"Eröffnungen","es":"Aperturas","fr":"Ouvertures","zh-Hans":"开局"],
+            .endgame: ["en":"Endgames","de":"Endspiele","es":"Finales","fr":"Finales","zh-Hans":"残局"],
+            .tactic: ["en":"Tactics","de":"Taktik","es":"Tácticas","fr":"Tactiques","zh-Hans":"战术"],
+            .promotion: ["en":"Promotions","de":"Umwandlungen","es":"Promociones","fr":"Promotions","zh-Hans":"升变"],
+            .matingNet: ["en":"Mating Nets","de":"Mattnetze","es":"Redes de Mate","fr":"Filets de Mat","zh-Hans":"将杀网"]
+        ]
+        return table[cat]?[key] ?? table[cat]?["en"] ?? cat.rawValue
+    }
 
     private func localizedValue(base: String, _ accessor: (LocalizationBlock)->String) -> String {
         guard let localizations, let key = bestLocaleKey(), let block = localizations[key] else { return base }
@@ -75,5 +103,13 @@ class FamousGamesLoader {
 
     func getAllGames() -> [FamousGame] {
         return games
+    }
+
+    func gamesGroupedByCategory(locale: Locale = .current) -> [(category: FamousGame.Category, localizedName: String, games: [FamousGame])] {
+        let grouped = Dictionary(grouping: games, by: { $0.category })
+        return FamousGame.Category.allCases.compactMap { cat in
+            guard let arr = grouped[cat] else { return nil }
+            return (cat, FamousGame.localizedCategoryName(cat, locale: locale), arr.sorted { $0.displayTitle < $1.displayTitle })
+        }
     }
 }

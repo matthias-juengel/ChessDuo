@@ -11,6 +11,7 @@
 
 import Testing
 @testable import ChessDuo
+import Foundation
 
 struct ChessDuoTests {
 
@@ -53,13 +54,31 @@ struct ChessDuoTests {
         }
     }
 
+    // MARK: - Category Grouping Tests
+    @Test func famousGamesAreGroupedByCategory() async throws {
+        let loader = FamousGamesLoader.shared
+        let all = loader.getAllGames()
+        let groups = loader.gamesGroupedByCategory(locale: Locale(identifier: "en"))
+        // Ensure every game appears exactly once across groups
+        let totalFromGroups = groups.reduce(0) { $0 + $1.games.count }
+        #expect(totalFromGroups == all.count, "Grouped games total (\(totalFromGroups)) should match all games count (\(all.count))")
+        // Ensure no empty groups are produced
+        #expect(groups.allSatisfy { !$0.games.isEmpty }, "No empty category groups expected")
+        // Check that localizedName is non-empty and not raw value
+        for g in groups { #expect(!g.localizedName.isEmpty, "Localized category name should not be empty") }
+        // Basic spot check a known category name mapping (English)
+        if let exampleGroup = groups.first(where: { $0.category == .exampleGame }) {
+            #expect(exampleGroup.localizedName == "Example Games")
+        }
+    }
+
     // MARK: - Captured Pieces Baseline/FEN Tests
 
 
     @Test func capturedListsRemainEmptyInKQvKScenario() async throws {
         let fen = "4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1" // KQ vs K
         let vm = GameViewModel()
-        let game = FamousGame(title: "KQvK Test", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil)
+      let game = FamousGame(title: "KQvK Test", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil, category: .endgame)
         vm.applyFamousGame(game, broadcast: false)
         #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "Captured lists should be empty initially for KQvK FEN")
     }
@@ -67,7 +86,7 @@ struct ChessDuoTests {
     @Test func noPhantomCapturesAfterNonCaptureMoveInKQvK() async throws {
         let fen = "4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1"
         let vm = GameViewModel()
-        let game = FamousGame(title: "KQvK Test", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil)
+        let game = FamousGame(title: "KQvK Test", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil, category: .endgame)
         vm.applyFamousGame(game, broadcast: false)
         // Find the queen at d2 (file 3 rank 1) and move it to e2 (file 4 rank 1) if legal (horizontal slide)
         let from = Square(file: 3, rank: 1)
@@ -85,7 +104,7 @@ struct ChessDuoTests {
     @Test func revertHistoryKeepsCapturedListsEmptyInKQvK() async throws {
         let fen = "4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1"
         let vm = GameViewModel()
-        let game = FamousGame(title: "KQvK Test", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil)
+        let game = FamousGame(title: "KQvK Test", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil, category: .endgame)
         vm.applyFamousGame(game, broadcast: false)
         // Quiet move
         let from = Square(file: 3, rank: 1)
@@ -138,7 +157,7 @@ struct ChessDuoTests {
         // Start from KQ vs K FEN (no pawns should appear)
         let fen = "4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1"
         let vm = GameViewModel()
-        let game = FamousGame(title: "KQvK Quiet Test", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil)
+        let game = FamousGame(title: "KQvK Quiet Test", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil, category: .endgame)
         vm.applyFamousGame(game, broadcast: false)
         #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty)
         // Make two quiet moves (queen then king) ensuring no captures occur
@@ -169,7 +188,7 @@ struct ChessDuoTests {
         // Session 1
         do {
             let vm = GameViewModel()
-            let game = FamousGame(title: "KQvK Persist Test", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil)
+            let game = FamousGame(title: "KQvK Persist Test", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil, category: .endgame)
             vm.applyFamousGame(game, broadcast: false)
             #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty)
             // Two quiet queen moves: d2->e2, e2->f2
