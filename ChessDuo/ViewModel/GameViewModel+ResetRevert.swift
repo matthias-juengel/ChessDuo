@@ -10,6 +10,10 @@ extension GameViewModel {
     engine.reset()
     capturedByMe.removeAll()
     capturedByOpponent.removeAll()
+  // Clear archival capture data so a brand new session has no stale identities preventing first highlight
+  whiteCapturedPieces.removeAll()
+  blackCapturedPieces.removeAll()
+  fabricatedCapturedPieceIDs.removeAll()
     movesMade = 0
     awaitingResetConfirmation = false
     incomingResetRequest = false

@@ -48,6 +48,9 @@ extension GameViewModel {
       engine.reset()
       capturedByMe.removeAll()
       capturedByOpponent.removeAll()
+  whiteCapturedPieces.removeAll()
+  blackCapturedPieces.removeAll()
+  fabricatedCapturedPieceIDs.removeAll()
       movesMade = 0
       awaitingResetConfirmation = false
       incomingResetRequest = false

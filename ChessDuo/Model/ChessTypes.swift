@@ -25,6 +25,19 @@ struct Piece: Codable, Equatable, Identifiable {
 struct Square: Hashable, Codable {
     let file: Int  // 0..7 (a..h)
     let rank: Int  // 0..7 (1..8, 0 ist „1“ unten für Weiß)
+
+    init(file: Int, rank: Int) { self.file = file; self.rank = rank }
+    // Convenience algebraic initializer (e.g., "e4") for tests / debug tools
+    init?(algebraic: String) {
+        guard algebraic.count == 2,
+              let fileChar = algebraic.lowercased().first,
+              let rankChar = algebraic.last,
+              let files = "abcdefgh".firstIndex(of: fileChar) else { return nil }
+        let fileIndex = "abcdefgh".distance(from: "abcdefgh".startIndex, to: files)
+        guard let rankVal = Int(String(rankChar)), (1...8).contains(rankVal) else { return nil }
+        self.file = fileIndex
+        self.rank = rankVal - 1
+    }
 }
 
 struct Move: Codable {
