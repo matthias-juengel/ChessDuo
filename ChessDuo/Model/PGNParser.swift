@@ -34,17 +34,23 @@ struct PGNParser {
     }
 
     static func parseMoves(pgn: String) -> Result<[Move], ParserError> {
-        var cleaned = stripCommentsAndVariations(pgn)
-        // Replace new lines and tabs with spaces and collapse multiple spaces
-        cleaned = cleaned.replacingOccurrences(of: "\n", with: " ")
-                         .replacingOccurrences(of: "\r", with: " ")
-                         .replacingOccurrences(of: "\t", with: " ")
-        while cleaned.contains("  ") { cleaned = cleaned.replacingOccurrences(of: "  ", with: " ") }
-    let rawTokens = cleaned.split(separator: " ").map(String.init)
-        var moves: [Move] = []
-        var engine = ChessEngine() // local engine to evolve position
+        var engine = ChessEngine()
+        return parseMoves(pgn: pgn, startingFrom: &engine)
+    }
 
-    for raw in rawTokens.flatMap(splitCompoundMoveNumberToken) { // expand tokens like 1.e4 or 12...Qa5
+    /// Parse moves starting from the given (already configured) engine state (e.g. custom FEN).
+    /// The engine parameter is inout so that the caller can (optionally) observe the final evolved
+    /// state after successful parsing. On failure the engine will reflect moves made up to the
+    /// failing token (mirrors previous behaviour for ease of debugging).
+    static func parseMoves(pgn: String, startingFrom engine: inout ChessEngine) -> Result<[Move], ParserError> {
+        var cleaned = stripCommentsAndVariations(pgn)
+        cleaned = cleaned.replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "\r", with: " ")
+            .replacingOccurrences(of: "\t", with: " ")
+        while cleaned.contains("  ") { cleaned = cleaned.replacingOccurrences(of: "  ", with: " ") }
+        let rawTokens = cleaned.split(separator: " ").map(String.init)
+        var moves: [Move] = []
+        for raw in rawTokens.flatMap(splitCompoundMoveNumberToken) {
             if raw.isEmpty { continue }
             let token = normalizeToken(raw)
             if token.isEmpty { continue }
@@ -62,12 +68,10 @@ struct PGNParser {
                 moves.append(move)
                 continue
             }
-            // General SAN parsing
             if let move = resolveSAN(token: token, engine: engine) {
                 _ = engine.tryMakeMove(move)
                 moves.append(move)
             } else {
-                // Stop on first failure; return partial successfully parsed list as .failure
                 return .failure(.invalidToken(raw))
             }
         }
@@ -195,7 +199,8 @@ struct PGNParser {
     }
 
     /// Split tokens that combine move number + SAN, e.g. "1.e4" -> ["1.", "e4"], "23...Qa5" -> ["23...", "Qa5"]
-    private static func splitCompoundMoveNumberToken(_ token: String) -> [String] {
+    // Internal for test visibility: splits tokens that combine move number + SAN, e.g. "12...Qa5".
+    static func splitCompoundMoveNumberToken(_ token: String) -> [String] {
         // Find first period
         guard let dotIndex = token.firstIndex(of: ".") else { return [token] }
         let prefix = token[..<dotIndex]

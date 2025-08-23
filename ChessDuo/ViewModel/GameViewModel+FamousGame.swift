@@ -48,7 +48,14 @@ extension GameViewModel {
 
     var sourceMoves: [Move] = game.moves
     if sourceMoves.isEmpty, let pgn = game.pgn {
-      if case .success(let parsed) = PGNParser.parseMoves(pgn: pgn) { sourceMoves = parsed }
+      var parsingEngine = engine // start from current (possibly custom FEN) position
+      switch PGNParser.parseMoves(pgn: pgn, startingFrom: &parsingEngine) {
+      case .success(let parsed):
+        // Keep engine at the starting position; apply parsed moves below to build history/snapshots
+        sourceMoves = parsed
+      case .failure(let err):
+        print("PGN parse failed for game \(game.title): \(err)")
+      }
     }
     for mv in sourceMoves {
       let capturedBefore = capturedPieceConsideringEnPassant(from: mv.from, to: mv.to, board: engine.board)

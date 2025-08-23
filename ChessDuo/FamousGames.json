@@ -356,7 +356,7 @@
     "title": "K+R vs K Technique",
     "players": "Basic rook mate net",
     "description": "Demonstrates the box reduction method with king and rook versus lone king.",
-  "initialFEN": "8/8/8/8/3k4/8/4K3/4R3 w - - 0 1",
+  "initialFEN": "4k3/8/8/8/8/8/4K3/4R3 w - - 0 1",
     "localizations": {
       "de": {"title": "K+T gegen K Technik", "players": "Grundlegendes Turmmatt", "description": "Zeigt die Box-Verkleinerung mit König und Turm gegen alleinigen König."},
       "es": {"title": "R+K vs K Técnica", "players": "Mate básico con torre", "description": "Demuestra la técnica de reducir el ‘cajón’ con rey y torre contra rey solo."},
@@ -371,7 +371,7 @@
     "title": "K+Q vs K Mate",
     "players": "Basic queen mate pattern",
     "description": "Shows triangulation and tightening net for king and queen versus lone king.",
-  "initialFEN": "8/8/8/8/3k4/8/4K3/4Q3 w - - 0 1",
+  "initialFEN": "4k3/8/8/8/8/8/4K3/4Q3 w - - 0 1",
     "localizations": {
       "de": {"title": "K+D gegen K Matt", "players": "Grundlegendes Damenmatt", "description": "Zeigt Triangulation und Netztightening mit König und Dame."},
       "es": {"title": "R+Q vs R Mate", "players": "Patrón básico de mate con dama", "description": "Muestra triangulación y red de mate con rey y dama."},
@@ -386,7 +386,7 @@
     "title": "Bare Kings Draw",
     "players": "Insufficient material",
     "description": "Example of a position with only two kings – automatic draw.",
-  "initialFEN": "8/8/8/8/8/8/4K3/3k4 w - - 0 1",
+  "initialFEN": "4k3/8/8/8/8/8/8/4K3 w - - 0 1",
     "localizations": {
       "de": {"title": "Nur Könige Remis", "players": "Unzureichendes Material", "description": "Stellung nur mit zwei Königen – automatisch Remis."},
       "es": {"title": "Reyes Solos Tablas", "players": "Material insuficiente", "description": "Ejemplo con solo dos reyes – tablas automáticas."},
@@ -416,7 +416,7 @@
     "title": "K+B vs K (Draw)",
     "players": "Lone bishop cannot mate",
     "description": "King and single bishop vs lone king – fundamental draw.",
-  "initialFEN": "8/8/8/8/8/8/4K3/3kB3 w - - 0 1",
+  "initialFEN": "4k3/8/8/8/8/8/4K3/4B3 w - - 0 1",
     "localizations": {
       "de": {"title": "K+L vs K (Remis)", "players": "Ein Läufer kann nicht mattsetzen", "description": "König und einzelner Läufer gegen König – elementares Remis."},
       "es": {"title": "R+A vs R (Tablas)", "players": "Un alfil solo no da mate", "description": "Rey y alfil solo contra rey – tablas fundamentales."},

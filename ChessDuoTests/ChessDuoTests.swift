@@ -71,7 +71,7 @@ struct ChessDuoTests {
             #expect(exampleGroup.localizedName == "Example Games")
         }
     }
-    
+
     @Test func endgameMovesAreLoadedFromPGN() async throws {
         let loader = FamousGamesLoader.shared
         let all = loader.getAllGames()
@@ -84,6 +84,37 @@ struct ChessDuoTests {
         // After applying the game, move history should contain the moves from PGN
         #expect(vm.moveHistory.count > 0, "Endgame should have loaded moves from PGN, got \(vm.moveHistory.count) moves")
         #expect(vm.movesMade == vm.moveHistory.count, "movesMade should match moveHistory count")
+    }
+
+    // Validates that for every game: if a custom FEN is provided, the first PGN move is legal from that FEN;
+    // otherwise it is legal from the standard initial position. This guards against future data regressions.
+    @Test func pgnFirstMoveIsLegalFromDeclaredFEN() async throws {
+        let games = FamousGamesLoader.shared.getAllGames()
+        for game in games {
+            guard let pgn = game.pgn, !pgn.isEmpty else { continue }
+            // Extract first non-move-number SAN token from PGN
+            let tokens = pgn.split(separator: " ")
+            var firstToken: String? = nil
+            tokenLoop: for raw in tokens {
+                for part in PGNParser.splitCompoundMoveNumberToken(String(raw)) { // uses same utility
+                    if part.isEmpty { continue }
+                    if part.contains(".") { continue } // move number
+                    if ["1-0","0-1","1/2-1/2","*"].contains(part) { continue }
+                    firstToken = part
+                    break tokenLoop
+                }
+            }
+            guard let token = firstToken else { continue }
+            var engine: ChessEngine
+            if let fen = game.initialFEN, let custom = ChessEngine.fromFEN(fen) { engine = custom } else { engine = ChessEngine() }
+            var parsingEngine = engine
+            switch PGNParser.parseMoves(pgn: token, startingFrom: &parsingEngine) {
+            case .success(let moves):
+                #expect(!moves.isEmpty, "First PGN move for game \(game.title) failed to produce a move")
+            case .failure:
+                #expect(Bool(false), "First PGN move \(token) illegal from provided FEN in game \(game.title)")
+            }
+        }
     }
 
     // MARK: - Captured Pieces Baseline/FEN Tests
