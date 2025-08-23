@@ -119,8 +119,15 @@ struct PGNParser {
                 if move.to != destSq { return false }
                 // Check piece type
                 guard let p = engine.board.piece(at: move.from), p.type == pieceType else { return false }
-                // Promotion match
-                if let promotion = promotion { if move.promotion != promotion { return false } }
+                // Promotion match: allow engine moves that either explicitly match the requested piece
+                // or leave promotion unspecified (nil). Some engines default to queen when nil.
+                if let requestedPromo = promotion {
+                    if let mPromo = move.promotion {
+                        if mPromo != requestedPromo { return false }
+                    } else {
+                        // allow nil here; engine may default or we'll carry the SAN intent forward
+                    }
+                }
                 // Capture requirement: if SAN had 'x' ensure this move captures (including en passant)
                 let isMoveCapture = isCaptureMove(move, engine: engine)
                 if isCapture && !isMoveCapture { return false }

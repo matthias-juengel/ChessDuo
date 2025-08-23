@@ -356,7 +356,7 @@
     "title": "K+R vs K Technique",
     "players": "Basic rook mate net",
     "description": "Demonstrates the box reduction method with king and rook versus lone king.",
-  "initialFEN": "4k3/8/8/8/8/8/4K3/4R3 w - - 0 1",
+  "initialFEN": "8/8/8/8/4k3/8/8/3KR3 w - - 0 1",
     "localizations": {
       "de": {"title": "K+T gegen K Technik", "players": "Grundlegendes Turmmatt", "description": "Zeigt die Box-Verkleinerung mit König und Turm gegen alleinigen König."},
       "es": {"title": "R+K vs K Técnica", "players": "Mate básico con torre", "description": "Demuestra la técnica de reducir el ‘cajón’ con rey y torre contra rey solo."},
@@ -371,7 +371,7 @@
     "title": "K+Q vs K Mate",
     "players": "Basic queen mate pattern",
     "description": "Shows triangulation and tightening net for king and queen versus lone king.",
-  "initialFEN": "4k3/8/8/8/8/8/4K3/4Q3 w - - 0 1",
+  "initialFEN": "8/8/8/8/4k3/8/8/3QK3 w - - 0 1",
     "localizations": {
       "de": {"title": "K+D gegen K Matt", "players": "Grundlegendes Damenmatt", "description": "Zeigt Triangulation und Netztightening mit König und Dame."},
       "es": {"title": "R+Q vs R Mate", "players": "Patrón básico de mate con dama", "description": "Muestra triangulación y red de mate con rey y dama."},
@@ -379,7 +379,7 @@
       "zh-Hans": {"title": "王+后对王 将杀", "players": "基础后将死模式", "description": "展示王后协作三角挪动收紧包围圈。"}
     },
     "moves": [],
-  "pgn": "1.Qe2 Kd4 2.Kf3 Kd5 3.Qe4+ Kd6 4.Kf4 Kd7 5.Qe5 Kd8 6.Qg7 Ke8 7.Ke5 Kd8 8.Kd6 Ke8 9.Qe7#",
+  "pgn": "1.Qe2+ Kf4 2.Kf2 Kg5 3.Qe5+ Kh4 4.Qg3+ Kh5 5.Kf3 Kh6 6.Kf4 Kh7 7.Kf5 Kh8 8.Kg6 Kg8 9.Qb8#",
   "category": "matingNet"
   },
   {
@@ -401,7 +401,7 @@
     "title": "Simple Promotion Race",
     "players": "Pawn to queen example",
     "description": "Illustrates basic king support of passed pawn to promotion.",
-  "initialFEN": "8/8/2k5/8/8/2P5/4K3/8 w - - 0 1",
+    "initialFEN": "1k6/1P6/1K6/8/8/8/8/8 w - - 0 1",
     "localizations": {
       "de": {"title": "Einfache Bauernumwandlung", "players": "Bauer zur Dame Beispiel", "description": "Zeigt Königunterstützung eines Freibauern bis zur Umwandlung."},
       "es": {"title": "Carrera de Coronación Simple", "players": "Ejemplo peón a dama", "description": "Ilustra el apoyo del rey a un peón pasado hasta coronar."},
@@ -409,14 +409,14 @@
       "zh-Hans": {"title": "简单升变竞赛", "players": "兵升变示例", "description": "演示国王支持通过兵升变。"}
     },
     "moves": [],
-  "pgn": "1.Ke2 Ke7 2.Ke3 Kd6 3.Kd4 Kc6 4.c4 Kd6 5.c5+ Kc6 6.Kc4 Kc7 7.Kd5 Kd7 8.c6+ Kc7 9.Kc5 Kc8 10.Kd6 Kd8 11.c7+ Kc8 12.Kc6 f5 13.exf6 gxf6 14.f5 h5 15.h4 1-0",
-  "category": "promotion"
+    "pgn": "1.Kc6 Ka7 2.Kc7 Ka6 3.b8=Q",
+    "category": "promotion"
   },
   {
     "title": "K+B vs K (Draw)",
     "players": "Lone bishop cannot mate",
     "description": "King and single bishop vs lone king – fundamental draw.",
-  "initialFEN": "4k3/8/8/8/8/8/4K3/4B3 w - - 0 1",
+  "initialFEN": "4k3/8/8/8/8/8/8/3KB3 w - - 0 1",
     "localizations": {
       "de": {"title": "K+L vs K (Remis)", "players": "Ein Läufer kann nicht mattsetzen", "description": "König und einzelner Läufer gegen König – elementares Remis."},
       "es": {"title": "R+A vs R (Tablas)", "players": "Un alfil solo no da mate", "description": "Rey y alfil solo contra rey – tablas fundamentales."},
@@ -424,7 +424,7 @@
       "zh-Hans": {"title": "王+象 对 王 (和)", "players": "单象不能将死", "description": "王与单个象对王——基本和棋。"}
     },
     "moves": [],
-  "pgn": "1.Ke2 Ke7 2.Ke3 Ke6 3.Ke4 Kd6 4.Bc4 Kc5 5.Bd5 Kd6 6.Bb7 Ke6 7.Bc8+ Kd6 8.Kf5 Ke7 9.Kg6 Kf8 10.Bd7 Kg8 11.Be6+ Kh8 12.Bf5 Kg8 1/2-1/2",
+  "pgn": "1.Ke2 Ke7 2.Ke3 Ke6 3.Ke4 Kd6 4.Bb4+ Ke6 5.Bc3 Kf7 6.Kf5 Ke7 7.Kg6 Kf8 1/2-1/2",
   "category": "endgame"
   }
 ]

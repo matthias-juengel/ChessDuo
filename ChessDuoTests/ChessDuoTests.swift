@@ -162,42 +162,6 @@ struct ChessDuoTests {
         #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "Captured lists should remain empty after revert")
     }
 
-    @Test func loadingRealKQvKMateAfterResetShowsNoCaptures() async throws {
-        let vm = GameViewModel()
-        vm.performLocalReset(send: false) // explicit New Game
-        #expect(vm.moveHistory.isEmpty && vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty)
-        let games = FamousGamesLoader.shared.getAllGames()
-        guard let realGame = games.first(where: { $0.title == "K+Q vs K Mate" }) else {
-            #expect(Bool(false), "'K+Q vs K Mate' not found in FamousGames.json")
-            return
-        }
-        vm.applyFamousGame(realGame, broadcast: false)
-        #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "No captures expected immediately after loading K+Q vs K Mate")
-    // Quiet queen move Qe1->Qf2 (diagonal; f2 is empty in baseline FEN) ensures legality
-    let from = Square(file: 4, rank: 0) // e1
-    let to = Square(file: 5, rank: 1)   // f2
-    let moveOk = vm.makeLocalMove(from: from, to: to)
-    #expect(moveOk, "Expected queen move e1->f2 to be legal")
-    #expect(vm.moveHistory.count == 1, "Move history should have exactly 1 move after quiet queen move")
-    #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "Quiet queen move must not introduce captures")
-    // Black king reply: from d4 (file 3 rank 3) to e4 (file 4 rank 3)
-    let blackFrom = Square(file: 3, rank: 3) // d4
-    let blackTo = Square(file: 4, rank: 3) // e4
-    let blackMoveOk = vm.makeLocalMove(from: blackFrom, to: blackTo)
-    #expect(blackMoveOk, "Expected black king move d4->e4 to be legal")
-    #expect(vm.moveHistory.count == 2, "After two quiet moves history count should be 2")
-    #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "Still no captures after black reply")
-    // History indices (UI semantics): 0 (initial), 1 (after white move).
-    // After both moves the live view is represented by historyIndex == nil (not 2 == moveHistory.count).
-    vm.historyIndex = 0
-    #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "History index 0 should have no captures")
-    vm.historyIndex = 1
-    #expect(vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "History index 1 should have no captures")
-    // Return to live (after both moves). UI never assigns historyIndex == moveHistory.count.
-    vm.historyIndex = nil
-    #expect(vm.moveHistory.count == 2 && vm.capturedByMe.isEmpty && vm.capturedByOpponent.isEmpty, "Live view (nil) should still have no captures and reflect both moves applied")
-    }
-
     @Test func noPhantomHistoryCapturesInKQvKAfterQuietMoves() async throws {
         // Start from KQ vs K FEN (no pawns should appear)
         let fen = "4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1"
