@@ -30,18 +30,57 @@ extension GameViewModel {
   func handle(_ msg: NetMessage) { // internal for callback from base init
     switch msg.kind {
     case .hello:
-      if myColor == nil, let remoteColor = msg.color {
-        myColor = remoteColor.opposite
-        peers.send(.init(kind: .acceptRole))
-      } else if let mine = myColor, let remoteColor = msg.color, mine == remoteColor {
-        if movesMade > 0, mine == .white {
-          peers.send(.init(kind: .proposeRole))
-        } else if mine == .white {
-          myColor = .black
-          peers.send(.init(kind: .acceptRole))
+      // Deterministic color negotiation. Goal: after this (and subsequent propose/accept) sides differ (unless legacy single-device mode).
+      let remoteID = msg.originID
+      let remoteColor = msg.color
+      if let remoteID {
+        let a = stableOriginID
+        let b = remoteID
+        if a == b {
+          // Identical IDs (should not happen except in tests if not reset). Force new identity in debug builds.
+          #if DEBUG
+          _ = _testResetStableIdentity()
+          #endif
+        }
+        let weAreSmaller = stableOriginID < remoteID
+        switch (myColor, remoteColor) {
+        case (nil, nil):
+          // Neither has chosen yet. Smaller becomes white and proposes. Larger stays nil until proposeRole arrives (then picks black).
+          if weAreSmaller {
+            myColor = .white
+            peers.send(.init(kind: .proposeRole))
+          } else {
+            // remain nil; will adopt black on proposeRole
+          }
+        case (nil, .some(let rc)):
+          // Remote already leaning rc. We adopt opposite and send accept.
+            myColor = rc.opposite
+            peers.send(.init(kind: .acceptRole))
+        case (.some(let lc), nil):
+          // We have a color, remote not declaring. If we are white, propose; if black do nothing.
+          if lc == .white { peers.send(.init(kind: .proposeRole)) }
+        case (.some(let lc), .some(let rc)):
+          if lc == rc && movesMade == 0 {
+            // Conflict: both same. Recompute deterministically.
+            if weAreSmaller {
+              myColor = .white
+              peers.send(.init(kind: .proposeRole))
+            } else {
+              myColor = .black
+              // Do not send anything; smaller peer already (or will) propose.
+            }
+          } else if lc != rc {
+            // Already complementary -> nothing to do.
+          }
         }
       } else {
-        attemptRoleProposalIfNeeded()
+        // Legacy peer with no origin ID. If they declare a color adopt opposite; else attempt fallback ordering by device name.
+        if let rc = remoteColor {
+          if myColor == nil { myColor = rc.opposite; peers.send(.init(kind: .acceptRole)) }
+          else if myColor == rc { myColor = rc.opposite; peers.send(.init(kind: .proposeRole)) }
+        } else {
+          attemptRoleProposalIfNeeded()
+        }
       }
       requestSync()
     case .reset:
@@ -110,37 +149,55 @@ extension GameViewModel {
     case .syncRequest:
       sendSnapshot()
     case .syncState:
-      // Participant-aware gating: if sender's participants differ from ours, force a reset (Option A) and ignore snapshot.
+      // Revised participant-policy:
+      // 1. A remote progressed multiplayer game (>=2 participants, moves>0) should be ADOPTED by a peer whose local state
+      //    is fresh or only single-participant progress, rather than starting a brand new game.
+      // 2. We still reject remote progressed snapshots declaring <2 participants (cannot trust identity context).
+      // 3. If both sides already have a multiplayer snapshot with different participant sets -> force reset (integrity).
+      // 4. Legacy (no participants field) progressed snapshots remain rejected.
+      let remoteMoves = msg.movesMade ?? 0
       if let remoteParticipantsRaw = msg.sessionParticipants {
-        let remoteParticipants = remoteParticipantsRaw
-        let localParticipants = currentSessionParticipants(remoteNameHint: nil)
-        // Only adopt a progressed remote snapshot if it represents a multiplayer session (>=2 participants).
-        if (msg.movesMade ?? 0) > 0 && remoteParticipants.count < 2 {
-          print("[SYNC] Rejecting remote snapshot: remote has moves (\(msg.movesMade ?? -1)) but participants=<2 remote=\(remoteParticipants). Forcing reset to start fresh multiplayer session.")
+        let remoteParticipants = remoteParticipantsRaw.sorted()
+        let localParticipants = currentSessionParticipants(remoteNameHint: nil).sorted()
+        if remoteMoves > 0 && remoteParticipants.count < 2 {
+          print("[SYNC] Rejecting remote snapshot: remote has moves (\(remoteMoves)) but participants=<2 remote=\(remoteParticipants). Forcing reset (request fresh multiplayer session).")
           performLocalReset(send: true)
           return
         }
-        // If our local progressed game is still single-participant, we also force a reset when a conflicting snapshot arrives.
-        if movesMade > 0 && localParticipants.count < 2 && (msg.movesMade ?? 0) > 0 {
-          print("[SYNC] Local progressed single-participant game detected; forcing reset to ensure clean multiplayer context.")
+        let localHasMulti = localParticipants.count >= 2
+        let remoteHasMulti = remoteParticipants.count >= 2
+        // ADOPTION POLICY (documented):
+        // We adopt a remote multiplayer snapshot only if:
+        //  - remoteHasMulti (>=2 participants)
+        //  - remoteMoves > 0
+        //  - local is fresh OR single-participant (not yet a committed multiplayer snapshot)
+        //  - and the local device's stableOriginID is ALREADY in the remote participant list (returning participant)
+        // Otherwise:
+        //  - If both sides have multiplayer sets and they differ -> reset
+        //  - If local is single-participant and NOT in remote list -> treat as mismatch/reset (do NOT adopt stranger game)
+        let localID = stableOriginID
+        let canAdoptReturning = remoteHasMulti && remoteMoves > 0 && !localHasMulti && remoteParticipants.contains(localID)
+        if canAdoptReturning {
+          print("[SYNC] Adopting remote multiplayer session as returning participant localID=\(localID) remoteParticipants=\(remoteParticipants)")
+          if actualParticipants.isEmpty { actualParticipants.formUnion(remoteParticipants) }
+        } else if remoteHasMulti && remoteMoves > 0 && !localHasMulti && !remoteParticipants.contains(localID) {
+          print("[SYNC] Rejecting remote multiplayer snapshot (local not a participant) localID=\(localID) remoteParticipants=\(remoteParticipants)")
           performLocalReset(send: true)
           return
-        }
-        if remoteParticipants.sorted() != localParticipants.sorted() {
-          print("[SYNC] Participant mismatch local=\(localParticipants) remote=\(remoteParticipants) -> forcing reset & ignoring remote snapshot (remoteMoves=\(msg.movesMade ?? -1) localMoves=\(movesMade))")
+        } else if localHasMulti && remoteHasMulti && remoteParticipants != localParticipants {
+          print("[SYNC] Multiplayer participant mismatch local=\(localParticipants) remote=\(remoteParticipants) -> forcing reset & ignoring remote snapshot (remoteMoves=\(remoteMoves) localMoves=\(movesMade))")
           performLocalReset(send: true)
           return
         } else {
-          print("[SYNC] Participants match local=\(localParticipants) remote=\(remoteParticipants) remoteMoves=\(msg.movesMade ?? -1) localMoves=\(movesMade)")
+          print("[SYNC] Participants compatible local=\(localParticipants) remote=\(remoteParticipants) remoteMoves=\(remoteMoves) localMoves=\(movesMade)")
         }
       } else {
-        // Legacy peer: if it tries to push progressed state without participant metadata, reject (cannot safely verify identity context)
-        if let rm = msg.movesMade, rm > 0 {
-          print("[SYNC] Rejecting legacy remote snapshot (no participants field) with moves=\(rm); forcing reset to ensure clean session.")
+        if remoteMoves > 0 {
+          print("[SYNC] Rejecting legacy remote snapshot (no participants field) with moves=\(remoteMoves); forcing reset to ensure clean session.")
           performLocalReset(send: true)
           return
         } else {
-          print("[SYNC] Legacy remote snapshot without participants (no moves) allowing only if empty.")
+          print("[SYNC] Legacy remote empty snapshot allowed (no moves, no participants).")
         }
       }
       if let remoteMoves = msg.movesMade, remoteMoves > movesMade,
@@ -153,6 +210,10 @@ extension GameViewModel {
         capturedByOpponent = remoteCapturedBySender
         capturedByMe = remoteCapturedByOpponent
         movesMade = remoteMoves
+        // If remote provided a multiplayer participant list (>=2), adopt it (overwriting a single local participant set)
+        if let rp = msg.sessionParticipants, rp.count >= 2 {
+          actualParticipants = Set(rp)
+        }
         if let from = msg.lastMoveFrom, let to = msg.lastMoveTo { lastMove = Move(from: from, to: to) } else { lastMove = nil }
         if let capID = msg.lastCapturedPieceID, let bySender = msg.lastCaptureByMe {
           lastCapturedPieceID = capID

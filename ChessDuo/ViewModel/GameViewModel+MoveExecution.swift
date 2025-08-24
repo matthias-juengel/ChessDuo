@@ -43,7 +43,9 @@ extension GameViewModel {
     let move = Move(from: from, to: to)
     let capturedBefore = capturedPieceConsideringEnPassant(from: from, to: to, board: engine.board)
     if engine.tryMakeMove(move) {
-      withAnimation(.easeInOut(duration: 0.35)) {
+      // Removed withAnimation wrapper so that state mutations occur synchronously for tests.
+      // UI layers can animate based on published changes instead. This avoids races where tests
+      // read lastCapturedPieceID or captured lists before the animation transaction applied.
   var net = NetMessage(kind: .move, move: move)
   net.originID = stableOriginID
   peers.send(net)
@@ -75,7 +77,6 @@ extension GameViewModel {
         saveGame()
         rebuildCapturedLists(for: engine.board)
         ensureParticipantsSnapshotIfNeeded(trigger: "localMove")
-      }
       return true
     }
     return false
@@ -94,7 +95,7 @@ extension GameViewModel {
     let moverColor = engine.sideToMove
     let capturedBefore = capturedPieceConsideringEnPassant(from: from, to: to, board: engine.board)
     if engine.tryMakeMove(move) {
-      withAnimation(.easeInOut(duration: 0.35)) {
+      // Removed withAnimation for synchronous state mutation (see comment above in makeMove).
         if let cap = capturedBefore {
           lastCapturedPieceID = cap.id
           lastCaptureByMe = (moverColor == .white)
@@ -120,7 +121,6 @@ extension GameViewModel {
         saveGame()
         rebuildCapturedLists(for: engine.board)
         ensureParticipantsSnapshotIfNeeded(trigger: "localMoveSingleDevice")
-      }
       return true
     }
     return false

@@ -11,7 +11,10 @@ enum TestHelpers {
         // Remove the whole test directory to ensure no stale ancillary files remain.
         try? FileManager.default.removeItem(at: dirURL)
         // Recreate by instantiating a new probe (which will lazily create directory on first save).
-        return GameViewModel()
+        let vm = GameViewModel()
+        // Force deterministic perspective for single-device tests so capturedByMe semantics are stable.
+        vm.preferredPerspective = .white
+        return vm
     }
 
     /// Constructs a remote move `NetMessage` with the given algebraic squares and origin identifier.

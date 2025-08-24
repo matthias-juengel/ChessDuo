@@ -242,11 +242,16 @@ struct ChessDuoTests {
     }
 
     @Test func participantMismatchForcesReset() async throws {
-        // Simulate acceptance of a remote syncState with different participants
+        // New semantics: mismatch reset only when BOTH sides already have multiplayer participant sets (>=2) and they differ.
+        // Setup local with a multiplayer snapshot A,B then incoming remote declares A,C -> should reset.
         let vm = GameViewModel()
-        // Pretend we already made some local moves with an opponent A
-        vm.performLocalReset(send: false)
-        // Local participants snapshot currently [localName] only (no opponent yet). We forge a remote message with different participants.
+        // Simulate local multiplayer participants by seeding actualParticipants and capturing snapshot.
+        vm.actualParticipants.insert(vm.stableOriginID)
+        let otherLocal = "LocalOther"
+        vm.actualParticipants.insert(otherLocal)
+        vm.ensureParticipantsSnapshotIfNeeded(trigger: "testSetup")
+        #expect(vm.sessionParticipantsSnapshot?.count == 2)
+        // Remote snapshot with different second participant
         let remoteMsg = NetMessage(kind: .syncState,
                                    move: nil,
                                    color: nil,
@@ -261,10 +266,32 @@ struct ChessDuoTests {
                                    lastCapturedPieceID: nil,
                                    lastCaptureByMe: nil,
                                    moveHistory: [],
+                                   sessionParticipants: [vm.stableOriginID, "DifferentOther"])
+        vm.handle(remoteMsg)
+        #expect(vm.movesMade == 0, "Expected forced reset after conflicting multiplayer participant sets")
+    }
+
+    @Test func strangerDoesNotAdoptExistingMultiplayerGame() async throws {
+        // Local is single-participant (fresh or solo). Remote tries to push multiplayer A,B that does NOT include us.
+        let vm = GameViewModel()
+        vm.performLocalReset(send: false)
+        let remoteMsg = NetMessage(kind: .syncState,
+                                   move: nil,
+                                   color: nil,
+                                   deviceName: "AlienOpponent",
+                                   board: Board.initial(),
+                                   sideToMove: .white,
+                                   movesMade: 6,
+                                   capturedByMe: [],
+                                   capturedByOpponent: [],
+                                   lastMoveFrom: nil,
+                                   lastMoveTo: nil,
+                                   lastCapturedPieceID: nil,
+                                   lastCaptureByMe: nil,
+                                   moveHistory: [],
                                    sessionParticipants: ["AlienOpponent","SomeOther"])
         vm.handle(remoteMsg)
-        // Because participants mismatch, we expect a reset: movesMade stays 0
-        #expect(vm.movesMade == 0, "Expected forced reset leaving movesMade == 0 after participant mismatch")
+        #expect(vm.movesMade == 0, "Stranger multiplayer game should not be adopted (remain at 0 moves)")
     }
 
     @Test func soloRemoteProgressedSnapshotIsRejected() async throws {

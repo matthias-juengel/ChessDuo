@@ -350,6 +350,18 @@ final class GameViewModel: ObservableObject {
     permissionCheckWorkItem = work
     DispatchQueue.main.asyncAfter(deadline: .now() + 8, execute: work)
   }
+
+#if DEBUG
+  /// Test-only helper: when multiple GameViewModel instances are created within the same test process
+  /// (simulating two distinct devices), they would normally all share the same persisted stableDeviceID
+  /// because @AppStorage uses shared UserDefaults. This causes color negotiation ordering to fail
+  /// (both sides think they are the same identity). Tests can invoke this to force a unique stable identity.
+  @discardableResult
+  func _testResetStableIdentity(to newID: String = UUID().uuidString) -> String {
+    stableDeviceID = newID
+    return stableDeviceID
+  }
+#endif
   /// Open the app's Settings page so user can enable Local Network permission.
   @MainActor func openAppSettings() {
     guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
