@@ -204,7 +204,10 @@ struct GameScreen: View {
         if vm.peers.isConnected {
           if let mine = vm.myColor, let ov = overlayColor, mine == ov, mine == currentSideToMove { return true }
           return false
-        } else { if let ov = overlayColor, ov == currentSideToMove { return true }; return false }
+        } else {
+          return false
+          //        if let ov = overlayColor, ov == currentSideToMove { return true }; return false
+        }
       }()
       let colorText: String = {
         if showYou { return baseColor + " " + String.loc("you_mark") }
@@ -368,12 +371,15 @@ struct GameScreen: View {
           stepHistoryToward(targetIndex: newHistory, animated: dist <= 4)
         }
       } else if let status = turnStatus(for: overlayColor) {
-        Text(status.text).font(.title).foregroundStyle(status.color)
+        if vm.displayedSideToMove == overlayColor {
+          Text(status.text).font(.title).foregroundStyle(status.color)
+        }
       }
     }
     .contentShape(Rectangle())
     .onTapGesture { toggleHistory(for: overlayColor, canShowSlider: canShowSlider) }
   }
+
   private func toggleHistory(for overlayColor: PieceColor?, canShowSlider: Bool) {
     guard canShowSlider else { return }
     if vm.peers.isConnected {
