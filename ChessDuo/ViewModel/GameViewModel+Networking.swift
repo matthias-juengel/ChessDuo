@@ -30,6 +30,13 @@ extension GameViewModel {
   func handle(_ msg: NetMessage) { // internal for callback from base init
     switch msg.kind {
     case .hello:
+      // COLOR NEGOTIATION INVARIANTS
+      // Deterministic role assignment uses stableOriginID lexical ordering:
+      //  - First contact: smaller stableOriginID becomes White, sends .proposeRole.
+      //  - Larger waits; upon seeing .proposeRole (or explicit remote color) becomes Black and replies .acceptRole.
+      //  - If both already have same color (race) and no moves yet, recompute deterministically: smaller->White, larger->Black.
+      //  - Persisted myColor is kept if movesMade>0 so reconnects don’t flip sides.
+      //  - Legacy peers (missing originID) fall back to accepting opposite of any declared color or initiating proposal heuristically.
       // Deterministic color negotiation. Goal: after this (and subsequent propose/accept) sides differ (unless legacy single-device mode).
       let remoteID = msg.originID
       let remoteColor = msg.color
@@ -100,32 +107,48 @@ extension GameViewModel {
       if let m = msg.move {
         let capturedBefore = capturedPieceConsideringEnPassant(from: m.from, to: m.to, board: engine.board)
         if !gameIsOver, engine.tryMakeMove(m) {
-          withAnimation(.easeInOut(duration: 0.35)) {
-            if let cap = capturedBefore {
-              lastCapturedPieceID = cap.id
-              if let my = myColor { lastCaptureByMe = (cap.color != my) } else { lastCaptureByMe = (cap.color == .black) }
-            } else { lastCapturedPieceID = nil; lastCaptureByMe = nil }
-            movesMade += 1
-            sessionProgressed = true
-            lastMove = m
-            moveHistory.append(m)
-            historyIndex = nil
-            boardSnapshots.append(engine.board)
-            // Attribute move to opponent (remote mover). Use opponentName if known, else msg.deviceName.
-            if let origin = msg.originID, !origin.isEmpty {
-              actualParticipants.insert(origin)
-            } else if let opp = opponentName, !opp.isEmpty {
-              actualParticipants.insert(opp)
-            } else if let dev = msg.deviceName { // legacy fallback
-              actualParticipants.insert(dev)
+          // Remote move application (animation removed for deterministic test timing).
+          if let cap = capturedBefore {
+            lastCapturedPieceID = cap.id
+            if let my = myColor { lastCaptureByMe = (cap.color != my) } else { lastCaptureByMe = (cap.color == .black) }
+            // Archive real captured piece before rebuild so we avoid fabricating placeholder with new UUID.
+            if cap.color == .white {
+              if !whiteCapturedPieces.contains(where: { $0.id == cap.id }) { whiteCapturedPieces.append(cap) }
+            } else {
+              if !blackCapturedPieces.contains(where: { $0.id == cap.id }) { blackCapturedPieces.append(cap) }
             }
-            saveGame()
-            rebuildCapturedLists(for: engine.board)
-            ensureParticipantsSnapshotIfNeeded(trigger: "remoteMove")
-            if peers.isConnected, let mine = myColor, engine.sideToMove == mine {
-              Haptics.trigger(.moveNowMyTurn)
+            // Also update perspective-relative lists immediately (mirrors local move execution logic) so tests see IDs without waiting for rebuild.
+            if let my = myColor {
+              if cap.color == my { // opponent captured our piece -> appears in capturedByOpponent
+                if !capturedByOpponent.contains(where: { $0.id == cap.id }) { capturedByOpponent.append(cap) }
+              } else { // opponent lost piece? (shouldn't happen here) else treat as capturedByMe fallback
+                if !capturedByMe.contains(where: { $0.id == cap.id }) { capturedByMe.append(cap) }
+              }
+            } else {
+              // Unknown POV yet: default heuristic white piece taken by black means opponent captured our piece if we later become white.
+              if cap.color == .white {
+                if !capturedByOpponent.contains(where: { $0.id == cap.id }) { capturedByOpponent.append(cap) }
+              } else {
+                if !capturedByMe.contains(where: { $0.id == cap.id }) { capturedByMe.append(cap) }
+              }
             }
-          }
+          } else { lastCapturedPieceID = nil; lastCaptureByMe = nil }
+          movesMade += 1
+          sessionProgressed = true
+          lastMove = m
+          moveHistory.append(m)
+          historyIndex = nil
+          boardSnapshots.append(engine.board)
+          // Attribute move to opponent (remote mover). Use originID if provided.
+          if let origin = msg.originID, !origin.isEmpty {
+            actualParticipants.insert(origin)
+          } else if let opp = opponentName, !opp.isEmpty {
+            actualParticipants.insert(opp)
+          } else if let dev = msg.deviceName { actualParticipants.insert(dev) }
+          saveGame()
+          rebuildCapturedLists(for: engine.board)
+          ensureParticipantsSnapshotIfNeeded(trigger: "remoteMove")
+          if peers.isConnected, let mine = myColor, engine.sideToMove == mine { Haptics.trigger(.moveNowMyTurn) }
         }
       }
     case .proposeRole:
@@ -155,6 +178,11 @@ extension GameViewModel {
       // 2. We still reject remote progressed snapshots declaring <2 participants (cannot trust identity context).
       // 3. If both sides already have a multiplayer snapshot with different participant sets -> force reset (integrity).
       // 4. Legacy (no participants field) progressed snapshots remain rejected.
+      // ADOPTION INVARIANTS (SUMMARY):
+      //  - Adoption allowed only if local stableOriginID is present in remote participant list (returning participant) and local has not yet formed a multiplayer snapshot.
+      //  - Stranger devices (not in remote set) encountering progressed multiplayer snapshot must reset instead of adopt.
+      //  - Dual established but differing participant sets trigger reset on sync to prevent silent fork merging.
+      //  - Remote snapshot with moves but <2 participants always rejected (identity insufficient).
       let remoteMoves = msg.movesMade ?? 0
       if let remoteParticipantsRaw = msg.sessionParticipants {
         let remoteParticipants = remoteParticipantsRaw.sorted()

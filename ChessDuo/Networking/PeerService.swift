@@ -11,6 +11,10 @@ import UIKit
 
 final class PeerService: NSObject, ObservableObject {
     private let serviceType = "btchess"
+    // When true (set by tests), suppress starting MultipeerConnectivity advertising/browsing
+    // to reduce log noise and speed up unit test execution. Connection-dependent logic
+    // (session, message routing) remains available for direct injection / simulated messages.
+    static var suppressNetworking: Bool = false
     private static let suffixKey = "PeerService.UniqueSuffix"
     private static func uniqueSuffix() -> String {
         let defaults = UserDefaults.standard
@@ -95,6 +99,7 @@ final class PeerService: NSObject, ObservableObject {
 
     func startHosting() {
         if !Thread.isMainThread { DispatchQueue.main.async { self.startHosting() }; return }
+        guard !Self.suppressNetworking else { return }
         advertiser?.stopAdvertisingPeer()
         advertisingActive = false
         advertiser?.delegate = nil
@@ -107,6 +112,7 @@ final class PeerService: NSObject, ObservableObject {
 
     func join() {
         if !Thread.isMainThread { DispatchQueue.main.async { self.join() }; return }
+        guard !Self.suppressNetworking else { return }
         browser?.stopBrowsingForPeers()
         browsingActive = false
         browser?.delegate = nil
@@ -121,8 +127,10 @@ final class PeerService: NSObject, ObservableObject {
     func startAuto() {
         if !Thread.isMainThread { DispatchQueue.main.async { self.startAuto() }; return }
         autoModeActive = true
-        startHosting()
-        join()
+        if !Self.suppressNetworking {
+            startHosting()
+            join()
+        }
     }
 
     func stop() {
