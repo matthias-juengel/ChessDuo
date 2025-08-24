@@ -91,10 +91,10 @@ struct GameScreen: View {
     .onChange(of: vm.remoteIsDrivingHistoryView) { remoteDriving in
       if remoteDriving {
         // Show slider if remote entered history view and we aren't already showing
-        if !showHistorySlider, vm.historyIndex != nil {
-          historySliderOwner = vm.peers.isConnected ? vm.myColor : bottomSide
-          withAnimation(.easeInOut(duration: 0.25)) { showHistorySlider = true }
-        }
+        // if !showHistorySlider, vm.historyIndex != nil {
+        //   historySliderOwner = vm.peers.isConnected ? vm.myColor : bottomSide
+        //   withAnimation(.easeInOut(duration: 0.25)) { showHistorySlider = true }
+        // }
       } else {
         // Remote exited; hide if we were only in due to remote (i.e., user not interacting locally)
         if showHistorySlider, vm.historyIndex == nil {

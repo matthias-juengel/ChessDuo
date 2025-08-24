@@ -69,13 +69,16 @@
 /* History revert */
 "history_revert_button" = "Reiniciar desde esta posición";
 "history_close_button" = "Cerrar historial";
-"opponent_requests_history_revert" = "El oponente quiere reiniciar desde el movimiento %@.";
+"opponent_requests_history_revert" = "%@ quiere deshacer %@ jugadas.";
+"history_delta_badge_accessibility" = "%@ jugadas deshechas.";
 "history_revert_accept_yes" = "Reiniciar";
 "history_revert_accept_no" = "Mantener";
 "history_revert_cancel_request" = "Mantener";
 "history_revert_request_sent" = "Esperando confirmación del reinicio...";
 "history_revert_short" = "Desde aquí";
 "menu_show_history" = "Ver historial";
+"history_undo_button" = "Ver jugada anterior";
+"history_redo_button" = "Ver jugada siguiente";
 
 /* Cargar partida famosa */
 "opponent_requests_load_game" = "El oponente quiere cargar: %@";

@@ -69,13 +69,16 @@
 /* 回到历史位置 */
 "history_revert_button" = "从此位置重开";
 "history_close_button" = "关闭历史";
-"opponent_requests_history_revert" = "对手想从第 %@ 步重新开始。";
+"opponent_requests_history_revert" = "%@ 想撤回 %@ 步。";
+"history_delta_badge_accessibility" = "已撤回 %@ 步。";
 "history_revert_accept_yes" = "重开";
 "history_revert_accept_no" = "保持当前";
 "history_revert_cancel_request" = "保持当前";
 "history_revert_request_sent" = "等待对手确认重开...";
 "history_revert_short" = "从这里";
 "menu_show_history" = "显示历史";
+"history_undo_button" = "查看上一手";
+"history_redo_button" = "查看下一手";
 
 /* 载入著名棋局 协商 */
 "opponent_requests_load_game" = "对手想载入：%@";

@@ -86,8 +86,10 @@ private extension GameScreenOverlays {
     ZStack {
       if vm.peers.isConnected {
         if let target = vm.incomingHistoryRevertRequest {
+          let delta = max(0, vm.movesMade - target)
+          let name = vm.opponentName ?? String.loc("turn_black")
           IncomingResetRequestOverlay( // reuse styling
-            message: String.loc("opponent_requests_history_revert", String(target)),
+            message: String.loc("opponent_requests_history_revert", name, String(delta)),
             acceptTitle: String.loc("history_revert_accept_yes"),
             declineTitle: String.loc("history_revert_accept_no"),
             onAccept: { vm.respondToHistoryRevertRequest(accept: true) },

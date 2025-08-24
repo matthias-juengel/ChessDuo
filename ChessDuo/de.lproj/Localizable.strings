@@ -69,13 +69,16 @@
 /* History revert */
 "history_revert_button" = "Von dieser Stellung neu starten";
 "history_close_button" = "Verlauf schließen";
-"opponent_requests_history_revert" = "Gegner möchte ab Zug %@ neu starten.";
+"opponent_requests_history_revert" = "%@ möchte %@ Züge zurückgehen.";
+"history_delta_badge_accessibility" = "%@ Züge zurück.";
 "history_revert_accept_yes" = "Neu starten";
 "history_revert_accept_no" = "Aktuell behalten";
 "history_revert_cancel_request" = "Aktuell behalten";
 "history_revert_request_sent" = "Warte auf Bestätigung des Neustarts...";
 "history_revert_short" = "Ab hier";
 "menu_show_history" = "Spielverlauf";
+"history_undo_button" = "Vorherigen Zug ansehen";
+"history_redo_button" = "Nächsten Zug ansehen";
 
 /* Berühmte Partie Laden Verhandlung */
 "opponent_requests_load_game" = "Gegner möchte laden: %@";

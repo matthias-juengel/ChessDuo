@@ -289,8 +289,8 @@ extension GameViewModel {
       if let remoteIdx = msg.historyViewIndex {
         if remoteIdx >= 0 && remoteIdx <= moveHistory.count && remoteIdx != moveHistory.count {
           suppressHistoryViewBroadcast = true
-            remoteIsDrivingHistoryView = true
-            historyIndex = remoteIdx
+          remoteIsDrivingHistoryView = true
+          historyIndex = remoteIdx
           suppressHistoryViewBroadcast = false
         }
       } else {
