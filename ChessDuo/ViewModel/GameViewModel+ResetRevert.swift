@@ -7,6 +7,8 @@ import Foundation
 
 extension GameViewModel {
   func performLocalReset(send: Bool) {
+    let beforeMoves = movesMade
+    print("[RESET] Performing local reset (send=\(send)) previousMoves=\(beforeMoves) participantsBefore=\(String(describing: sessionParticipantsSnapshot))")
     engine.reset()
     capturedByMe.removeAll()
     capturedByOpponent.removeAll()
@@ -29,6 +31,10 @@ extension GameViewModel {
     baselineSideToMove = engine.sideToMove
     baselineCounts = pieceCounts(on: baselineBoard)
     baselineTrusted = true
+  // Clear participant tracking; will be captured lazily after both distinct originIDs have made moves.
+  sessionParticipantsSnapshot = nil
+  actualParticipants.removeAll()
+  print("[RESET] Cleared participant snapshot; will recapture after both sides move")
     rebuildCapturedLists(for: engine.board)
     if send { peers.send(.init(kind: .reset)) }
     saveGame()

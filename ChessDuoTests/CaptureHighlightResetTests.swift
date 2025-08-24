@@ -1,3 +1,20 @@
+import Testing
+@testable import ChessDuo
+
+struct CaptureHighlightResetTests {
+	@Test func liveCaptureHighlightResetsAfterReset() async throws {
+		let fen = "r3k3/8/8/8/8/8/8/R3K3 w - - 0 1"
+		let vm = TestHelpers.freshCleanVM()
+		let game = FamousGame(title: "Capture Reset", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil, category: .endgame)
+		vm.applyFamousGame(game, broadcast: false)
+		let from = Square(file: 0, rank: 0)
+		let to = Square(file: 0, rank: 7)
+		#expect(vm.makeLocalMove(from: from, to: to))
+		#expect(vm.lastCapturedPieceID != nil)
+		vm.performLocalReset(send: false)
+		#expect(vm.lastCapturedPieceID == nil, "Reset should clear lastCapturedPieceID")
+	}
+}
 //import Testing
 //@testable import ChessDuo
 //

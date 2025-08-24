@@ -59,11 +59,35 @@ extension GameViewModel {
     let whiteCapturedPieces: [Piece]
     let blackCapturedPieces: [Piece]
   }
+  struct GamePersistedV5: Codable { // adds participants snapshot
+    let version: Int
+    let engine: ChessEngine
+    let myColor: PieceColor?
+    let capturedByMe: [Piece]
+    let capturedByOpponent: [Piece]
+    let movesMade: Int
+    let lastMove: Move?
+    let lastCapturedPieceID: UUID?
+    let lastCaptureByMe: Bool?
+    let moveHistory: [Move]
+    let baselineBoard: Board
+    let baselineSideToMove: PieceColor
+    let whiteCapturedPieces: [Piece]
+    let blackCapturedPieces: [Piece]
+    let sessionParticipants: [String]?
+  }
 
   var saveURL: URL {
     let fm = FileManager.default
     let base = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-    let dir = base.appendingPathComponent("ChessDuo", isDirectory: true)
+    // If running inside a test bundle, segregate persistence to avoid colliding with on-device prod data.
+    #if DEBUG
+    let isTesting: Bool = (NSClassFromString("XCTestCase") != nil)
+    #else
+    let isTesting: Bool = false
+    #endif
+    let folderName = isTesting ? "ChessDuo-Test" : "ChessDuo"
+    let dir = base.appendingPathComponent(folderName, isDirectory: true)
     if !fm.fileExists(atPath: dir.path) {
       try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
     }
@@ -71,7 +95,7 @@ extension GameViewModel {
   }
 
   func saveGame() {
-  let snapshot = GamePersistedV4(version: 4,
+  let snapshot = GamePersistedV5(version: 5,
                    engine: engine,
                    myColor: myColor,
                    capturedByMe: capturedByMe,
@@ -84,7 +108,8 @@ extension GameViewModel {
                    baselineBoard: baselineBoard,
                    baselineSideToMove: baselineSideToMove,
                    whiteCapturedPieces: whiteCapturedPieces,
-                   blackCapturedPieces: blackCapturedPieces)
+                   blackCapturedPieces: blackCapturedPieces,
+                   sessionParticipants: sessionParticipantsSnapshot)
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.withoutEscapingSlashes]
     do {
@@ -102,7 +127,30 @@ extension GameViewModel {
     let url = saveURL
     guard let data = try? Data(contentsOf: url) else { return }
     let decoder = JSONDecoder()
-    if let v4 = try? decoder.decode(GamePersistedV4.self, from: data) {
+    if let v5 = try? decoder.decode(GamePersistedV5.self, from: data) {
+      print("[PERSIST] Loading V5 game: moves=\(v5.movesMade) myColor=\(String(describing: v5.myColor)) lastMove=\(String(describing: v5.lastMove)) participants=\(String(describing: v5.sessionParticipants))")
+      engine = v5.engine
+      myColor = v5.myColor
+      capturedByMe = v5.capturedByMe
+      capturedByOpponent = v5.capturedByOpponent
+      movesMade = v5.movesMade
+      lastMove = v5.lastMove
+      lastCapturedPieceID = v5.lastCapturedPieceID
+      lastCaptureByMe = v5.lastCaptureByMe
+      moveHistory = v5.moveHistory
+      baselineBoard = v5.baselineBoard
+      baselineSideToMove = v5.baselineSideToMove
+      baselineCounts = pieceCounts(on: baselineBoard)
+      baselineTrusted = true
+      boardSnapshots = []
+      whiteCapturedPieces = v5.whiteCapturedPieces
+      blackCapturedPieces = v5.blackCapturedPieces
+      sessionParticipantsSnapshot = v5.sessionParticipants
+      if let snap = sessionParticipantsSnapshot, snap.count >= 2 {
+        actualParticipants = Set(snap)
+      }
+    } else if let v4 = try? decoder.decode(GamePersistedV4.self, from: data) {
+      print("[PERSIST] Loading V4 game: moves=\(v4.movesMade) myColor=\(String(describing: v4.myColor)) lastMove=\(String(describing: v4.lastMove))")
       engine = v4.engine
       myColor = v4.myColor
       capturedByMe = v4.capturedByMe
@@ -117,9 +165,11 @@ extension GameViewModel {
       baselineCounts = pieceCounts(on: baselineBoard)
       baselineTrusted = true
       boardSnapshots = []
+  if let snap = sessionParticipantsSnapshot, snap.count >= 2 { actualParticipants = Set(snap) }
       whiteCapturedPieces = v4.whiteCapturedPieces
       blackCapturedPieces = v4.blackCapturedPieces
     } else if let v3 = try? decoder.decode(GamePersistedV3.self, from: data) {
+      print("[PERSIST] Loading V3 game: moves=\(v3.movesMade) myColor=\(String(describing: v3.myColor)) lastMove=\(String(describing: v3.lastMove))")
       engine = v3.engine
       myColor = v3.myColor
       capturedByMe = v3.capturedByMe
@@ -134,7 +184,9 @@ extension GameViewModel {
       baselineCounts = pieceCounts(on: baselineBoard)
       baselineTrusted = true
       boardSnapshots = []
+      if let snap = sessionParticipantsSnapshot, snap.count >= 2 { actualParticipants = Set(snap) }
     } else if let v2 = try? decoder.decode(GamePersistedV2.self, from: data) {
+      print("[PERSIST] Loading V2 game: moves=\(v2.movesMade) myColor=\(String(describing: v2.myColor)) lastMove=\(String(describing: v2.lastMove))")
       engine = v2.engine
       myColor = v2.myColor
       capturedByMe = v2.capturedByMe
@@ -149,7 +201,9 @@ extension GameViewModel {
       baselineSideToMove = engine.sideToMove
       baselineCounts = pieceCounts(on: baselineBoard)
       baselineTrusted = false
+      if let snap = sessionParticipantsSnapshot, snap.count >= 2 { actualParticipants = Set(snap) }
     } else if let v1 = try? decoder.decode(GamePersistedV1.self, from: data) {
+      print("[PERSIST] Loading V1 game: moves=\(v1.movesMade) myColor=\(String(describing: v1.myColor)) lastMove=\(String(describing: v1.lastMove))")
       engine = v1.engine
       myColor = v1.myColor
       capturedByMe = v1.capturedByMe
@@ -164,9 +218,11 @@ extension GameViewModel {
       baselineSideToMove = engine.sideToMove
       baselineCounts = pieceCounts(on: baselineBoard)
       baselineTrusted = false
+      if let snap = sessionParticipantsSnapshot, snap.count >= 2 { actualParticipants = Set(snap) }
     }
     rebuildSnapshotsFromHistory()
     if let mine = myColor { preferredPerspective = mine }
     sessionProgressed = movesMade > 0
+    print("[PERSIST] Loaded game summary participantsSnap=\(String(describing: sessionParticipantsSnapshot)) moves=\(movesMade) opp=\(opponentName ?? "<none>")")
   }
 }

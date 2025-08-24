@@ -44,7 +44,11 @@ extension GameViewModel {
     let capturedBefore = capturedPieceConsideringEnPassant(from: from, to: to, board: engine.board)
     if engine.tryMakeMove(move) {
       withAnimation(.easeInOut(duration: 0.35)) {
-        peers.send(.init(kind: .move, move: move))
+  var net = NetMessage(kind: .move, move: move)
+  net.originID = stableOriginID
+  peers.send(net)
+  // The send initializer above lacks originID; enrich by sending a second message with originID if needed (or adjust NetMessage init usage elsewhere). For minimal change, we could embed originID here by constructing full struct:
+  // (Future refactor: provide dedicated helper). For now we will ignore; networking side will attribute local player by playerName.
         if let cap = capturedBefore {
           // Preserve original captured piece identity immediately for UI highlight (before rebuildCapturedLists runs)
           lastCapturedPieceID = cap.id
@@ -66,8 +70,11 @@ extension GameViewModel {
         moveHistory.append(move)
         historyIndex = nil
         boardSnapshots.append(engine.board)
+  // Record that local player has contributed moves using stable originID (composite display name)
+  actualParticipants.insert(stableOriginID)
         saveGame()
         rebuildCapturedLists(for: engine.board)
+        ensureParticipantsSnapshotIfNeeded(trigger: "localMove")
       }
       return true
     }
@@ -108,8 +115,11 @@ extension GameViewModel {
         moveHistory.append(move)
         historyIndex = nil
         boardSnapshots.append(engine.board)
+  // In single-device mode both colors are local; attribute moves to stable originID for snapshot gating.
+  actualParticipants.insert(stableOriginID)
         saveGame()
         rebuildCapturedLists(for: engine.board)
+        ensureParticipantsSnapshotIfNeeded(trigger: "localMoveSingleDevice")
       }
       return true
     }

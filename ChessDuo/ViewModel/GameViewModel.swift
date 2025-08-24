@@ -14,6 +14,9 @@ final class GameViewModel: ObservableObject {
   // New: Player name persistence and publication
   @AppStorage("playerName") private var storedPlayerName: String = ""
   @Published var playerName: String = UIDevice.current.name // default device name
+  // Stable device identity used for participant attribution across app restarts (decoupled from Multipeer peerID which can change).
+  @AppStorage("stableDeviceID") private var stableDeviceID: String = ""
+  var stableOriginID: String { stableDeviceID }
   @Published var showInitialNamePrompt: Bool = false
   // New onboarding sequencing: show an in-app explanation before triggering iOS local network permission prompt.
   @AppStorage("hasSeenNetworkPermissionIntro") var hasSeenNetworkPermissionIntro: Bool = false
@@ -98,6 +101,10 @@ final class GameViewModel: ObservableObject {
   // Board snapshots after each applied move (index 0 = initial position, i = board after i moves).
   // Provides stable Piece.id continuity across adjacent history states for matchedGeometryEffect animations.
   @Published var boardSnapshots: [Board] = []
+  // Snapshot of participant names at session start (used to validate sync origin)
+  @Published var sessionParticipantsSnapshot: [String]? = nil
+  // Tracks participants who have actually made at least one move this session (dynamic, not persisted directly; snapshot is persisted)
+  var actualParticipants: Set<String> = []
   // Remote history view sync
   @Published var remoteIsDrivingHistoryView: Bool = false // true while we reflect a peer's slider movement
   var suppressHistoryViewBroadcast = false // internal for history/broadcast logic in extensions
@@ -198,6 +205,19 @@ final class GameViewModel: ObservableObject {
     let fileChar = files[files.index(files.startIndex, offsetBy: sq.file)]
     return "\(fileChar)\(sq.rank + 1)"
   }
+  // Capture participants snapshot lazily once we have at least one opponent name and moves (or a connected peer)
+  func ensureParticipantsSnapshotIfNeeded(trigger: String) {
+    // Already captured? keep it stable forever.
+    if sessionParticipantsSnapshot != nil { return }
+    // Capture only once we have at least one actual move from each distinct participant (>=2 for multiplayer).
+    // actualParticipants is populated lazily when moves are made (see move execution paths).
+    if actualParticipants.count >= 2 {
+      let snap = Array(actualParticipants).sorted()
+      sessionParticipantsSnapshot = snap
+      print("[PARTICIPANTS] Captured snapshot via \(trigger): \(snap)")
+      saveGame()
+    }
+  }
   // MARK: - Baseline-aware capture reconstruction (for history & FEN starts)
   // Widened to fileprivate so persistence & capture reconstruction can reuse.
   func pieceCounts(on board: Board) -> [PieceColor: [PieceType:Int]] {
@@ -246,7 +266,7 @@ final class GameViewModel: ObservableObject {
     ensureArchive(color: .black, missing: blackMissing)
 
     let perspective: PieceColor = myColor ?? preferredPerspective
-    let opponentColor: PieceColor = perspective.opposite
+  // opponentColor not needed here; perspective lists derived directly
 
     // Build perspective-relative lists from archives, trimming to the missing counts per type (ordered by capture chronology)
     func listFor(color: PieceColor, missing: [PieceType:Int]) -> [Piece] {
@@ -337,6 +357,8 @@ final class GameViewModel: ObservableObject {
   }
 
   init() {
+  // Ensure stable device UUID exists
+    if stableDeviceID.isEmpty { stableDeviceID = UUID().uuidString }
   // 1. Determine initial player name & whether we must show the name chooser.
     if storedPlayerName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
       playerName = UIDevice.current.name
@@ -381,6 +403,20 @@ final class GameViewModel: ObservableObject {
     baselineTrusted = true
   }
   rebuildCapturedLists(for: engine.board)
+    // Migrate legacy participant snapshot entries that used volatile peer composite names to the stableOriginID.
+    if var snap = sessionParticipantsSnapshot, !snap.contains(stableOriginID) {
+      // Replace any entry whose baseName matches playerName (legacy local identity) with stableOriginID
+      var changed = false
+      for i in 0..<snap.count {
+        let base = Self.baseName(from: snap[i])
+        if base == playerName { snap[i] = stableOriginID; changed = true }
+      }
+      if changed {
+        sessionParticipantsSnapshot = snap.sorted()
+        saveGame()
+        print("[PARTICIPANTS] Migrated legacy snapshot -> stable IDs: \(snap)")
+      }
+    }
     peers.onMessage = { [weak self] msg in
       self?.handle(msg)
     }
@@ -586,7 +622,9 @@ final class GameViewModel: ObservableObject {
 
   private func sendHello(force: Bool = false) {
     if force { hasSentHello = false }
-    peers.send(.init(kind: .hello, move: nil, color: myColor, deviceName: playerName))
+    var msg = NetMessage(kind: .hello, move: nil, color: myColor, deviceName: playerName)
+    msg.originID = stableOriginID
+    peers.send(msg)
   }
 }
 

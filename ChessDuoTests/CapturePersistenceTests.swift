@@ -6,7 +6,7 @@ struct CapturePersistenceTests {
     let fen = "r3k3/8/8/8/8/8/8/R3K3 w - - 0 1"
     // Session 1: perform capture
     do {
-      let vm = GameViewModel()
+      let vm = TestHelpers.freshCleanVM()
       let game = FamousGame(title: "Persist Capture", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil, category: .endgame)
       vm.applyFamousGame(game, broadcast: false)
       let from = Square(file: 0, rank: 0)
@@ -17,6 +17,7 @@ struct CapturePersistenceTests {
     }
     // Session 2: load and verify id still present
     do {
+      // Important: use a plain GameViewModel so we don't delete the file we just saved.
       let vm = GameViewModel()
       vm.loadGameIfAvailable()
       #expect(vm.moveHistory.count == 1)

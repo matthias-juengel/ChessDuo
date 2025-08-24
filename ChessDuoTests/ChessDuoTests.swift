@@ -240,4 +240,61 @@ struct ChessDuoTests {
             #expect(rLive.whiteCaptures.isEmpty && rLive.blackCaptures.isEmpty)
         }
     }
+
+    @Test func participantMismatchForcesReset() async throws {
+        // Simulate acceptance of a remote syncState with different participants
+        let vm = GameViewModel()
+        // Pretend we already made some local moves with an opponent A
+        vm.performLocalReset(send: false)
+        // Local participants snapshot currently [localName] only (no opponent yet). We forge a remote message with different participants.
+        let remoteMsg = NetMessage(kind: .syncState,
+                                   move: nil,
+                                   color: nil,
+                                   deviceName: "AlienOpponent",
+                                   board: Board.initial(),
+                                   sideToMove: .white,
+                                   movesMade: 4,
+                                   capturedByMe: [],
+                                   capturedByOpponent: [],
+                                   lastMoveFrom: nil,
+                                   lastMoveTo: nil,
+                                   lastCapturedPieceID: nil,
+                                   lastCaptureByMe: nil,
+                                   moveHistory: [],
+                                   sessionParticipants: ["AlienOpponent","SomeOther"])
+        vm.handle(remoteMsg)
+        // Because participants mismatch, we expect a reset: movesMade stays 0
+        #expect(vm.movesMade == 0, "Expected forced reset leaving movesMade == 0 after participant mismatch")
+    }
+
+    @Test func soloRemoteProgressedSnapshotIsRejected() async throws {
+        let vm = GameViewModel()
+        // Remote tries to push progressed game with only 1 participant; should be rejected and we stay at 0 moves.
+        var engine = ChessEngine()
+        // Build 2 half-moves locally in a temp engine to craft board
+        let e2 = Square(file: 4, rank: 1)
+        let e4 = Square(file: 4, rank: 3)
+        if let mv1 = engine.generateLegalMoves(for: .white).first(where: { $0.from.file == e2.file && $0.from.rank == e2.rank && $0.to.file == e4.file && $0.to.rank == e4.rank }) { _ = engine.tryMakeMove(mv1) }
+        let e7 = Square(file: 4, rank: 6)
+        let e5 = Square(file: 4, rank: 4)
+        if let mv2 = engine.generateLegalMoves(for: .black).first(where: { $0.from.file == e7.file && $0.from.rank == e7.rank && $0.to.file == e5.file && $0.to.rank == e5.rank }) { _ = engine.tryMakeMove(mv2) }
+        let board = engine.board
+        let remoteMsg = NetMessage(kind: .syncState,
+                                   move: nil,
+                                   color: nil,
+                                   deviceName: vm.playerName,
+                                   board: board,
+                                   sideToMove: engine.sideToMove,
+                                   movesMade: 2,
+                                   capturedByMe: [],
+                                   capturedByOpponent: [],
+                                   lastMoveFrom: nil,
+                                   lastMoveTo: nil,
+                                   lastCapturedPieceID: nil,
+                                   lastCaptureByMe: nil,
+                                   moveHistory: [],
+                                   sessionParticipants: [vm.stableOriginID])
+        vm.handle(remoteMsg)
+        #expect(vm.movesMade == 0, "Solo progressed remote snapshot should be rejected (remain at 0 moves)")
+    }
 }

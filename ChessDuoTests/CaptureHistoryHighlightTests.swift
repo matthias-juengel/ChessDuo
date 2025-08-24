@@ -5,7 +5,7 @@ struct CaptureHistoryHighlightTests {
   @Test func historicalHighlightUsesCapturedPieceID() async throws {
     // Position enabling immediate capture: white rook a1, black knight a8, kings present.
     let fen = "r3k3/8/8/8/8/8/8/R3K3 w - - 0 1"
-    let vm = GameViewModel()
+      let vm = TestHelpers.freshCleanVM()
     let game = FamousGame(title: "History Capture", players: "", description: "", moves: [], pgn: nil, initialFEN: fen, localizations: nil, category: .endgame)
     vm.applyFamousGame(game, broadcast: false)
     let from = Square(file: 0, rank: 0)

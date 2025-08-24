@@ -51,7 +51,7 @@ struct Move: Codable {
     }
 }
 
-struct NetMessage: Codable {
+struct NetMessage {
     enum Kind: String, Codable {
         case move, reset, hello
         case proposeRole // sent by lexicographically smaller peer, proposes it will be white
@@ -99,4 +99,62 @@ struct NetMessage: Codable {
     var gameTitle: String? = nil
     // For famous games or custom starts: include initial FEN so receiver can set baseline identically
     var initialFEN: String? = nil
+    // Participants (player names) for session ownership / sync gating (sorted, 1 or 2 entries)
+    var sessionParticipants: [String]? = nil
+    // Stable sender/device identity (composite peerID displayName with unique suffix). Used for participant attribution.
+    var originID: String? = nil
+}
+
+extension NetMessage: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case kind, move, color, deviceName, board, sideToMove, movesMade, capturedByMe, capturedByOpponent, lastMoveFrom, lastMoveTo, lastCapturedPieceID, lastCaptureByMe, moveHistory, revertToCount, historyViewIndex, gameTitle, initialFEN, sessionParticipants, originID
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        kind = try c.decode(Kind.self, forKey: .kind)
+        move = try c.decodeIfPresent(Move.self, forKey: .move)
+        color = try c.decodeIfPresent(PieceColor.self, forKey: .color)
+        deviceName = try c.decodeIfPresent(String.self, forKey: .deviceName)
+        board = try c.decodeIfPresent(Board.self, forKey: .board)
+        sideToMove = try c.decodeIfPresent(PieceColor.self, forKey: .sideToMove)
+        movesMade = try c.decodeIfPresent(Int.self, forKey: .movesMade)
+        capturedByMe = try c.decodeIfPresent([Piece].self, forKey: .capturedByMe)
+        capturedByOpponent = try c.decodeIfPresent([Piece].self, forKey: .capturedByOpponent)
+        lastMoveFrom = try c.decodeIfPresent(Square.self, forKey: .lastMoveFrom)
+        lastMoveTo = try c.decodeIfPresent(Square.self, forKey: .lastMoveTo)
+        lastCapturedPieceID = try c.decodeIfPresent(UUID.self, forKey: .lastCapturedPieceID)
+        lastCaptureByMe = try c.decodeIfPresent(Bool.self, forKey: .lastCaptureByMe)
+        moveHistory = try c.decodeIfPresent([Move].self, forKey: .moveHistory)
+        revertToCount = try c.decodeIfPresent(Int.self, forKey: .revertToCount)
+        historyViewIndex = try c.decodeIfPresent(Int.self, forKey: .historyViewIndex)
+        gameTitle = try c.decodeIfPresent(String.self, forKey: .gameTitle)
+        initialFEN = try c.decodeIfPresent(String.self, forKey: .initialFEN)
+        sessionParticipants = try c.decodeIfPresent([String].self, forKey: .sessionParticipants)
+        originID = try c.decodeIfPresent(String.self, forKey: .originID)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(kind, forKey: .kind)
+        try c.encodeIfPresent(move, forKey: .move)
+        try c.encodeIfPresent(color, forKey: .color)
+        try c.encodeIfPresent(deviceName, forKey: .deviceName)
+        try c.encodeIfPresent(board, forKey: .board)
+        try c.encodeIfPresent(sideToMove, forKey: .sideToMove)
+        try c.encodeIfPresent(movesMade, forKey: .movesMade)
+        try c.encodeIfPresent(capturedByMe, forKey: .capturedByMe)
+        try c.encodeIfPresent(capturedByOpponent, forKey: .capturedByOpponent)
+        try c.encodeIfPresent(lastMoveFrom, forKey: .lastMoveFrom)
+        try c.encodeIfPresent(lastMoveTo, forKey: .lastMoveTo)
+        try c.encodeIfPresent(lastCapturedPieceID, forKey: .lastCapturedPieceID)
+        try c.encodeIfPresent(lastCaptureByMe, forKey: .lastCaptureByMe)
+        try c.encodeIfPresent(moveHistory, forKey: .moveHistory)
+        try c.encodeIfPresent(revertToCount, forKey: .revertToCount)
+        try c.encodeIfPresent(historyViewIndex, forKey: .historyViewIndex)
+        try c.encodeIfPresent(gameTitle, forKey: .gameTitle)
+        try c.encodeIfPresent(initialFEN, forKey: .initialFEN)
+        try c.encodeIfPresent(sessionParticipants, forKey: .sessionParticipants)
+        try c.encodeIfPresent(originID, forKey: .originID)
+    }
 }
