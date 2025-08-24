@@ -64,7 +64,7 @@ private extension GameScreenOverlays {
       if vm.peers.isConnected {
         if vm.incomingResetRequest {
           IncomingResetRequestOverlay(
-            message: String.loc("opponent_requests_reset"),
+            message: vm.localizedIncomingResetRequestMessage,
             acceptTitle: String.loc("reset_accept_yes"),
             declineTitle: String.loc("reset_accept_no"),
             onAccept: { vm.respondToResetRequest(accept: true) },
@@ -74,7 +74,7 @@ private extension GameScreenOverlays {
         if vm.awaitingResetConfirmation {
           AwaitingResetOverlay(
             cancelTitle: String.loc("reset_cancel_request"),
-            message: String.loc("reset_request_sent"),
+            message: vm.localizedAwaitingResetConfirmationMessage,
             onCancel: { vm.respondToResetRequest(accept: false) }
           )
         }

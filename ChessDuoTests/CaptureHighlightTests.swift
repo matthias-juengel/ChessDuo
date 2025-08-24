@@ -24,3 +24,4 @@ struct CaptureHighlightTests {
     #expect(capturedIDs.contains(vm.lastCapturedPieceID!), "Captured list should include captured piece id immediately")
   }
 }
+  

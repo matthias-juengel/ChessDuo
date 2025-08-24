@@ -9,12 +9,12 @@
 "loss_text" = "Du bist Matt";
 "draw_text" = "Remis";
 "play_black" = "Schwarz spielen";
-"reset_accept_title" = "Reset annehmen?";
+"reset_accept_title" = "Neues Spiel?";
 "yes" = "Ja";
 "no" = "Nein";
-"opponent_requests_reset" = "Der Gegner möchte die Partie zurücksetzen.";
+"opponent_requests_reset" = "%@ möchte ein neues Spiel starten.";
 "awaiting_confirmation_title" = "Warte auf Bestätigung";
-"reset_request_sent" = "Warte auf den anderen...";
+"reset_request_sent" = "Warte auf Bestätigung durch %@";
 "cancel" = "Abbrechen";
 "found_devices_section" = "Gefundene Geräte";
 "join_title" = "Beitreten?";
@@ -23,7 +23,7 @@
 "no_other_devices" = "Keine anderen Geräte verbunden";
 "incoming_join_title" = "Verbindungsanfrage";
 "incoming_join_message" = "%@ möchte sich verbinden. Annehmen?";
-"reset_accept_yes" = "Spiel abbrechen"; // accept reset -> abort current game
+"reset_accept_yes" = "Neues Spiel"; // accept reset -> start new game
 "reset_accept_no" = "Weiterspielen"; // decline reset -> keep playing
 "reset_cancel_request" = "Doch weiterspielen"; // requester cancels reset
 "offline_new_game_title" = "Wirklich neues Spiel starten?";

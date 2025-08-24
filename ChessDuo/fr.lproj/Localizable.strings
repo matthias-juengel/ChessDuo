@@ -9,12 +9,12 @@
 "loss_text" = "Vous êtes échec et mat";
 "draw_text" = "Nulle";
 "play_black" = "Jouer Noir";
-"reset_accept_title" = "Accepter le reset ?";
+"reset_accept_title" = "Nouvelle partie ?";
 "yes" = "Oui";
 "no" = "Non";
-"opponent_requests_reset" = "L'adversaire veut réinitialiser la partie.";
+"opponent_requests_reset" = "%@ veut commencer une nouvelle partie.";
 "awaiting_confirmation_title" = "En attente de confirmation";
-"reset_request_sent" = "On attend l'autre joueur...";
+"reset_request_sent" = "En attente de la confirmation de %@";
 "cancel" = "Annuler";
 "found_devices_section" = "Appareils trouvés";
 "join_title" = "Rejoindre ?";
@@ -23,7 +23,7 @@
 "no_other_devices" = "Aucun autre appareil connecté";
 "incoming_join_title" = "Demande de connexion";
 "incoming_join_message" = "%@ souhaite se connecter. Accepter ?";
-"reset_accept_yes" = "Abandonner la partie"; // accept reset
+"reset_accept_yes" = "Nouvelle partie"; // accept reset -> start new game
 "reset_accept_no" = "Continuer"; // decline reset
 "reset_cancel_request" = "Continuer à jouer"; // requester cancels reset
 "offline_new_game_title" = "Vraiment recommencer ?";

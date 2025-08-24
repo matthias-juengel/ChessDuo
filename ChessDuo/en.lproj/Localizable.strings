@@ -9,12 +9,12 @@
 "loss_text" = "You are checkmated";
 "draw_text" = "Draw";
 "play_black" = "Play Black";
-"reset_accept_title" = "Accept reset?";
+"reset_accept_title" = "New Game?";
 "yes" = "Yes";
 "no" = "No";
-"opponent_requests_reset" = "Opponent wants to reset the game.";
+"opponent_requests_reset" = "%@ wants to start a new game.";
 "awaiting_confirmation_title" = "Waiting for confirmation";
-"reset_request_sent" = "Waiting for other player...";
+"reset_request_sent" = "Waiting for confirmation from %@";
 "cancel" = "Cancel";
 "found_devices_section" = "Found Devices";
 "join_title" = "Join?";
@@ -23,7 +23,7 @@
 "no_other_devices" = "No other devices connected";
 "incoming_join_title" = "Join Request";
 "incoming_join_message" = "%@ wants to connect. Accept?";
-"reset_accept_yes" = "Abort Game"; // accept reset -> abort current game
+"reset_accept_yes" = "New Game"; // accept reset -> start new game
 "reset_accept_no" = "Keep Playing"; // decline reset -> keep playing
 "reset_cancel_request" = "Keep Playing"; // requester cancels reset
 "offline_new_game_title" = "Really start a new game?";

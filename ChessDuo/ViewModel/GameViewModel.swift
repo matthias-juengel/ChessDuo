@@ -299,6 +299,18 @@ final class GameViewModel: ObservableObject {
     guard !networkingApproved else { return }
     if !showNetworkPermissionIntro { showNetworkPermissionIntro = true }
   }
+
+  // MARK: - Localized UI Helpers (Reset Negotiation)
+  /// Localized message for incoming reset request (parameterized with opponent name if available)
+  var localizedIncomingResetRequestMessage: String {
+    let name = opponentName ?? String.loc("turn_black") // fallback arbitrary
+    return String.loc("opponent_requests_reset", name)
+  }
+  /// Localized message while we wait for opponent confirmation after sending reset request.
+  var localizedAwaitingResetConfirmationMessage: String {
+    let name = opponentName ?? String.loc("you_mark")
+    return String.loc("reset_request_sent", name)
+  }
   // Heuristic: after starting networking, if no peers discovered/connected after a grace period, assume permission denied.
   @Published var localNetworkPermissionLikelyDenied: Bool = false
   @Published var showLocalNetworkPermissionHelp: Bool = false
