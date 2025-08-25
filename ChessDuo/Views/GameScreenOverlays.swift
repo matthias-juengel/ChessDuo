@@ -89,9 +89,10 @@ private extension GameScreenOverlays {
         if let target = vm.incomingHistoryRevertRequest {
           let delta = max(0, vm.movesMade - target)
           let name = vm.opponentName ?? String.loc("turn_black")
+          let requestKey = delta == 1 ? "opponent_requests_history_revert_one" : "opponent_requests_history_revert_other"
           IncomingResetRequestOverlay( // reuse styling
             titleKey: "history_revert_title",
-            message: String.loc("opponent_requests_history_revert", name, String(delta)),
+            message: String.loc(requestKey, name, String(delta)),
             acceptTitle: String.loc("history_revert_accept_yes"),
             declineTitle: String.loc("history_revert_accept_no"),
             onAccept: { vm.respondToHistoryRevertRequest(accept: true) },
@@ -99,9 +100,13 @@ private extension GameScreenOverlays {
           )
         }
         if vm.awaitingHistoryRevertConfirmation {
+          let target = vm.requestedHistoryRevertTarget ?? vm.movesMade
+          let delta = max(0, vm.movesMade - target)
+          let name = vm.opponentName ?? String.loc("turn_black")
+          let awaitingKey = delta == 1 ? "history_revert_request_sent_one" : "history_revert_request_sent_other"
           AwaitingResetOverlay(
             cancelTitle: String.loc("history_revert_cancel_request"),
-            message: String.loc("history_revert_request_sent"),
+            message: String.loc(awaitingKey, name, String(delta)),
             onCancel: { vm.cancelPendingHistoryRevertRequest() }
           )
         }
@@ -117,9 +122,10 @@ private extension GameScreenOverlays {
           )
         }
         if vm.awaitingLoadGameConfirmation {
+          let name = vm.opponentName ?? String.loc("turn_black")
           AwaitingResetOverlay(
             cancelTitle: String.loc("load_game_cancel_request"),
-            message: String.loc("load_game_request_sent"),
+            message: String.loc("load_game_request_sent", name),
             onCancel: {
               // Cancel outgoing load request: send decline and clear state
               vm.respondToLoadGameRequest(accept: false)

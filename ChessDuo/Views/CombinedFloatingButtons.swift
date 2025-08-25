@@ -36,11 +36,12 @@ struct CombinedFloatingButtons: View {
     // Display number of moves stepped back (negative delta) when in history view.
     if let idx = vm.historyIndex, vm.movesMade > idx {
       let delta = vm.movesMade - idx
+      let deltaKey = delta == 1 ? "history_delta_badge_accessibility_one" : "history_delta_badge_accessibility_other"
        Text("-\(delta)")
          .font(.system(size: 15, weight: .semibold))
          .foregroundColor(.white)
          .frame(minWidth: 34)
-         .accessibilityLabel(String.loc("history_delta_badge_accessibility", String(delta)))
+         .accessibilityLabel(String.loc(deltaKey, String(delta)))
     }
   }
 

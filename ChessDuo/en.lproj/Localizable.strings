@@ -14,7 +14,7 @@
 "no" = "No";
 "opponent_requests_reset" = "%@ wants to start a new game.";
 "awaiting_confirmation_title" = "Waiting for confirmation";
-"reset_request_sent" = "Waiting for confirmation from %@";
+"reset_request_sent" = "Waiting for %@ to confirm starting a new game…";
 "cancel" = "Cancel";
 "found_devices_section" = "Found Devices";
 "join_title" = "Join?";
@@ -85,13 +85,16 @@
 /* History revert */
 "history_revert_button" = "Restart from this position";
 "history_close_button" = "Close history";
-"opponent_requests_history_revert" = "%@ wants to undo %@ moves.";
-"history_delta_badge_accessibility" = "%@ moves undone.";
+"opponent_requests_history_revert_one" = "%@ wants to undo 1 move.";
+"opponent_requests_history_revert_other" = "%@ wants to undo %@ moves.";
+"history_delta_badge_accessibility_one" = "1 move undone.";
+"history_delta_badge_accessibility_other" = "%@ moves undone.";
 "history_revert_title" = "Undo moves?";
 "history_revert_accept_yes" = "Yes";
 "history_revert_accept_no" = "No";
 "history_revert_cancel_request" = "Keep Current";
-"history_revert_request_sent" = "Waiting for other player to confirm restart...";
+"history_revert_request_sent_one" = "Waiting for %@ to confirm reverting %@ move…";
+"history_revert_request_sent_other" = "Waiting for %@ to confirm reverting %@ moves…";
 "history_revert_short" = "From here";
 "menu_show_history" = "Show History";
 "history_undo_button" = "View previous move";
@@ -102,7 +105,7 @@
 "load_game_accept_yes" = "Load Game";
 "load_game_accept_no" = "Keep Current";
 "load_game_cancel_request" = "Keep Current";
-"load_game_request_sent" = "Waiting for other player to confirm load...";
+"load_game_request_sent" = "Waiting for %@ to confirm loading the game…";
 
 /* Name change */
 "menu_change_name_title" = "Change Name (%@)";

@@ -14,7 +14,7 @@
 "no" = "No";
 "opponent_requests_reset" = "%@ quiere empezar una nueva partida.";
 "awaiting_confirmation_title" = "Esperando confirmación";
-"reset_request_sent" = "Esperando confirmación de %@";
+"reset_request_sent" = "Esperando a %@ para confirmar iniciar una nueva partida…";
 "cancel" = "Cancelar";
 "found_devices_section" = "Dispositivos encontrados";
 "join_title" = "¿Unirse?";
@@ -69,13 +69,16 @@
 /* History revert */
 "history_revert_button" = "Reiniciar desde esta posición";
 "history_close_button" = "Cerrar historial";
-"opponent_requests_history_revert" = "%@ quiere deshacer %@ jugadas.";
-"history_delta_badge_accessibility" = "%@ jugadas deshechas.";
+"opponent_requests_history_revert_one" = "%@ quiere deshacer 1 jugada.";
+"opponent_requests_history_revert_other" = "%@ quiere deshacer %@ jugadas.";
+"history_delta_badge_accessibility_one" = "1 jugada deshecha.";
+"history_delta_badge_accessibility_other" = "%@ jugadas deshechas.";
 "history_revert_title" = "¿Deshacer jugadas?";
 "history_revert_accept_yes" = "Sí";
 "history_revert_accept_no" = "No";
 "history_revert_cancel_request" = "Mantener";
-"history_revert_request_sent" = "Esperando confirmación del reinicio...";
+"history_revert_request_sent_one" = "Esperando a %@ para confirmar revertir %@ jugada…";
+"history_revert_request_sent_other" = "Esperando a %@ para confirmar revertir %@ jugadas…";
 "history_revert_short" = "Desde aquí";
 "menu_show_history" = "Ver historial";
 "history_undo_button" = "Ver jugada anterior";
@@ -86,7 +89,7 @@
 "load_game_accept_yes" = "Cargar";
 "load_game_accept_no" = "Mantener";
 "load_game_cancel_request" = "Mantener";
-"load_game_request_sent" = "Esperando confirmación para cargar...";
+"load_game_request_sent" = "Esperando a %@ para confirmar la carga de la partida…";
 
 /* Cambio de nombre */
 "menu_change_name_title" = "Cambiar nombre (%@)";

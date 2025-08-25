@@ -14,7 +14,7 @@
 "no" = "Nein";
 "opponent_requests_reset" = "%@ möchte ein neues Spiel starten.";
 "awaiting_confirmation_title" = "Warte auf Bestätigung";
-"reset_request_sent" = "Warte auf Bestätigung durch %@";
+"reset_request_sent" = "%@ muss bestätigen, dass ein neues Spiel gestartet wird.";
 "cancel" = "Abbrechen";
 "found_devices_section" = "Gefundene Geräte";
 "join_title" = "Beitreten?";
@@ -24,7 +24,7 @@
 "incoming_join_title" = "Verbindungsanfrage";
 "incoming_join_message" = "%@ möchte sich verbinden. Annehmen?";
 "reset_accept_yes" = "Neues Spiel"; // accept reset -> start new game
-"reset_accept_no" = "Weiterspielen"; // decline reset -> keep playing
+"reset_accept_no" = "Ablehnen"; // decline reset -> keep playing
 "reset_cancel_request" = "Doch weiterspielen"; // requester cancels reset
 "offline_new_game_title" = "Wirklich neues Spiel starten?";
 "offline_new_game_message" = "Die aktuelle Partie wird beendet.";
@@ -69,13 +69,17 @@
 /* History revert */
 "history_revert_button" = "Von dieser Stellung neu starten";
 "history_close_button" = "Verlauf schließen";
-"opponent_requests_history_revert" = "%@ möchte %@ Züge zurückgehen.";
-"history_delta_badge_accessibility" = "%@ Züge zurück.";
+"opponent_requests_history_revert_one" = "%@ möchte 1 Zug zurückgehen.";
+"opponent_requests_history_revert_other" = "%@ möchte %@ Züge zurückgehen.";
+"history_delta_badge_accessibility_one" = "1 Zug zurück.";
+"history_delta_badge_accessibility_other" = "%@ Züge zurück.";
 "history_revert_title" = "Züge zurück?";
 "history_revert_accept_yes" = "Ja";
 "history_revert_accept_no" = "Nein";
-"history_revert_cancel_request" = "Aktuell behalten";
-"history_revert_request_sent" = "Warte auf Bestätigung des Neustarts...";
+"history_revert_cancel_request" = "Doch nicht zurück";
+"history_revert_request_sent_title" = "Warte auf %@";
+"history_revert_request_sent_one" = "%@ muss bestätigen, dass das Spiel 1 Zug zurückgesetzt wird.";
+"history_revert_request_sent_other" = "%@ muss bestätigen, dass das Spiel %@ Züge zurückgesetzt wird.";
 "history_revert_short" = "Ab hier";
 "menu_show_history" = "Spielverlauf";
 "history_undo_button" = "Vorherigen Zug ansehen";
@@ -86,7 +90,7 @@
 "load_game_accept_yes" = "Spiel laden";
 "load_game_accept_no" = "Aktuell behalten";
 "load_game_cancel_request" = "Aktuell behalten";
-"load_game_request_sent" = "Warte auf Bestätigung zum Laden...";
+"load_game_request_sent" = "Warte darauf, dass %@ das Laden bestätigt…";
 
 /* Namensänderung */
 "menu_change_name_title" = "Name ändern (%@)";
