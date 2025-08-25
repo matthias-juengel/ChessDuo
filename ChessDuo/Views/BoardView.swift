@@ -199,14 +199,16 @@ struct BoardView: View {
         let labelColor = isDarkSquare ? lightGray : darkGray
         ZStack {
           if showRankLabel {
-            Text("\(rankNumber)")
+            // Chessboard rank number (1-8) – invariant, do NOT localize
+            Text(verbatim: String(rankNumber))
               .font(AppFonts.boardCoordinate)
               .foregroundColor(labelColor)
               .position(x: g.size.width * 0.15, y: g.size.height * 0.18)
               .accessibilityHidden(true)
           }
           if showFileLabel {
-            Text(fileLetter)
+            // Chessboard file letter (a-h) – invariant, do NOT localize
+            Text(verbatim: fileLetter)
               .font(AppFonts.boardCoordinate)
               .foregroundColor(labelColor)
               .position(x: g.size.width * 0.82, y: g.size.height * 0.82)

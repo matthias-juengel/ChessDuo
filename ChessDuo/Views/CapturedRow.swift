@@ -29,8 +29,8 @@ struct CapturedRow: View {
             )
             .animation(.easeInOut(duration: 0.25), value: highlightPieceID)
         }
-        if pointAdvantage > 0 {
-          Text("+\(pointAdvantage)")
+        if pointAdvantage != 0 { // show both positive and (future) negative if logic changes
+          Text(String.localizedDelta(Int64(pointAdvantage)))
             .font(.system(size: size * 0.8, weight: .semibold))
             .foregroundColor(sortedPieces().first?.color == .white ? .white : .black)
             .rotationEffect(rotatePieces ? .degrees(180) : .degrees(0))

@@ -72,28 +72,3 @@ enum AppFontRole: CaseIterable, Identifiable { // Used only for preview & inspec
     }
   }
 }
-
-// MARK: - Preview Support (Optional)
-#if DEBUG
-struct AppFonts_Preview: View {
-  var body: some View {
-    List {
-      Section("Typography Roles") {
-        ForEach(AppFontRole.allCases) { role in
-          VStack(alignment: .leading, spacing: 2) {
-            Text(String(describing: role)).font(.caption.monospaced())
-            Text("The quick brown fox jumps over 12 lazy dogs.")
-              .font(role.font)
-          }
-          .padding(.vertical, 4)
-        }
-      }
-    }
-    .navigationTitle("Fonts")
-  }
-}
-
-struct AppFonts_Preview_Previews: PreviewProvider {
-  static var previews: some View { NavigationView { AppFonts_Preview() } }
-}
-#endif

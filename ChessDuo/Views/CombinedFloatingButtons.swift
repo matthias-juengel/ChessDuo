@@ -37,11 +37,12 @@ struct CombinedFloatingButtons: View {
     if let idx = vm.historyIndex, vm.movesMade > idx {
       let delta = vm.movesMade - idx
       let deltaKey = delta == 1 ? "history_delta_badge_accessibility_one" : "history_delta_badge_accessibility_other"
-       Text("-\(delta)")
-         .font(.system(size: 15, weight: .semibold))
-         .foregroundColor(.white)
-         .frame(minWidth: 34)
-         .accessibilityLabel(String.loc(deltaKey, String(delta)))
+      // Represent steps back as a negative delta for consistency with other signed formats.
+      Text(String.localizedDelta(-Int64(delta)))
+        .font(.system(size: 15, weight: .semibold))
+        .foregroundColor(.white)
+        .frame(minWidth: 34)
+        .accessibilityLabel(String.loc(deltaKey, String(delta)))
     }
   }
 

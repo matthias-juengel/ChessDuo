@@ -100,7 +100,7 @@ private struct CategorySection: View {
                         .font(.headline.weight(.semibold))
                         .foregroundColor(AppColors.textPrimary)
                     Spacer(minLength: 0)
-                    Text("\(games.count)")
+                    Text(verbatim: "\(games.count)")
                         .font(.caption.weight(.semibold))
                         .foregroundColor(AppColors.textSecondary)
                         .padding(.horizontal, 8)
