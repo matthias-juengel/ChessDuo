@@ -64,6 +64,7 @@ private extension GameScreenOverlays {
       if vm.peers.isConnected {
         if vm.incomingResetRequest {
           IncomingResetRequestOverlay(
+            titleKey: "reset_accept_title",
             message: vm.localizedIncomingResetRequestMessage,
             acceptTitle: String.loc("reset_accept_yes"),
             declineTitle: String.loc("reset_accept_no"),
@@ -89,6 +90,7 @@ private extension GameScreenOverlays {
           let delta = max(0, vm.movesMade - target)
           let name = vm.opponentName ?? String.loc("turn_black")
           IncomingResetRequestOverlay( // reuse styling
+            titleKey: "history_revert_title",
             message: String.loc("opponent_requests_history_revert", name, String(delta)),
             acceptTitle: String.loc("history_revert_accept_yes"),
             declineTitle: String.loc("history_revert_accept_no"),
@@ -106,6 +108,7 @@ private extension GameScreenOverlays {
         // Famous game load negotiation overlays
         if let incomingTitle = vm.incomingLoadGameRequestTitle {
           IncomingResetRequestOverlay(
+            titleKey: "load_game_title",
             message: String.loc("opponent_requests_load_game", incomingTitle),
             acceptTitle: String.loc("load_game_accept_yes"),
             declineTitle: String.loc("load_game_accept_no"),

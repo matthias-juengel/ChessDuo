@@ -33,6 +33,7 @@ struct AwaitingResetOverlay: View {
 
 // Overlay shown when opponent requested a reset.
 struct IncomingResetRequestOverlay: View {
+  let titleKey: String // localization key for title
   let message: String
   let acceptTitle: String
   let declineTitle: String
@@ -43,7 +44,7 @@ struct IncomingResetRequestOverlay: View {
       OverlayBackdrop(onTap: onDecline)
       ModalCard {
         VStack(spacing: 18) {
-          Text(String.loc("reset_accept_title"))
+          Text(String.loc(titleKey))
             .appTitle()
             .multilineTextAlignment(.center)
             .foregroundColor(AppColors.textPrimary)
@@ -71,25 +72,3 @@ struct IncomingResetRequestOverlay: View {
     .zIndex(OverlayZIndex.resetConnected)
   }
 }
-
-#if DEBUG
-struct ResetOverlays_Previews: PreviewProvider {
-  static var previews: some View {
-    Group {
-      AwaitingResetOverlay(
-        cancelTitle: "Cancel",
-        message: "Reset request sent...",
-        onCancel: {}
-      )
-      IncomingResetRequestOverlay(
-        message: "Opponent wants to reset the game.",
-        acceptTitle: "Yes",
-        declineTitle: "No",
-        onAccept: {},
-        onDecline: {}
-      )
-    }
-    .preferredColorScheme(.dark)
-  }
-}
-#endif

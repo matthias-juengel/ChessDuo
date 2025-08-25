@@ -71,8 +71,9 @@
 "history_close_button" = "Cerrar historial";
 "opponent_requests_history_revert" = "%@ quiere deshacer %@ jugadas.";
 "history_delta_badge_accessibility" = "%@ jugadas deshechas.";
-"history_revert_accept_yes" = "Reiniciar";
-"history_revert_accept_no" = "Mantener";
+"history_revert_title" = "¿Deshacer jugadas?";
+"history_revert_accept_yes" = "Sí";
+"history_revert_accept_no" = "No";
 "history_revert_cancel_request" = "Mantener";
 "history_revert_request_sent" = "Esperando confirmación del reinicio...";
 "history_revert_short" = "Desde aquí";

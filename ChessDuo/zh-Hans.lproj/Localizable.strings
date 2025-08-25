@@ -71,8 +71,9 @@
 "history_close_button" = "关闭历史";
 "opponent_requests_history_revert" = "%@ 想撤回 %@ 步。";
 "history_delta_badge_accessibility" = "已撤回 %@ 步。";
-"history_revert_accept_yes" = "重开";
-"history_revert_accept_no" = "保持当前";
+"history_revert_title" = "撤回这些步？";
+"history_revert_accept_yes" = "是";
+"history_revert_accept_no" = "否";
 "history_revert_cancel_request" = "保持当前";
 "history_revert_request_sent" = "等待对手确认重开...";
 "history_revert_short" = "从这里";

@@ -71,8 +71,9 @@
 "history_close_button" = "Fermer l'historique";
 "opponent_requests_history_revert" = "%@ veut annuler %@ coups.";
 "history_delta_badge_accessibility" = "%@ coups annulés.";
-"history_revert_accept_yes" = "Recommencer";
-"history_revert_accept_no" = "Garder";
+"history_revert_title" = "Annuler des coups ?";
+"history_revert_accept_yes" = "Oui";
+"history_revert_accept_no" = "Non";
 "history_revert_cancel_request" = "Garder";
 "history_revert_request_sent" = "En attente de confirmation du redémarrage...";
 "history_revert_short" = "D'ici";
